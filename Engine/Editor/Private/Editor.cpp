@@ -236,12 +236,7 @@ FVector UEditor::GetGizmoDragRotation(FRay& WorldRay)
 	FVector PlaneOrigin{Gizmo.GetGizmoLocation()};
 	FVector GizmoAxis = Gizmo.GetGizmoAxis();
 
-	if (!Gizmo.IsWorldMode())
-	{
-		FVector4 GizmoAxis4{ GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z, 0.0f };
-		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetActorRotation());
-		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
-	}
+	// 회전 기즈모는 로컬 모드에서도 월드 축을 사용 (새로 수정된 부분에서는 아무것도 하지 않음)
 
 	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, GizmoAxis, MouseWorld))
 	{
