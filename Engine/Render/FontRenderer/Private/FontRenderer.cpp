@@ -83,11 +83,11 @@ void UFontRenderer::Release()
     }
 
     // 텍스처 및 샘플러 해제
-    if (FontAtlasTexture)
+    /*if (FontAtlasTexture)
     {
         FontAtlasTexture->Release();
         FontAtlasTexture = nullptr;
-    }
+    }*/
 
     if (FontSampler)
     {
