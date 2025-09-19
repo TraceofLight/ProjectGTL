@@ -255,6 +255,12 @@ void URenderer::RenderLevel()
 				continue;
 			}
 
+			UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
+			if (!StaticMesh)
+			{
+				continue;
+			}
+
 			FRenderState RenderState = PrimitiveComponent->GetRenderState();
 
 			// Get view mode from editor
@@ -269,7 +275,7 @@ void URenderer::RenderLevel()
 			auto& AssetManager = UAssetManager::GetInstance();
 			ID3D11VertexShader* StaticMeshVS = AssetManager.GetVertexShader(EShaderType::StaticMesh);
 			ID3D11PixelShader* StaticMeshPS = AssetManager.GetPixelShader(EShaderType::StaticMesh);
-			ID3D11InputLayout* StaticMeshLayout = AssetManager.GetIputLayout(EShaderType::StaticMesh);
+			ID3D11InputLayout* StaticMeshLayout = AssetManager.GetInputLayout(EShaderType::StaticMesh);
 
 			// 셰이더가 로드되지 않았으면 기본 셰이더 사용
 			if (!StaticMeshVS) StaticMeshVS = DefaultVertexShader;
@@ -290,22 +296,29 @@ void URenderer::RenderLevel()
 			};
 			Pipeline->UpdatePipeline(PipelineInfo);
 
-			// Update pipeline buffers
+			// Update model transformation matrix
 			Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
 			UpdateConstant(
 				PrimitiveComponent->GetRelativeLocation(),
 				PrimitiveComponent->GetRelativeRotation(),
 				PrimitiveComponent->GetRelativeScale3D());
 
+			// Update view and projection matrices
+			const FViewProjConstants& ViewProjConstants = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
+			UpdateConstant(ViewProjConstants);
+
+			// Update material color
 			Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
 			UpdateConstant(PrimitiveComponent->GetColor());
 
 			// StaticMesh는 인덱스 버퍼를 사용하므로 DrawIndexed 호출
-			UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
-			if (StaticMesh && StaticMesh->GetIndexBuffer())
+			if (StaticMesh->GetVertexBuffer() && StaticMesh->GetIndexBuffer())
 			{
-				Pipeline->SetVertexBuffer(PrimitiveComponent->GetVertexBuffer(), Stride);
+				// 정점 버퍼와 인덱스 버퍼 설정
+				Pipeline->SetVertexBuffer(StaticMesh->GetVertexBuffer(), static_cast<uint32>(StaticMesh->GetVertexStride()));
 				Pipeline->SetIndexBuffer(StaticMesh->GetIndexBuffer(), sizeof(uint32));
+
+				// 인덱스를 사용하여 렌더링
 				Pipeline->DrawIndexed(static_cast<uint32>(StaticMesh->GetIndices().size()), 0, 0);
 			}
 		}
