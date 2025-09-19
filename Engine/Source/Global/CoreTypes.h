@@ -27,6 +27,25 @@ struct FVertex
 {
 	FVector Position;
 	FVector4 Color;
+	FVector Normal;
+	FVector2 TextureCoord;
+
+	FVertex() = default;
+
+	FVertex(const FVector& InPosition, const FVector4& InColor, const FVector& InNormal, const FVector2& InTextureCoord)
+		: Position(InPosition), Color(InColor), Normal(InNormal), TextureCoord(InTextureCoord)
+	{
+	}
+
+	FVertex(const FVector& InPosition, const FVector4& InColor)
+		: Position(InPosition), Color(InColor), Normal(FVector(0.0f, 0.0f, 1.0f)), TextureCoord(FVector2(0.0f, 0.0f))
+	{
+	}
+
+	FVertex(const FVector& InPosition)
+		: Position(InPosition), Color(FVector4(1.0f, 1.0f, 1.0f, 1.0f)), Normal(FVector(0.0f, 0.0f, 1.0f)), TextureCoord(FVector2(0.0f, 0.0f))
+	{
+	}
 };
 
 struct FRay

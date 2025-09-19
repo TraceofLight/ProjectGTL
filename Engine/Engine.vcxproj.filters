@@ -3,9 +3,6 @@
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Core\Private\Name.cpp">
-      <Filter>Core\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Actor\Private\Actor.cpp" />
     <ClCompile Include="Source\Actor\Private\CubeActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp" />
@@ -84,26 +81,22 @@
     <ClCompile Include="Source\Render\UI\Window\Private\ExperimentalFeatureWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\MainMenuWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\OutlinerWindow.cpp" />
-    <ClCompile Include="Source\Render\UI\Window\Private\SceneManagerWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\UIWindow.cpp" />
     <ClCompile Include="Source\Utility\Private\JsonSerializer.cpp" />
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp" />
+    <ClCompile Include="Source\Global\Quaternion.cpp" />
+    <ClCompile Include="Source\Render\FontRenderer\Private\FontRenderer.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\ActorDetailWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Window\Private\DetailWindow.cpp" />
+    <ClCompile Include="Source\Texture\Private\Texture.cpp" />
+    <ClCompile Include="Source\Asset\Private\StaticMesh.cpp" />
+    <ClCompile Include="Source\Component\Private\MeshComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Core\Public\Name.h">
-      <Filter>Core\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Public\ClientApp.h">
-      <Filter>Core\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Global\EnumReflection.h">
-      <Filter>Global</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Public\Axis.h">
-      <Filter>Editor\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Actor\Public\Actor.h" />
     <ClInclude Include="Source\Actor\Public\CubeActor.h" />
     <ClInclude Include="Source\Actor\Public\SphereActor.h" />
@@ -198,11 +191,20 @@
     <ClInclude Include="Source\Render\UI\Window\Public\ExperimentalFeatureWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\MainMenuWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\OutlinerWindow.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\SceneManagerWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\UIWindow.h" />
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
     <ClInclude Include="Source\Utility\Public\Metadata.h" />
     <ClInclude Include="Source\Utility\Public\UELogParser.h" />
+    <ClInclude Include="Source\Global\Quaternion.h" />
+    <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\ActorDetailWidget.h" />
+    <ClInclude Include="Source\Render\UI\Window\Public\DetailWindow.h" />
+    <ClInclude Include="Source\Texture\Public\Texture.h" />
+    <ClInclude Include="Source\Asset\Public\StaticMeshData.h" />
+    <ClInclude Include="Source\Asset\Public\StaticMesh.h" />
+    <ClInclude Include="Source\Component\Public\MeshComponent.h" />
+    <ClInclude Include="Source\Component\Public\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Asset\Shader\SampleShader.hlsl">
