@@ -2,11 +2,13 @@
 #include "Render/Renderer/Public/Renderer.h"
 
 #include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/UI/Public/UIManager.h"
-#include "Component/Public/PrimitiveComponent.h"
+#include "Manager/Asset/Public/AssetManager.h"
+//#include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
 
@@ -244,8 +246,72 @@ void URenderer::RenderLevel()
 		{
 			BillBoard = Cast<UBillBoardComponent>(PrimitiveComponent);
 		}
+		else if (PrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMesh)
+		{
+			// StaticMesh 렌더링 (인덱스 버퍼 사용)
+			UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(PrimitiveComponent);
+			if (!StaticMeshComp || !StaticMeshComp->HasValidMeshData())
+			{
+				continue;
+			}
+
+			FRenderState RenderState = PrimitiveComponent->GetRenderState();
+
+			// Get view mode from editor
+			const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
+			if (ViewMode == EViewModeIndex::VMI_Wireframe)
+			{
+				RenderState.CullMode = ECullMode::None;
+				RenderState.FillMode = EFillMode::WireFrame;
+			}
+
+			// StaticMesh 전용 셰이더 사용
+			auto& AssetManager = UAssetManager::GetInstance();
+			ID3D11VertexShader* StaticMeshVS = AssetManager.GetVertexShader(EShaderType::StaticMesh);
+			ID3D11PixelShader* StaticMeshPS = AssetManager.GetPixelShader(EShaderType::StaticMesh);
+			ID3D11InputLayout* StaticMeshLayout = AssetManager.GetIputLayout(EShaderType::StaticMesh);
+
+			// 셰이더가 로드되지 않았으면 기본 셰이더 사용
+			if (!StaticMeshVS) StaticMeshVS = DefaultVertexShader;
+			if (!StaticMeshPS) StaticMeshPS = DefaultPixelShader;
+			if (!StaticMeshLayout) StaticMeshLayout = DefaultInputLayout;
+
+			ID3D11RasterizerState* LoadedRasterizerState = GetRasterizerState(RenderState);
+
+			// Update pipeline info
+			FPipelineInfo PipelineInfo = {
+				StaticMeshLayout,
+				StaticMeshVS,
+				LoadedRasterizerState,
+				DefaultDepthStencilState,
+				StaticMeshPS,
+				nullptr,
+				D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+			};
+			Pipeline->UpdatePipeline(PipelineInfo);
+
+			// Update pipeline buffers
+			Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
+			UpdateConstant(
+				PrimitiveComponent->GetRelativeLocation(),
+				PrimitiveComponent->GetRelativeRotation(),
+				PrimitiveComponent->GetRelativeScale3D());
+
+			Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+			UpdateConstant(PrimitiveComponent->GetColor());
+
+			// StaticMesh는 인덱스 버퍼를 사용하므로 DrawIndexed 호출
+			UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
+			if (StaticMesh && StaticMesh->GetIndexBuffer())
+			{
+				Pipeline->SetVertexBuffer(PrimitiveComponent->GetVertexBuffer(), Stride);
+				Pipeline->SetIndexBuffer(StaticMesh->GetIndexBuffer(), sizeof(uint32));
+				Pipeline->DrawIndexed(static_cast<uint32>(StaticMesh->GetIndices().size()), 0, 0);
+			}
+		}
 		else
 		{
+			// 기본 프리미티브 렌더링
 			FRenderState RenderState = PrimitiveComponent->GetRenderState();
 
 			// Get view mode from editor

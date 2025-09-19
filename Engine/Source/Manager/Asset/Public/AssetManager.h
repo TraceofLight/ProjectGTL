@@ -16,7 +16,7 @@ public:
 	void Initialize();
 	void Release();
 
-	// Vertex 관련 함수들
+	// Vertex 관련 함수들 (TODO: 얘네 싹다 삭제해야함)
 	TArray<FVertex>* GetVertexData(EPrimitiveType InType);
 	ID3D11Buffer* GetVertexbuffer(EPrimitiveType InType);
 	uint32 GetNumVertices(EPrimitiveType InType);
@@ -39,6 +39,12 @@ public:
 	// Bounding Box
 	const FAABB& GetAABB(EPrimitiveType InType);
 
+	// StaticMesh 관련 함수들
+	class UStaticMesh* LoadStaticMesh(const FString& InFilePath);
+	class UStaticMesh* GetStaticMesh(const FString& InFilePath);
+	void ReleaseStaticMesh(const FString& InFilePath);
+	bool HasStaticMesh(const FString& InFilePath) const;
+
 private:
 	// Vertex Resource
 	TMap<EPrimitiveType, ID3D11Buffer*> Vertexbuffers;
@@ -53,8 +59,15 @@ private:
 	// Texture Resource
 	TMap<FString, ID3D11ShaderResourceView*> TextureCache;
 
+	// StaticMesh Resource
+	TMap<FString, class UStaticMesh*> StaticMeshAssets;
+
 	// Release Functions
 	void ReleaseAllTextures();
+
+	// Initialize Functions
+	void InitializeBasicPrimitives();	// 기본 도형 버퍼 생성 (Cube, Sphere, Plane, ...)
+	void LoadStaticMeshShaders();
 
 	// AABB Resource
 	TMap<EPrimitiveType, FAABB> AABBs; // 각 타입별 AABB 저장

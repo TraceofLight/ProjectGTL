@@ -23,5 +23,5 @@ UTriangleActorFactory::UTriangleActorFactory()
 TObjectPtr<AActor> UTriangleActorFactory::CreateNewActor()
 {
 	UE_LOG_SUCCESS("TriangleActorFactory: Creating new TriangleActor instance");
-	return TObjectPtr<AActor>(new ATriangleActor);
+	return TObjectPtr<AActor>(NewObject<ATriangleActor>());
 }

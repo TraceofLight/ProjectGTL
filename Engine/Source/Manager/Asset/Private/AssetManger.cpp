@@ -6,6 +6,9 @@
 #include "DirectXTK/DDSTextureLoader.h"
 #include "Component/Mesh/Public/VertexDatas.h"
 #include "Physics/Public/AABB.h"
+#include "Asset/Public/ObjImporter.h"
+#include "Asset/Public/StaticMesh.h"
+#include "Factory/Public/NewObject.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UAssetManager)
 
@@ -98,6 +101,9 @@ void UAssetManager::Initialize()
 	ID3D11PixelShader* PixelShader;
 	URenderer::GetInstance().CreatePixelShader(L"Asset/Shader/BatchLinePS.hlsl", &PixelShader);
 	PixelShaders.emplace(EShaderType::BatchLine, PixelShader);
+
+	// StaticMesh 셰이더 로드
+	LoadStaticMeshShaders();
 }
 
 void UAssetManager::Release()
@@ -113,6 +119,13 @@ void UAssetManager::Release()
 
 	// Texture Resource 해제
 	ReleaseAllTextures();
+
+	// StaticMesh 애셋 해제
+	for (auto& Pair : StaticMeshAssets)
+	{
+		delete Pair.second;
+	}
+	StaticMeshAssets.clear();
 }
 
 TArray<FVertex>* UAssetManager::GetVertexData(EPrimitiveType InType)
@@ -402,4 +415,108 @@ ID3D11ShaderResourceView* UAssetManager::CreateTextureFromMemory(const void* InD
 	}
 
 	return SUCCEEDED(ResultHandle) ? TextureSRV : nullptr;
+}
+
+// StaticMesh 관련 함수들
+UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
+{
+	// 이미 로드된 StaticMesh인지 확인
+	auto It = StaticMeshAssets.find(InFilePath);
+	if (It != StaticMeshAssets.end())
+	{
+		return It->second;
+	}
+
+	// 새 StaticMesh 로드
+	UStaticMesh* NewStaticMesh = NewObject<UStaticMesh>();
+	if (!NewStaticMesh)
+	{
+		return nullptr;
+	}
+
+	// OBJ 파일에서 StaticMesh 데이터 로드
+	FStaticMesh StaticMeshData;
+	bool bImportSuccess = FObjImporter::ImportStaticMesh(InFilePath, StaticMeshData);
+
+	if (bImportSuccess)
+	{
+		NewStaticMesh->SetStaticMeshData(StaticMeshData);
+
+		// 캐시에 저장
+		StaticMeshAssets[InFilePath] = NewStaticMesh;
+
+		UE_LOG_SUCCESS("StaticMesh 로드 성공: %s", InFilePath.c_str());
+		return NewStaticMesh;
+	}
+	else
+	{
+		delete NewStaticMesh;
+		UE_LOG_ERROR("StaticMesh 로드 실패: %s", InFilePath.c_str());
+		return nullptr;
+	}
+}
+
+UStaticMesh* UAssetManager::GetStaticMesh(const FString& InFilePath)
+{
+	auto It = StaticMeshAssets.find(InFilePath);
+	return It != StaticMeshAssets.end() ? It->second : nullptr;
+}
+
+void UAssetManager::ReleaseStaticMesh(const FString& InFilePath)
+{
+	auto It = StaticMeshAssets.find(InFilePath);
+	if (It != StaticMeshAssets.end())
+	{
+		delete It->second;
+		StaticMeshAssets.erase(It);
+	}
+}
+
+bool UAssetManager::HasStaticMesh(const FString& InFilePath) const
+{
+	return StaticMeshAssets.find(InFilePath) != StaticMeshAssets.end();
+}
+
+void UAssetManager::LoadStaticMeshShaders()
+{
+	// StaticMesh용 Input Layout 설정
+	TArray<D3D11_INPUT_ELEMENT_DESC> StaticMeshLayoutDesc = {
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+
+	// Renderer를 통해 StaticMesh 셰이더 로드
+	auto& Renderer = URenderer::GetInstance();
+
+	// Vertex Shader와 Input Layout 생성
+	ID3D11VertexShader* StaticMeshVS = nullptr;
+	ID3D11InputLayout* StaticMeshLayout = nullptr;
+
+	Renderer.CreateVertexShaderAndInputLayout(
+		L"Asset/Shader/StaticMeshShader.hlsl",
+		StaticMeshLayoutDesc,
+		&StaticMeshVS,
+		&StaticMeshLayout
+	);
+
+	// Pixel Shader 생성
+	ID3D11PixelShader* StaticMeshPS = nullptr;
+	Renderer.CreatePixelShader(L"Asset/Shader/StaticMeshShader.hlsl", &StaticMeshPS);
+
+	// 셰이더들을 AssetManager에 저장
+	VertexShaders[EShaderType::StaticMesh] = StaticMeshVS;
+	PixelShaders[EShaderType::StaticMesh] = StaticMeshPS;
+	InputLayouts[EShaderType::StaticMesh] = StaticMeshLayout;
+
+	if (StaticMeshVS && StaticMeshPS && StaticMeshLayout)
+	{
+		UE_LOG_SUCCESS("StaticMesh 셰이더 로딩 성공");
+	}
+	else
+	{
+		UE_LOG_ERROR("StaticMesh 셰이더 로딩 실패 - VS: %p, PS: %p, Layout: %p",
+			StaticMeshVS, StaticMeshPS, StaticMeshLayout);
+	}
 }
