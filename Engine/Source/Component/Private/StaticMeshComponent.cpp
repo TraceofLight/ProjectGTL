@@ -30,7 +30,7 @@ uint32 UStaticMeshComponent::GetNumVertices() const
 {
 	if (StaticMesh)
 	{
-		return StaticMesh->GetVertices().size();
+		return static_cast<uint32>(StaticMesh->GetVertices().size());
 	}
 	return 0;
 }
@@ -39,7 +39,7 @@ uint32 UStaticMeshComponent::GetNumTriangles() const
 {
 	if (StaticMesh)
 	{
-		return StaticMesh->GetIndices().size() / 3;
+		return static_cast<uint32>(StaticMesh->GetIndices().size() / 3);
 	}
 	return 0;
 }
@@ -53,7 +53,7 @@ void UStaticMeshComponent::InitializeMeshRenderData()
 
 	// Update vertex data pointer
 	Vertices = &StaticMesh->GetVertices();
-	NumVertices = StaticMesh->GetVertices().size();
+	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
 
 	// TODO: Create vertex buffer for GPU rendering
 	// This will be implemented when integrating with the rendering system
@@ -81,5 +81,5 @@ void UStaticMeshComponent::UpdateRenderData()
 
 	// Update basic render data
 	Vertices = &StaticMesh->GetVertices();
-	NumVertices = StaticMesh->GetVertices().size();
+	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
 }

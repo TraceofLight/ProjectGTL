@@ -4,10 +4,10 @@
 #include "Global/CoreTypes.h"
 
 /**
- * @brief Material information for objects in a static mesh
- * Contains all material properties including texture paths and lighting parameters.
+ * @brief 스태틱 메시 내 객체의 재질 정보
+ * 텍스처 경로 및 조명 매개변수를 포함한 모든 재질 속성을 포함.
  */
-struct FObjectMaterialInfo
+struct FObjMaterialInfo
 {
 	FString MaterialName;
 	FString DiffuseTexturePath;
@@ -19,65 +19,65 @@ struct FObjectMaterialInfo
 	float ShininessScalar = 32.0f;
 	float TransparencyScalar = 1.0f;
 
-	FObjectMaterialInfo() = default;
+	FObjMaterialInfo() = default;
 
 	/**
-	 * @brief Constructor with material name
-	 * @param InMaterialName Name of the material to create
+	 * @brief 재질 이름으로 생성하는 생성자
+	 * @param InMaterialName 생성할 재질의 이름
 	 */
-	FObjectMaterialInfo(const FString& InMaterialName)
+	FObjMaterialInfo(const FString& InMaterialName)
 		: MaterialName(InMaterialName)
 	{
 	}
 };
 
 /**
- * @brief Raw data structure for a single object within a static mesh
+ * @brief 스태틱 메시 내의 단일 객체에 대한 원시 데이터 구조
  *
- * Contains separate arrays for each type of data as parsed from OBJ files.
- * This structure holds raw OBJ data before it's processed into final vertex format.
- * Similar to intermediate parsing structures in OBJ loaders.
+ * OBJ 파일에서 파싱된 각 데이터 유형에 대한 별도의 배열을 포함.
+ * 이 구조는 최종 정점 형식으로 처리되기 전의 원시 OBJ 데이터를 보유.
+ * OBJ 로더의 중간 파싱 구조와 유사.
  */
-struct FObjectInfo
+struct FObjInfo
 {
-	FString ObjectName;							// Name of the object (from OBJ 'o' or 'g' command)
-	TArray<FVector> VertexList;					// Raw vertex positions from OBJ 'v' commands
-	TArray<FVector2> UVList;					// Raw UV coordinates from OBJ 'vt' commands
-	TArray<FVector> NormalList;					// Raw normal vectors from OBJ 'vn' commands
-	TArray<uint32> VertexIndexList;				// Vertex indices from OBJ 'f' commands (references VertexList)
-	TArray<uint32> UVIndexList;					// UV indices from OBJ 'f' commands (references UVList)
-	TArray<uint32> NormalIndexList;				// Normal indices from OBJ 'f' commands (references NormalList)
-	TArray<FObjectMaterialInfo> MaterialList;	// List of materials used by this object
-	TArray<FString> TextureList;				// List of texture file paths used by this object
+	FString ObjectName;							// 객체 이름 (OBJ 'o' 또는 'g' 명령어에서 가져옴)
+	TArray<FVector> VertexList;					// OBJ 'v' 명령어의 원시 정점 위치
+	TArray<FVector2> UVList;					// OBJ 'vt' 명령어의 원시 UV 좌표
+	TArray<FVector> NormalList;					// OBJ 'vn' 명령어의 원시 노멀 벡터
+	TArray<uint32> VertexIndexList;				// OBJ 'f' 명령어의 정점 인덱스 (VertexList 참조)
+	TArray<uint32> UVIndexList;					// OBJ 'f' 명령어의 UV 인덱스 (UVList 참조)
+	TArray<uint32> NormalIndexList;				// OBJ 'f' 명령어의 노멀 인덱스 (NormalList 참조)
+	TArray<FObjMaterialInfo> MaterialList;	// 이 객체에서 사용하는 재질 목록
+	TArray<FString> TextureList;				// 이 객체에서 사용하는 텍스처 파일 경로 목록
 
-	FObjectInfo() = default;
+	FObjInfo() = default;
 
 	/**
-	 * @brief Constructor with object name
-	 * @param InObjectName Name of the object to create
+	 * @brief 객체 이름으로 생성하는 생성자
+	 * @param InObjectName 생성할 객체의 이름
 	 */
-	FObjectInfo(const FString& InObjectName)
+	FObjInfo(const FString& InObjectName)
 		: ObjectName(InObjectName)
 	{
 	}
 };
 
 /**
- * @brief Static Mesh Data Structure (Unreal: `FStaticMeshLODResources`)
- * @note This structure holds the final processed data for rendering.
- * Contains cooked vertex data and indices for GPU buffer creation.
+ * @brief 스태틱 메시 데이터 구조 (언리얼의 `FStaticMeshLODResources`에 해당)
+ * @note 이 구조는 렌더링을 위해 최종 처리된 데이터를 보유.
+ * GPU 버퍼 생성을 위한 쿠킹된 정점 데이터와 인덱스를 포함.
  */
 struct FStaticMesh
 {
-	FString PathFileName;			// Path to the source file (e.g., "Assets/Models/House.obj")
-	TArray<FVertex> Vertices;		// Final processed vertices (position, normal, UV combined)
-	TArray<uint32> Indices;			// Index buffer for rendering triangles
+	FString PathFileName;			// 원본 파일 경로 (예: "Assets/Models/House.obj")
+	TArray<FVertex> Vertices;		// 최종 처리된 정점 (위치, 노멀, UV 결합)
+	TArray<uint32> Indices;			// 삼각형 렌더링을 위한 인덱스 버퍼
 
 	FStaticMesh() = default;
 
 	/**
-	 * @brief Constructor with file path
-	 * @param InPathFileName Path to the source mesh file
+	 * @brief 파일 경로로 생성하는 생성자
+	 * @param InPathFileName 원본 메시 파일의 경로
 	 */
 	FStaticMesh(const FString& InPathFileName)
 		: PathFileName(InPathFileName)

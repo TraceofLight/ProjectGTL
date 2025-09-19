@@ -156,6 +156,7 @@
     <ClInclude Include="Source\Actor\Public\SphereActor.h" />
     <ClInclude Include="Source\Actor\Public\SquareActor.h" />
     <ClInclude Include="Source\Actor\Public\TriangleActor.h" />
+    <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
     <ClInclude Include="Source\Asset\Public\StaticMesh.h" />
     <ClInclude Include="Source\Asset\Public\StaticMeshData.h" />
     <ClInclude Include="Source\Component\Public\ActorComponent.h" />
@@ -269,6 +270,7 @@
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SquareActor.cpp" />
     <ClCompile Include="Source\Actor\Private\TriangleActor.cpp" />
+    <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />
     <ClCompile Include="Source\Asset\Private\StaticMesh.cpp" />
     <ClCompile Include="Source\Component\Private\ActorComponent.cpp" />
     <ClCompile Include="Source\Component\Private\BillBoardComponent.cpp" />

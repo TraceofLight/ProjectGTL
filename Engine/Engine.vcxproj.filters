@@ -92,6 +92,7 @@
     <ClCompile Include="Source\Asset\Private\StaticMesh.cpp" />
     <ClCompile Include="Source\Component\Private\MeshComponent.cpp" />
     <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -203,6 +204,7 @@
     <ClInclude Include="Source\Asset\Public\StaticMesh.h" />
     <ClInclude Include="Source\Component\Public\MeshComponent.h" />
     <ClInclude Include="Source\Component\Public\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Asset\Shader\SampleShader.hlsl">
