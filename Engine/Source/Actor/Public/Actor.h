@@ -58,10 +58,20 @@ private:
 template <typename T>
 TObjectPtr<T> AActor::CreateDefaultSubobject(const FName& InName)
 {
-	TObjectPtr<T> NewComponent = NewObject<T>(TObjectPtr<UObject>(this), nullptr, InName);
+	static_assert(std::is_base_of_v<UActorComponent, T>, "CreateDefaultSubobject can only be used with UActorComponent derivatives");
+
+	TObjectPtr<T> NewComponent = TObjectPtr<T>(new T());
 
 	if (NewComponent)
 	{
+		// Component 기본 설정
+		if (InName != FName::None)
+		{
+			NewComponent->SetName(InName);
+		}
+
+		NewComponent->SetOuter(TObjectPtr<UObject>(this));
+
 		// Component에 Owner 설정
 		NewComponent->SetOwner(this);
 		OwnedComponents.push_back(NewComponent);
