@@ -1,8 +1,8 @@
 #pragma once
 #include "Splitter.h"
 
-class SplitterH : public SSplitter
+class SSplitterH : public SSplitter
 {
 public:
-    SplitterH() { Orientation = EOrientation::Horizontal; }
+    SSplitterH() { Orientation = EOrientation::Horizontal; }
 };

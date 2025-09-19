@@ -9,7 +9,7 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
-#include "Window/Public/WindowSystem.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -190,8 +190,8 @@ void URenderer::Update()
 	RenderBegin();
 
 	// Multi-viewport rendering via splitter leaf rects
-	TArray<FRect> ViewRects;
-	WindowSystem::GetLeafRects(ViewRects);
+    TArray<FRect> ViewRects;
+    UViewportManager::GetInstance().GetLeafRects(ViewRects);
 	if (ViewRects.empty())
 	{
 		// Fallback: single full viewport
@@ -230,7 +230,7 @@ void URenderer::Update()
 	}
 
 	// Splitter handle overlay rendering (leaves do not draw)
-	WindowSystem::RenderOverlay();
+    UViewportManager::GetInstance().RenderOverlay();
 
 	// 폰트 렌더링
 	//RenderFont();

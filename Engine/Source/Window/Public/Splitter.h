@@ -16,8 +16,27 @@ public:
     SWindow* SideLT = nullptr;   // Left or Top
     SWindow* SideRB = nullptr;   // Right or Bottom
 
+	float* SharedRatio = nullptr;
+
 public:
     void SetChildren(SWindow* InLT, SWindow* InRB);
+
+
+	// 편의 함수
+	float GetEffectiveRatio() const
+	{
+		return SharedRatio ? *SharedRatio : Ratio;
+	}
+	void SetEffectiveRatio(float InRatio)
+	{
+		if (SharedRatio) { *SharedRatio = InRatio; }
+		else { Ratio = InRatio; }
+	}
+	void SetSharedRatio(float* InShared)  // 설정용
+	{
+		SharedRatio = InShared;
+		if (SharedRatio) { *SharedRatio = Ratio; } // 초기값 동기화
+	}
 
     // SWindow overrides
     void LayoutChildren() override;

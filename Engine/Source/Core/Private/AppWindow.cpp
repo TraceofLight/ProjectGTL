@@ -6,7 +6,7 @@
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Window/Public/WindowSystem.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
 #include "Window/Public/Window.h"
 
 FAppWindow::FAppWindow(FClientApp* InOwner)
@@ -132,7 +132,7 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 		URenderer::GetInstance().SetIsResizing(false);
 		URenderer::GetInstance().OnResize();
 		UUIManager::GetInstance().RepositionImGuiWindows();
-		if (auto* Root = WindowSystem::GetRoot())
+		if (auto* Root = UViewportManager::GetInstance().GetRoot())
 		{
 			RECT rc{}; GetClientRect(InWindowHandle, &rc);
 			Root->OnResize({ 0,0, (int32)(rc.right - rc.left), (int32)(rc.bottom - rc.top) });
@@ -145,7 +145,7 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 			{ // 드래그 X 일때 추가 처리 (최대화 버튼, ...)
 				URenderer::GetInstance().OnResize(LOWORD(InLParam), HIWORD(InLParam));
 				UUIManager::GetInstance().RepositionImGuiWindows();
-				if (auto* Root = WindowSystem::GetRoot())
+				if (auto* Root = UViewportManager::GetInstance().GetRoot())
 				{
 					Root->OnResize({ 0,0, (int32)LOWORD(InLParam), (int32)HIWORD(InLParam) });
 				}

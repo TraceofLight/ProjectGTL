@@ -9,20 +9,22 @@ void SSplitter::SetChildren(SWindow* InLT, SWindow* InRB)
 
 FRect SSplitter::GetHandleRect() const
 {
-    if (Orientation == EOrientation::Vertical)
-    {
-        int32 splitX = Rect.X + int32(std::lround(Rect.W * Ratio));
-        int32 half = Thickness / 2;
-        int32 hx = splitX - half;
-        return FRect{ hx, Rect.Y, Thickness, Rect.H };
-    }
-    else
-    {
-        int32 splitY = Rect.Y + int32(std::lround(Rect.H * Ratio));
-        int32 half = Thickness / 2;
-        int32 hy = splitY - half;
-        return FRect{ Rect.X, hy, Rect.W, Thickness };
-    }
+	const float R = GetEffectiveRatio(); // ★ 핵심: 공유/개별 비율 통일 진입점
+
+	if (Orientation == EOrientation::Vertical)
+	{
+		int32 splitX = Rect.X + int32(std::lround(Rect.W * R));
+		int32 half = Thickness / 2;
+		int32 hx = splitX - half;
+		return FRect{ hx, Rect.Y, Thickness, Rect.H };
+	}
+	else
+	{
+		int32 splitY = Rect.Y + int32(std::lround(Rect.H * R));
+		int32 half = Thickness / 2;
+		int32 hy = splitY - half;
+		return FRect{ Rect.X, hy, Rect.W, Thickness };
+	}
 }
 
 bool SSplitter::IsHandleHover(FPoint Coord) const
@@ -31,6 +33,8 @@ bool SSplitter::IsHandleHover(FPoint Coord) const
     return (Coord.X >= h.X) && (Coord.X < h.X + h.W) &&
            (Coord.Y >= h.Y) && (Coord.Y < h.Y + h.H);
 }
+
+
 
 void SSplitter::LayoutChildren()
 {
@@ -68,29 +72,32 @@ bool SSplitter::OnMouseDown(FPoint Coord, int Button)
 
 bool SSplitter::OnMouseMove(FPoint Coord)
 {
-    if (!bDragging)
-    {
-        // return true on hover to allow cursor change upstream if needed
-        return IsHandleHover(Coord);
-    }
+	if (!bDragging)
+	{
+		return IsHandleHover(Coord);
+	}
 
-    if (Orientation == EOrientation::Vertical)
-    {
-        const int32 span = std::max(1L, Rect.W);
-        float r = float(Coord.X - Rect.X) / float(span);
-        float limit = float(MinChildSize) / float(span);
-        Ratio = std::clamp(r, limit, 1.0f - limit);
-    }
-    else
-    {
-        const int32 span = std::max(1L, Rect.H);
-        float r = float(Coord.Y - Rect.Y) / float(span);
-        float limit = float(MinChildSize) / float(span);
-        Ratio = std::clamp(r, limit, 1.0f - limit);
-    }
+	if (Orientation == EOrientation::Vertical)
+	{
+		UE_LOG("v");
+		const int32 span = std::max(1L, Rect.W);
+		float r = float(Coord.X - Rect.X) / float(span);
+		float limit = float(MinChildSize) / float(span);
+		SetEffectiveRatio(std::clamp(r, limit, 1.0f - limit)); // ★ 핵심
+	}
+	else
+	{
+		UE_LOG("h");
+		const int32 span = std::max(1L, Rect.H);
+		float r = float(Coord.Y - Rect.Y) / float(span);
+		float limit = float(MinChildSize) / float(span);
+		SetEffectiveRatio(std::clamp(r, limit, 1.0f - limit)); // ★ 핵심
+	}
 
-    LayoutChildren();
-    return true;
+	LayoutChildren();
+	//RequestRelayoutTree();
+
+	return true;
 }
 
 bool SSplitter::OnMouseUp(FPoint, int Button)

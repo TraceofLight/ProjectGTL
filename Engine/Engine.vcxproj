@@ -176,6 +176,7 @@
     <ClInclude Include="Source\Core\Public\ObjectIterator.h" />
     <ClInclude Include="Source\Component\Public\StaticMeshComponent.h" />
     <ClInclude Include="Source\Global\Quaternion.h" />
+    <ClInclude Include="Source\Manager\Viewport\Public\ViewportManager.h" />
     <ClInclude Include="Source\Physics\Public\AABB.h" />
     <ClInclude Include="Source\Physics\Public\BoundingSphere.h" />
     <ClInclude Include="Source\Physics\Public\BoundingVolume.h" />
@@ -291,6 +292,7 @@
     <ClCompile Include="Source\Component\Mesh\Private\VertexDatas.cpp" />
     <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Global\Quaternion.cpp" />
+    <ClCompile Include="Source\Manager\Viewport\Private\ViewportManager.cpp" />
     <ClCompile Include="Source\Physics\Private\AABB.cpp" />
     <ClCompile Include="Source\Physics\Private\BoundingSphere.cpp" />
     <ClCompile Include="Source\Core\Private\AppWindow.cpp" />

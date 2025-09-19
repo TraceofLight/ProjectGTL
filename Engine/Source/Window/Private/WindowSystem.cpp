@@ -33,33 +33,37 @@ namespace WindowSystem
 
         SWindow* Target = GCapture ? GCapture : GRoot->HitTest(P);
 
-
     	//UE_LOG("before Button Pressed");
-        // Left mouse: start capture on Pressed; if timing misses Pressed (message processed previous loop), allow when Down and no capture
+		  // --- 1) Left Pressed: 토글 동작 구현 -------------------------------------
         if (InputManager.IsKeyPressed(EKeyInput::MouseLeft) || (!GCapture && InputManager.IsKeyDown(EKeyInput::MouseLeft)))
         {
             if (Target && Target->OnMouseDown(P, 0))
             {
                 GCapture = Target;
             }
-        	//UE_LOG_DEBUG("Left Button Pressed");
         }
 
         // Mouse move (only if any delta)
         const FVector& d = InputManager.GetMouseDelta();
-        if ((d.X != 0.0f || d.Y != 0.0f) && Target)
+        if ((d.X != 0.0f || d.Y != 0.0f) && GCapture)
         {
-            Target->OnMouseMove(P);
+			GCapture->OnMouseMove(P);
         }
 
         if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
         {
-            if (Target)
+            if (GCapture)
             {
-                Target->OnMouseUp(P, 0);
+				GCapture->OnMouseUp(P, 0);
+				GCapture = nullptr;
             }
-            GCapture = nullptr;
         }
+
+		if (!InputManager.IsKeyDown(EKeyInput::MouseLeft) && GCapture)
+		{
+			GCapture->OnMouseUp(P, /*Button*/0);
+			GCapture = nullptr;
+		}
     }
 }
 
