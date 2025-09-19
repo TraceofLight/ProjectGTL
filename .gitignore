@@ -529,3 +529,7 @@ WARP.md
 
 # editor config
 editor.ini
+
+# OBJ Files
+*.obj
+*.mtl

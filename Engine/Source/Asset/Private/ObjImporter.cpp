@@ -16,15 +16,27 @@ bool FObjImporter::ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutO
 	TArray<FVector2> GlobalUVs;
 	TArray<FVector> GlobalNormals;
 
-	// 기본 객체로 시작
-	FObjInfo CurrentObject("DefaultObject");
-	OutObjectInfos.push_back(CurrentObject);
+	FObjInfo* CurrentObject = nullptr;
 
 	std::string Line;
 	while (std::getline(File, Line))
 	{
 		FString ObjLine(Line.c_str());
-		ParseOBJLine(ObjLine, OutObjectInfos.back(), OutObjectInfos, GlobalVertices, GlobalUVs, GlobalNormals);
+
+		// 첫 번째 객체가 없으면 임시 객체 생성
+		if (CurrentObject == nullptr)
+		{
+			OutObjectInfos.emplace_back("TempObject");
+			CurrentObject = &OutObjectInfos.back();
+		}
+
+		ParseOBJLine(ObjLine, *CurrentObject, OutObjectInfos, GlobalVertices, GlobalUVs, GlobalNormals);
+
+		// 새 객체가 추가되었으면 CurrentObject 업데이트
+		if (!OutObjectInfos.empty())
+		{
+			CurrentObject = &OutObjectInfos.back();
+		}
 	}
 
 	File.close();
@@ -239,7 +251,15 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	else if ((Tokens[0] == "o" || Tokens[0] == "g") && Tokens.size() > 1)
 	{
 		// 새 객체 또는 그룹
-		AllObjects.emplace_back(Tokens[1]);
+		// 첫 번째 임시 객체를 실제 이름으로 변경하거나 새 객체 생성
+		if (!AllObjects.empty() && AllObjects[0].ObjectName == "TempObject")
+		{
+			AllObjects[0].ObjectName = Tokens[1];
+		}
+		else
+		{
+			AllObjects.emplace_back(Tokens[1]);
+		}
 	}
 }
 
