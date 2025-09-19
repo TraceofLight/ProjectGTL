@@ -173,6 +173,7 @@
     <ClInclude Include="Source\Component\Mesh\Sample\Rectangle.h" />
     <ClInclude Include="Source\Component\Mesh\Sample\Sphere.h" />
     <ClInclude Include="Source\Component\Mesh\Sample\Triangle.h" />
+    <ClInclude Include="Source\Core\Public\ObjectIterator.h" />
     <ClInclude Include="Source\Component\Public\StaticMeshComponent.h" />
     <ClInclude Include="Source\Global\Quaternion.h" />
     <ClInclude Include="Source\Physics\Public\AABB.h" />
