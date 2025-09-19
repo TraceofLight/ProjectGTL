@@ -490,7 +490,7 @@ void URenderer::RenderWithSceneProxy(FPrimitiveSceneProxy* InSceneProxy)
 		return;
 	}
 
-	// BillBoard SceneProxy인 경우 특수 처리
+	// BillBoard SceneProxy인 경우 특수 처리 (TODO: 나중에 일관되게 되도록 수정해야함.)
 	FBillBoardSceneProxy* BillBoardProxy = dynamic_cast<FBillBoardSceneProxy*>(InSceneProxy);
 	if (BillBoardProxy)
 	{

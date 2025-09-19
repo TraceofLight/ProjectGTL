@@ -6,6 +6,7 @@
 #include "Editor/Public/BoundingBoxLines.h"
 
 struct FVertex;
+class AStaticMeshActor;
 
 class UBatchLines : UObject
 {
@@ -19,6 +20,9 @@ public:
 	// 종류별 Vertices 업데이트
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const FAABB& newBoundingBoxInfo);
+
+	// StaticMeshActor들의 AABB 업데이트
+	void UpdateStaticMeshActorAABBs(const TArray<AStaticMeshActor*>& InStaticMeshActors);
 
 	// 전체 업데이트
 	void UpdateBatchLineVertices(const float newCellSize, const FAABB& newBoundingBoxInfo);
@@ -40,6 +44,7 @@ public:
 
 private:
 	void SetIndices();
+	void RebuildIndicesWithStaticMeshAABBs();
 
 	bool bChangedVertices = false;
 
@@ -50,6 +55,10 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
+
+	// StaticMeshActor들의 AABB 관리
+	TArray<UBoundingBoxLines> StaticMeshAABBLines;
+	uint32 StaticMeshAABBVertexOffset;
 
 	bool bRenderBox;
 };

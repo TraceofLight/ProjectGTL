@@ -74,10 +74,7 @@ public:
 	void SetupRenderPipeline(class UPrimitiveComponent* InPrimitiveComponent);
 	void RenderIndexed(class UPrimitiveComponent* InPrimitiveComponent);
 	void RenderDirect(class UPrimitiveComponent* InPrimitiveComponent);
-	void GetShadersForComponent(class UPrimitiveComponent* InComponent,
-	                           ID3D11VertexShader*& OutVertexShader,
-	                           ID3D11PixelShader*& OutPixelShader,
-	                           ID3D11InputLayout*& OutInputLayout);
+
 	void RenderWithSceneProxy(class FPrimitiveSceneProxy* InSceneProxy);
 	void RenderBillBoard(class FBillBoardSceneProxy* InBillBoardProxy);
 
