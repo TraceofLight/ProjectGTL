@@ -261,6 +261,10 @@
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp">
       <Filter>Source\Utility\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />
+    <ClCompile Include="Source\Asset\Private\StaticMesh.cpp" />
+    <ClCompile Include="Source\Component\Private\MeshComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -577,6 +581,11 @@
     <ClInclude Include="Source\Core\Public\ObjectIterator.h">
       <Filter>Source\Core\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
+    <ClInclude Include="Source\Asset\Public\StaticMesh.h" />
+    <ClInclude Include="Source\Asset\Public\StaticMeshData.h" />
+    <ClInclude Include="Source\Component\Public\MeshComponent.h" />
+    <ClInclude Include="Source\Component\Public\StaticMeshComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Asset\Shader\SampleShader.hlsl">
