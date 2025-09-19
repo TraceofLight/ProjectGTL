@@ -11,23 +11,23 @@ class FAppWindow;
  * @var MainMessage 윈도우 메시지 구조체
  * @var Window 윈도우 객체 포인터
  */
-class FClientApp
+class FEngineLoop
 {
 public:
     int Run(HINSTANCE InInstanceHandle, int InCmdShow);
 
     // Special Member Function
-    FClientApp();
-    ~FClientApp();
+    FEngineLoop();
+    ~FEngineLoop();
 
 private:
-    int InitializeSystem() const;
-    void UpdateSystem() const;
+	void PreInit(HINSTANCE InInstanceHandle, int InCmdShow);
+    void Init() const;
+    void Tick() const;
     void MainLoop();
-	void ShutdownSystem() const;
+	void Exit() const;
 
     HACCEL AcceleratorTable;
     MSG MainMessage;
     FAppWindow* Window;
-	//UEditor* Editor = nullptr;
 };

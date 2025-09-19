@@ -7,7 +7,7 @@
 #include "Manager/Input/Public/InputManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 
-FAppWindow::FAppWindow(FClientApp* InOwner)
+FAppWindow::FAppWindow(FEngineLoop* InOwner)
 	: Owner(InOwner), InstanceHandle(nullptr), MainWindowHandle(nullptr)
 {
 }
