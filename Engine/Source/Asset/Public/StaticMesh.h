@@ -15,6 +15,7 @@ class UStaticMesh : public UObject
 
 public:
 	UStaticMesh();
+	virtual ~UStaticMesh();
 
 	/**
 	 * @brief 스태틱 메시 데이터를 가져옴
@@ -52,7 +53,41 @@ public:
 	 */
 	bool IsValidMesh() const;
 
+	/**
+	 * @brief 정점 버퍼를 가져옴
+	 * @return 정점 버퍼 포인터
+	 */
+	ID3D11Buffer* GetVertexBuffer() const { return VertexBuffer; }
+
+	/**
+	 * @brief 인덱스 버퍼를 가져옴
+	 * @return 인덱스 버퍼 포인터
+	 */
+	ID3D11Buffer* GetIndexBuffer() const { return IndexBuffer; }
+
+	/**
+	 * @brief 정점 스트라이드를 가져옴
+	 * @return 정점 스트라이드
+	 */
+	uint32 GetVertexStride() const { return sizeof(FVertex); }
+
+	/**
+	 * @brief 정점 버퍼와 인덱스 버퍼를 생성
+	 */
+	void CreateRenderBuffers();
+
+	/**
+	 * @brief 버퍼 리소스를 해제
+	 */
+	void ReleaseRenderBuffers();
+
 protected:
 	/** 실제 메시 데이터 */
 	FStaticMesh StaticMeshData;
+
+	/** 정점 버퍼 */
+	ID3D11Buffer* VertexBuffer = nullptr;
+
+	/** 인덱스 버퍼 */
+	ID3D11Buffer* IndexBuffer = nullptr;
 };

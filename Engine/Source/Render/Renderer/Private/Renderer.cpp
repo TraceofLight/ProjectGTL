@@ -11,6 +11,7 @@
 //#include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
+#include "Render/Renderer/Public/StaticMeshSceneProxy.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -248,15 +249,16 @@ void URenderer::RenderLevel()
 		}
 		else if (PrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMesh)
 		{
-			// StaticMesh 렌더링 (인덱스 버퍼 사용)
+			// StaticMesh 렌더링 (FPrimitiveSceneProxy 사용)
 			UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(PrimitiveComponent);
 			if (!StaticMeshComp || !StaticMeshComp->HasValidMeshData())
 			{
 				continue;
 			}
 
-			UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
-			if (!StaticMesh)
+			// FStaticMeshSceneProxy를 생성하여 버퍼를 관리
+			FStaticMeshSceneProxy SceneProxy(StaticMeshComp);
+			if (!SceneProxy.IsValidForRendering())
 			{
 				continue;
 			}
@@ -311,15 +313,15 @@ void URenderer::RenderLevel()
 			Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
 			UpdateConstant(PrimitiveComponent->GetColor());
 
-			// StaticMesh는 인덱스 버퍼를 사용하므로 DrawIndexed 호출
-			if (StaticMesh->GetVertexBuffer() && StaticMesh->GetIndexBuffer())
+			// SceneProxy의 버퍼를 사용하여 렌더링
+			if (SceneProxy.GetVertexBuffer() && SceneProxy.GetIndexBuffer())
 			{
 				// 정점 버퍼와 인덱스 버퍼 설정
-				Pipeline->SetVertexBuffer(StaticMesh->GetVertexBuffer(), static_cast<uint32>(StaticMesh->GetVertexStride()));
-				Pipeline->SetIndexBuffer(StaticMesh->GetIndexBuffer(), sizeof(uint32));
+				Pipeline->SetVertexBuffer(SceneProxy.GetVertexBuffer(), SceneProxy.GetVertexStride());
+				Pipeline->SetIndexBuffer(SceneProxy.GetIndexBuffer(), SceneProxy.GetIndexStride());
 
 				// 인덱스를 사용하여 렌더링
-				Pipeline->DrawIndexed(static_cast<uint32>(StaticMesh->GetIndices().size()), 0, 0);
+				Pipeline->DrawIndexed(SceneProxy.GetIndexCount(), 0, 0);
 			}
 		}
 		else
