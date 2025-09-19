@@ -18,7 +18,7 @@ UOutlinerWindow::UOutlinerWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	AddWidget(new USceneHierarchyWidget);
+	AddWidget(NewObject<USceneHierarchyWidget>());
 }
 
 void UOutlinerWindow::Initialize()

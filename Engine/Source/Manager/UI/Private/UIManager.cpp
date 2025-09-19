@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Manager/UI/Public/UIManager.h"
-#include "Manager/Time/Public/TimeManager.h"
 #include "Render/UI/Window/Public/UIWindow.h"
 #include "Render/UI/ImGui/Public/ImGuiHelper.h"
 #include "Render/UI/Widget/Public/Widget.h"
@@ -78,7 +77,7 @@ void UUIManager::Shutdown()
 	}
 
 	// 모든 UI 윈도우 정리
-	for (auto* Window : UIWindows)
+	for (auto Window : UIWindows)
 	{
 		if (Window && !Window->IsSingleton())
 		{
@@ -107,7 +106,7 @@ void UUIManager::Update()
 	TotalTime += DT;
 
 	// 모든 UI 윈도우 업데이트
-	for (auto* Window : UIWindows)
+	for (auto Window : UIWindows)
 	{
 		if (Window && Window->IsVisible())
 		{
@@ -147,7 +146,7 @@ void UUIManager::Render()
 	SortUIWindowsByPriority();
 
 	// 나머지 UI 윈도우 렌더링
-	for (auto* Window : UIWindows)
+	for (auto Window : UIWindows)
 	{
 		if (Window && Window != MainMenuWindow)
 		{
@@ -164,7 +163,7 @@ void UUIManager::Render()
  * @param InWindow 등록할 UI 윈도우
  * @return 등록 성공 여부
  */
-bool UUIManager::RegisterUIWindow(UUIWindow* InWindow)
+bool UUIManager::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 {
 	if (!InWindow)
 	{
@@ -204,7 +203,7 @@ bool UUIManager::RegisterUIWindow(UUIWindow* InWindow)
  * @param InWindow 해제할 UI 윈도우
  * @return 해제 성공 여부
  */
-bool UUIManager::UnregisterUIWindow(UUIWindow* InWindow)
+bool UUIManager::UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 {
 	if (!InWindow)
 	{
@@ -240,9 +239,9 @@ bool UUIManager::UnregisterUIWindow(UUIWindow* InWindow)
  * @param InWindowName 검색할 윈도우 제목
  * @return 찾은 윈도우 (없으면 nullptr)
  */
-UUIWindow* UUIManager::FindUIWindow(const FName& InWindowName) const
+TObjectPtr<UUIWindow> UUIManager::FindUIWindow(const FName& InWindowName) const
 {
-	for (auto* Window : UIWindows)
+	for (auto Window : UIWindows)
 	{
 		if (Window && Window->GetWindowTitle() == InWindowName)
 		{
@@ -252,11 +251,11 @@ UUIWindow* UUIManager::FindUIWindow(const FName& InWindowName) const
 	return nullptr;
 }
 
-UWidget* UUIManager::FindWidget(const FName& InWidgetName) const
+TObjectPtr<UWidget> UUIManager::FindWidget(const FName& InWidgetName) const
 {
-	for (auto* Window : UIWindows)
+	for (const auto Window : UIWindows)
 	{
-		for (auto* Widget : Window->GetWidgets())
+		for (auto Widget : Window->GetWidgets())
 		{
 			if (Widget->GetName() == InWidgetName)
 			{
@@ -272,7 +271,7 @@ UWidget* UUIManager::FindWidget(const FName& InWidgetName) const
  */
 void UUIManager::HideAllWindows() const
 {
-	for (auto* Window : UIWindows)
+	for (const auto Window : UIWindows)
 	{
 		if (Window)
 		{
@@ -287,7 +286,7 @@ void UUIManager::HideAllWindows() const
  */
 void UUIManager::ShowAllWindows() const
 {
-	for (auto* Window : UIWindows)
+	for (const auto Window : UIWindows)
 	{
 		if (Window)
 		{
@@ -300,7 +299,7 @@ void UUIManager::ShowAllWindows() const
 /**
  * @brief 특정 윈도우에 포커스 설정
  */
-void UUIManager::SetFocusedWindow(UUIWindow* InWindow)
+void UUIManager::SetFocusedWindow(TObjectPtr<UUIWindow> InWindow)
 {
 	if (FocusedWindow != InWindow)
 	{
@@ -335,7 +334,7 @@ void UUIManager::PrintDebugInfo() const
 	UE_LOG("--- Window List ---");
 	for (size_t i = 0; i < UIWindows.size(); ++i)
 	{
-		auto* Window = UIWindows[i];
+		auto Window = UIWindows[i];
 		if (Window)
 		{
 			UE_LOG("[%zu] %u (%s)", i, Window->GetWindowID(), Window->GetWindowTitle().ToString().data());
@@ -375,9 +374,9 @@ void UUIManager::SortUIWindowsByPriority()
 void UUIManager::UpdateFocusState()
 {
 	// ImGui에서 현재 포커스된 윈도우 찾기
-	UUIWindow* NewFocusedWindow = nullptr;
+	TObjectPtr<UUIWindow> NewFocusedWindow = nullptr;
 
-	for (auto* Window : UIWindows)
+	for (auto Window : UIWindows)
 	{
 		if (Window && Window->IsVisible() && Window->IsFocused())
 		{
@@ -404,9 +403,9 @@ LRESULT UUIManager::WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM 
 void UUIManager::RepositionImGuiWindows() const
 {
 	// 1. 현재 화면(Viewport)의 작업 영역을 가져옵니다.
-	for (auto& window : UIWindows)
+	for (auto& Window : UIWindows)
 	{
-		window->SetIsResized(true);
+		Window->SetIsResized(true);
 	}
 }
 
@@ -428,7 +427,7 @@ void UUIManager::OnWindowMinimized()
 	UE_LOG("UIManager: %zu개의 윈도우에 대해 상태 저장 시도", UIWindows.size());
 
 	// 모든 UI 윈도우의 현재 상태 저장
-	for (auto* Window : UIWindows)
+	for (auto Window : UIWindows)
 	{
 		if (Window)
 		{
@@ -468,7 +467,7 @@ void UUIManager::OnWindowRestored()
 	UE_LOG("UIManager: %zu개의 윈도우에 대해 상태 복원 시도", SavedWindowStates.size());
 
 	// 저장된 상태로 모든 UI 윈도우 복원
-	for (auto* Window : UIWindows)
+	for (auto Window : UIWindows)
 	{
 		if (Window)
 		{
@@ -527,7 +526,7 @@ void UUIManager::OnWindowRestored()
 /**
  * @brief 메인 메뉴바 윈도우를 등록하는 함수
  */
-void UUIManager::RegisterMainMenuWindow(UMainMenuWindow* InMainMenuWindow)
+void UUIManager::RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow> InMainMenuWindow)
 {
 	if (MainMenuWindow)
 	{

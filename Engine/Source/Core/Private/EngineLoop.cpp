@@ -1,19 +1,25 @@
 #include "pch.h"
-#include "Core/Public/ClientApp.h"
+#include "Core/Public/EngineLoop.h"
 
-#include "Editor/Public/Editor.h"
+// 전역 DeltaTime 변수 정의
+float GDeltaTime = 0.0f;
+
 #include "Core/Public/AppWindow.h"
 #include "Manager/Input/Public/InputManager.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/Asset/Public/AssetManager.h"
-#include "Manager/Time/Public/TimeManager.h"
 
 #include "Manager/UI/Public/UIManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 
-#include "Render/UI/Window/Public/ConsoleWindow.h"
+#include "Subsystem/Public/SubsystemManager.h"
 
-FEngineLoop::FEngineLoop() = default;
+FEngineLoop::FEngineLoop()
+{
+	// 시간 초기화
+	CurrentTime = high_resolution_clock::now();
+	PreviousTime = CurrentTime;
+}
 
 FEngineLoop::~FEngineLoop() = default;
 
@@ -73,8 +79,9 @@ void FEngineLoop::PreInit(HINSTANCE InInstanceHandle, int InCmdShow)
  */
 void FEngineLoop::Init() const
 {
+	auto& SubsystemManager = USubsystemManager::GetInstance();
+
 	// Initialize By Get Instance
-	UTimeManager::GetInstance();
 	UInputManager::GetInstance();
 
 	auto& Renderer = URenderer::GetInstance();
@@ -90,6 +97,8 @@ void FEngineLoop::Init() const
 	// Create Default Level
 	// TODO(KHJ): 나중에 Init에서 처리하도록 하는 게 맞을 듯
 	ULevelManager::GetInstance().CreateDefaultLevel();
+
+	SubsystemManager.Initialize();
 }
 
 /**
@@ -129,16 +138,17 @@ void FEngineLoop::MainLoop()
 /**
  * @brief Update system while game processing
  */
-void FEngineLoop::Tick() const
+void FEngineLoop::Tick()
 {
-	auto& TimeManager = UTimeManager::GetInstance();
+	UpdateDeltaTime();
+	USubsystemManager::GetInstance().Tick();
+
 	auto& InputManager = UInputManager::GetInstance();
 	auto& UIManager = UUIManager::GetInstance();
 	auto& Renderer = URenderer::GetInstance();
 	auto& LevelManager = ULevelManager::GetInstance();
 
 	LevelManager.Update();
-	TimeManager.Update();
 	InputManager.Update(Window);
 	UIManager.Update();
 	Renderer.Update();
@@ -150,6 +160,8 @@ void FEngineLoop::Tick() const
  */
 void FEngineLoop::Exit() const
 {
+	USubsystemManager::GetInstance().Shutdown();
+
 	URenderer::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();
 	ULevelManager::GetInstance().Shutdown();
@@ -160,4 +172,19 @@ void FEngineLoop::Exit() const
 	UClass::Shutdown();
 
 	delete Window;
+}
+
+/**
+ * @brief 이전 시간과 비교하여 DeltaTime 계산하는 함수
+ * 여기서 GDeltaTime 전역 변수에 반영한다
+ */
+void FEngineLoop::UpdateDeltaTime()
+{
+	// 이전 시간 업데이트
+	PreviousTime = CurrentTime;
+	CurrentTime = high_resolution_clock::now();
+
+	// DeltaTime 계산
+	auto Duration = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - PreviousTime);
+	GDeltaTime = Duration.count() / 1000000.0f;
 }

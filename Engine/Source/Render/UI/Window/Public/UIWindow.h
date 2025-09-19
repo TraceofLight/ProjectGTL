@@ -105,7 +105,7 @@ public:
 	int GetPriority() const { return Config.Priority; }
 	float GetLastFocusTime() const { return LastFocusTime; }
 	bool IsFocused() const { return bIsFocused; }
-	const TArray<UWidget*>& GetWidgets() const { return Widgets; }
+	const TArray<TObjectPtr<UWidget>>& GetWidgets() const { return Widgets; }
 	void SetIsResized(bool IsResized) { bIsResized = IsResized; }
 
 	// 윈도우 위치 / 크기 가져오기
@@ -137,7 +137,7 @@ public:
 	void SetPriority(int NewPriority) { Config.Priority = NewPriority; }
 	void SetConfig(const FUIWindowConfig& InConfig) { Config = InConfig; }
 	void ToggleVisibility() { SetWindowState(IsVisible() ? EUIWindowState::Hidden : EUIWindowState::Visible); }
-	void AddWidget(UWidget* Widget) { Widgets.push_back(Widget); }
+	void AddWidget(TObjectPtr<UWidget> Widget) { Widgets.push_back(Widget); }
 
 	void OnMainWindowResized() const;
 	void ClampWindow() const;
@@ -167,7 +167,7 @@ private:
 	ImVec2 LastWindowSize;
 	ImVec2 LastWindowPosition;
 
-	TArray<UWidget*> Widgets;
+	TArray<TObjectPtr<UWidget>> Widgets;
 
 	ImVec2 PositionRatio = {0.5f, 0.5f};
 	ImVec2 SizeRatio = {0.5f, 0.5f};

@@ -138,7 +138,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 		}
 		else
 		{
-			for (auto* Window : AllWindows)
+			for (auto Window : AllWindows)
 			{
 				if (!Window)
 				{
@@ -171,7 +171,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 
 			if (ImGui::MenuItem("모든 창 숨김"))
 			{
-				for (auto* Window : UIManager->GetAllUIWindows())
+				for (auto Window : UIManager->GetAllUIWindows())
 				{
 					if (!Window)
 					{

@@ -63,8 +63,8 @@ using filesystem::create_directories;
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "Source/Render/UI/Window/Public/ConsoleWindow.h"
 
-// DT Include
-#include "Source/Manager/Time/Public/TimeManager.h"
+// DT Include - 전역 DeltaTime 접근을 위한 extern 선언
+extern float GDeltaTime;
 
 // 빌드 조건에 따른 Library 분류
 #ifdef _DEBUG
