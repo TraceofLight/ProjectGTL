@@ -137,6 +137,7 @@ enum class EPrimitiveType : uint8
 	Ring,
 	Line,
 	BillBoard,
+	StaticMesh,
 
 	End = 0xFF
 };
