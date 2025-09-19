@@ -93,6 +93,10 @@
     <ClCompile Include="Source\Component\Private\MeshComponent.cpp" />
     <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />
+    <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp" />
+    <ClCompile Include="Source\Factory\Actor\Private\StaticMeshActorFactory.cpp" />
+    <ClCompile Include="Source\Render\Renderer\Private\PrimitiveSceneProxy.cpp" />
+    <ClCompile Include="Source\Render\Renderer\Private\StaticMeshSceneProxy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -205,6 +209,10 @@
     <ClInclude Include="Source\Component\Public\MeshComponent.h" />
     <ClInclude Include="Source\Component\Public\StaticMeshComponent.h" />
     <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
+    <ClInclude Include="Source\Actor\Public\StaticMeshActor.h" />
+    <ClInclude Include="Source\Factory\Actor\Public\StaticMeshActorFactory.h" />
+    <ClInclude Include="Source\Render\Renderer\Public\PrimitiveSceneProxy.h" />
+    <ClInclude Include="Source\Render\Renderer\Public\StaticMeshSceneProxy.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Asset\Shader\SampleShader.hlsl">

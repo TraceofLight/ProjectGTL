@@ -280,9 +280,18 @@ void URenderer::RenderLevel()
 			ID3D11InputLayout* StaticMeshLayout = AssetManager.GetInputLayout(EShaderType::StaticMesh);
 
 			// 셰이더가 로드되지 않았으면 기본 셰이더 사용
-			if (!StaticMeshVS) StaticMeshVS = DefaultVertexShader;
-			if (!StaticMeshPS) StaticMeshPS = DefaultPixelShader;
-			if (!StaticMeshLayout) StaticMeshLayout = DefaultInputLayout;
+			if (!StaticMeshVS)
+			{
+				StaticMeshVS = DefaultVertexShader;
+			}
+			if (!StaticMeshPS)
+			{
+				StaticMeshPS = DefaultPixelShader;
+			}
+			if (!StaticMeshLayout)
+			{
+				StaticMeshLayout = DefaultInputLayout;
+			}
 
 			ID3D11RasterizerState* LoadedRasterizerState = GetRasterizerState(RenderState);
 

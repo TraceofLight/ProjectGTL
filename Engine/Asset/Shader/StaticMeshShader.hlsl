@@ -37,7 +37,7 @@ struct PS_INPUT
 	float2 TexCoord : TEXCOORD0;    // 텍스처 좌표
 };
 
-PS_INPUT StaticMeshVS(VS_INPUT input)
+PS_INPUT mainVS(VS_INPUT input)
 {
 	PS_INPUT output;
 
@@ -55,13 +55,15 @@ PS_INPUT StaticMeshVS(VS_INPUT input)
 	return output;
 }
 
-float4 StaticMeshPS(PS_INPUT input) : SV_TARGET
+float4 mainPS(PS_INPUT input) : SV_TARGET
 {
 	// 디퓨즈 텍스처 샘플링
 	float4 diffuseTexColor = DiffuseTexture.Sample(DefaultSampler, input.TexCoord);
 
 	// 정점 색상과 디퓨즈 색상 결합
 	float4 finalColor = diffuseTexColor * DiffuseColor * input.Color;
+	//float4 finalColor = input.Color;
 
-	return finalColor;
+	return float4(1, 1, 1, 1);
+
 }

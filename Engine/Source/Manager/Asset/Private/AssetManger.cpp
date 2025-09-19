@@ -104,6 +104,9 @@ void UAssetManager::Initialize()
 
 	// StaticMesh 셰이더 로드
 	LoadStaticMeshShaders();
+
+	// test.obj 로드
+	LoadStaticMesh("Data/Cylinder.obj");
 }
 
 void UAssetManager::Release()
