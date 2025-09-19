@@ -2,13 +2,18 @@
 #include "Render/Renderer/Public/Renderer.h"
 
 #include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/UI/Public/UIManager.h"
-#include "Component/Public/PrimitiveComponent.h"
+#include "Manager/Asset/Public/AssetManager.h"
+//#include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
+#include "Render/Renderer/Public/StaticMeshSceneProxy.h"
+#include "Render/Renderer/Public/BillBoardSceneProxy.h"
+#include "Actor/Public/Actor.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -230,72 +235,159 @@ void URenderer::RenderLevel()
 		return;
 	}
 
-	TObjectPtr<UBillBoardComponent> BillBoard = nullptr;
-	// Render Primitive
-	for (auto& PrimitiveComponent : ULevelManager::GetInstance().GetCurrentLevel()->GetLevelPrimitiveComponents())
+	const auto& LevelActors = ULevelManager::GetInstance().GetCurrentLevel()->GetLevelActors();
+
+	// Actor들을 순회하면서 각 Actor의 PrimitiveComponent들을 렌더링
+	for (const auto& Actor : LevelActors)
 	{
-		// TODO(KHJ) Visible 여기서 Control 하고 있긴 한데 맞는지 Actor 단위 렌더링 할 때도 이렇게 써야할지 고민 필요
-		if (!PrimitiveComponent || !PrimitiveComponent->IsVisible())
+		if (Actor)
 		{
-			continue;
-		}
-
-		if (PrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
-		{
-			BillBoard = Cast<UBillBoardComponent>(PrimitiveComponent);
-		}
-		else
-		{
-			FRenderState RenderState = PrimitiveComponent->GetRenderState();
-
-			// Get view mode from editor
-			const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
-			if (ViewMode == EViewModeIndex::VMI_Wireframe)
+			// Actor의 모든 PrimitiveComponent들을 가져옴
+			TArray<UPrimitiveComponent*> PrimitiveComponents = Actor->GetPrimitiveComponents();
+			for (auto* PrimitiveComponent : PrimitiveComponents)
 			{
-				RenderState.CullMode = ECullMode::None;
-				RenderState.FillMode = EFillMode::WireFrame;
+				if (PrimitiveComponent && PrimitiveComponent->IsVisible() && PrimitiveComponent->HasRenderData())
+				{
+					RenderPrimitiveComponent(PrimitiveComponent);
+				}
 			}
-			ID3D11RasterizerState* LoadedRasterizerState = GetRasterizerState(RenderState);
-
-			// Update pipeline info
-			FPipelineInfo PipelineInfo = {
-				DefaultInputLayout,
-				DefaultVertexShader,
-				LoadedRasterizerState,
-				DefaultDepthStencilState,
-				DefaultPixelShader,
-				nullptr,
-			};
-			Pipeline->UpdatePipeline(PipelineInfo);
-
-			// Update pipeline buffers
-			Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
-			UpdateConstant(
-				PrimitiveComponent->GetRelativeLocation(),
-				PrimitiveComponent->GetRelativeRotation(),
-				PrimitiveComponent->GetRelativeScale3D());
-
-			Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
-			UpdateConstant(PrimitiveComponent->GetColor());
-
-			Pipeline->SetVertexBuffer(PrimitiveComponent->GetVertexBuffer(), Stride);
-			Pipeline->Draw(static_cast<uint32>(PrimitiveComponent->GetVerticesData()->size()), 0);
 		}
 	}
+}
 
-	if (BillBoard)
+/**
+ * @brief PrimitiveComponent를 렌더링하는 통합 함수
+ * @param InPrimitiveComponent 렌더링할 프리미티브 컴포넌트
+ */
+void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveComponent)
+{
+	if (!InPrimitiveComponent || !InPrimitiveComponent->HasRenderData())
 	{
-		//BillBoard->UpdateRotationMatrix();
-
-		FString UUIDString = "UID: " + std::to_string(BillBoard->GetUUID());
-
-		FMatrix RT = BillBoard->GetRTMatrix();
-		//RT = FMatrix::Identity();
-
-		const FViewProjConstants& viewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-		//const FMatrix viewProjM = viewProjConstData.View * viewProjConstData.Projection;
-		FontRenderer->RenderText(UUIDString.c_str(), RT, viewProjConstData);
+		return;
 	}
+
+	// BillBoard인 경우 SceneProxy를 통한 특수 렌더링
+	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
+	{
+		FPrimitiveSceneProxy* SceneProxy = InPrimitiveComponent->CreateSceneProxy();
+		if (SceneProxy)
+		{
+			RenderWithSceneProxy(SceneProxy);
+			delete SceneProxy; // SceneProxy는 임시 객체이므로 삭제
+		}
+		return;
+	}
+
+	// 일반 프리미티브의 경우 기존 렌더링 방식 사용
+	// 공통 파이프라인 설정
+	SetupRenderPipeline(InPrimitiveComponent);
+
+	// 렌더링 방식 자동 선택
+	if (InPrimitiveComponent->UseIndexedRendering())
+	{
+		RenderIndexed(InPrimitiveComponent);
+	}
+	else
+	{
+		RenderDirect(InPrimitiveComponent);
+	}
+}
+
+/**
+ * @brief 렌더링 파이프라인 설정
+ * @param InPrimitiveComponent 설정할 프리미티브 컴포넌트
+ */
+void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
+{
+	FRenderState RenderState = InPrimitiveComponent->GetRenderState();
+
+	// 에디터 뷰 모드에 따른 렌더 상태 조정
+	const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
+	if (ViewMode == EViewModeIndex::VMI_Wireframe)
+	{
+		RenderState.CullMode = ECullMode::None;
+		RenderState.FillMode = EFillMode::WireFrame;
+	}
+
+	// 셰이더 선택 (StaticMesh면 전용 셰이더, 아니면 기본 셰이더)
+	ID3D11VertexShader* VertexShader = DefaultVertexShader;
+	ID3D11PixelShader* PixelShader = DefaultPixelShader;
+	ID3D11InputLayout* InputLayout = DefaultInputLayout;
+
+	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMesh)
+	{
+		auto& AssetManager = UAssetManager::GetInstance();
+		ID3D11VertexShader* StaticMeshVS = AssetManager.GetVertexShader(EShaderType::StaticMesh);
+		ID3D11PixelShader* StaticMeshPS = AssetManager.GetPixelShader(EShaderType::StaticMesh);
+		ID3D11InputLayout* StaticMeshLayout = AssetManager.GetInputLayout(EShaderType::StaticMesh);
+
+		if (StaticMeshVS) VertexShader = StaticMeshVS;
+		if (StaticMeshPS) PixelShader = StaticMeshPS;
+		if (StaticMeshLayout) InputLayout = StaticMeshLayout;
+	}
+
+	ID3D11RasterizerState* RasterizerState = GetRasterizerState(RenderState);
+
+	// 파이프라인 정보 설정
+	FPipelineInfo PipelineInfo = {
+		InputLayout,
+		VertexShader,
+		RasterizerState,
+		DefaultDepthStencilState,
+		PixelShader,
+		nullptr,
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+	};
+	Pipeline->UpdatePipeline(PipelineInfo);
+
+	// 상수 버퍼 업데이트
+	Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
+	UpdateConstant(
+		InPrimitiveComponent->GetRelativeLocation(),
+		InPrimitiveComponent->GetRelativeRotation(),
+		InPrimitiveComponent->GetRelativeScale3D());
+
+	const FViewProjConstants& ViewProjConstants = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
+	UpdateConstant(ViewProjConstants);
+
+	Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+	UpdateConstant(InPrimitiveComponent->GetColor());
+}
+
+/**
+ * @brief 인덱스 버퍼를 사용한 렌더링
+ * @param InPrimitiveComponent 렌더링할 프리미티브 컴포넌트
+ */
+void URenderer::RenderIndexed(UPrimitiveComponent* InPrimitiveComponent)
+{
+	ID3D11Buffer* VertexBuffer = InPrimitiveComponent->GetRenderVertexBuffer();
+	ID3D11Buffer* IndexBuffer = InPrimitiveComponent->GetRenderIndexBuffer();
+
+	if (!VertexBuffer || !IndexBuffer)
+	{
+		return;
+	}
+
+	Pipeline->SetVertexBuffer(VertexBuffer, InPrimitiveComponent->GetRenderVertexStride());
+	Pipeline->SetIndexBuffer(IndexBuffer, sizeof(uint32));
+	Pipeline->DrawIndexed(InPrimitiveComponent->GetRenderIndexCount(), 0, 0);
+}
+
+/**
+ * @brief 직접 정점 배열을 사용한 렌더링
+ * @param InPrimitiveComponent 렌더링할 프리미티브 컴포넌트
+ */
+void URenderer::RenderDirect(UPrimitiveComponent* InPrimitiveComponent)
+{
+	ID3D11Buffer* VertexBuffer = InPrimitiveComponent->GetRenderVertexBuffer();
+
+	if (!VertexBuffer)
+	{
+		return;
+	}
+
+	Pipeline->SetVertexBuffer(VertexBuffer, InPrimitiveComponent->GetRenderVertexStride());
+	Pipeline->Draw(InPrimitiveComponent->GetRenderVertexCount(), 0);
 }
 
 /**
@@ -385,6 +477,49 @@ void URenderer::RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, cons
 	Pipeline->SetIndexBuffer(InPrimitive.IndexBuffer, InIndexBufferStride);
 	Pipeline->SetVertexBuffer(InPrimitive.Vertexbuffer, InStride);
 	Pipeline->DrawIndexed(InPrimitive.NumIndices, 0, 0);
+}
+
+/**
+ * @brief SceneProxy를 통한 렌더링
+ * @param InSceneProxy 렌더링할 SceneProxy
+ */
+void URenderer::RenderWithSceneProxy(FPrimitiveSceneProxy* InSceneProxy)
+{
+	if (!InSceneProxy || !InSceneProxy->IsValidForRendering())
+	{
+		return;
+	}
+
+	// BillBoard SceneProxy인 경우 특수 처리 (TODO: 나중에 일관되게 되도록 수정해야함.)
+	FBillBoardSceneProxy* BillBoardProxy = dynamic_cast<FBillBoardSceneProxy*>(InSceneProxy);
+	if (BillBoardProxy)
+	{
+		RenderBillBoard(BillBoardProxy);
+		return;
+	}
+
+	// 다른 타입의 SceneProxy 처리는 향후 구현
+	// (StaticMesh SceneProxy 등은 필요에 따라 추가)
+}
+
+/**
+ * @brief BillBoard 렌더링
+ * @param InBillBoardProxy BillBoard SceneProxy
+ */
+void URenderer::RenderBillBoard(FBillBoardSceneProxy* InBillBoardProxy)
+{
+	if (!InBillBoardProxy || !FontRenderer)
+	{
+		return;
+	}
+
+	// BillBoard의 RT 매트릭스와 텍스트 가져오기
+	const FMatrix& RTMatrix = InBillBoardProxy->GetRTMatrix();
+	const FString& DisplayText = InBillBoardProxy->GetDisplayText();
+
+	// FontRenderer를 통한 텍스트 렌더링
+	const FViewProjConstants& ViewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
+	FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, ViewProjConstData);
 }
 
 /**

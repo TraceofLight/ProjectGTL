@@ -3,11 +3,17 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Manager/Asset/Public/AssetManager.h"
+#include "Actor/Public/StaticMeshActor.h"
+
+IMPLEMENT_CLASS(UBatchLines, UObject)
 
 UBatchLines::UBatchLines()
 	: Grid()
 	, BoundingBoxLines()
+	, StaticMeshAABBVertexOffset(0)
 {
+	StaticMeshAABBVertexOffset = Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices();
+
 	Vertices.reserve(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
 	Vertices.resize(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
 
@@ -18,24 +24,15 @@ UBatchLines::UBatchLines()
 
 	URenderer& Renderer = URenderer::GetInstance();
 
-	//BatchLineConstData.CellSize = 1.0f;
-	//BatchLineConstData.BoundingBoxModel = FMatrix::Identity();
-
-	/*AddWorldGridVerticesAndConstData();
-	AddBoundingBoxVertices();*/
-
 	Primitive.NumVertices = static_cast<uint32>(Vertices.size());
 	Primitive.NumIndices = static_cast<uint32>(Indices.size());
 	Primitive.IndexBuffer = Renderer.CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));
-	//Primitive.Color = FVector4(1, 1, 1, 0.2f);
 	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 	Primitive.Vertexbuffer = Renderer.CreateVertexBuffer(
 		Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
-	/*Primitive.Location = FVector(0, 0, 0);
-	Primitive.Rotation = FVector(0, 0, 0);
-	Primitive.Scale = FVector(1, 1, 1);*/
+
 	Primitive.VertexShader = UAssetManager::GetInstance().GetVertexShader(EShaderType::BatchLine);
-	Primitive.InputLayout = UAssetManager::GetInstance().GetIputLayout(EShaderType::BatchLine);
+	Primitive.InputLayout = UAssetManager::GetInstance().GetInputLayout(EShaderType::BatchLine);
 	Primitive.PixelShader = UAssetManager::GetInstance().GetPixelShader(EShaderType::BatchLine);
 }
 

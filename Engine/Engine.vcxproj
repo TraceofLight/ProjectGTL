@@ -114,7 +114,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(ProjectDir);$(SolutionDir)External\Include</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -137,7 +137,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(ProjectDir);$(SolutionDir)External\Include</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -155,6 +155,7 @@
     <ClInclude Include="Source\Actor\Public\CubeActor.h" />
     <ClInclude Include="Source\Actor\Public\SphereActor.h" />
     <ClInclude Include="Source\Actor\Public\SquareActor.h" />
+    <ClInclude Include="Source\Actor\Public\StaticMeshActor.h" />
     <ClInclude Include="Source\Actor\Public\TriangleActor.h" />
     <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
     <ClInclude Include="Source\Asset\Public\StaticMesh.h" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Source\Component\Mesh\Sample\Triangle.h" />
     <ClInclude Include="Source\Core\Public\ObjectIterator.h" />
     <ClInclude Include="Source\Component\Public\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Factory\Actor\Public\StaticMeshActorFactory.h" />
     <ClInclude Include="Source\Global\Quaternion.h" />
     <ClInclude Include="Source\Physics\Public\AABB.h" />
     <ClInclude Include="Source\Physics\Public\BoundingSphere.h" />
@@ -232,9 +234,12 @@
     <ClInclude Include="Source\Manager\Time\Public\TimeManager.h" />
     <ClInclude Include="Source\Manager\UI\Public\UIManager.h" />
     <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h" />
+    <ClInclude Include="Source\Render\Renderer\Public\BillBoardSceneProxy.h" />
     <ClInclude Include="Source\Render\Renderer\Public\DeviceResources.h" />
     <ClInclude Include="Source\Render\Renderer\Public\Pipeline.h" />
+    <ClInclude Include="Source\Render\Renderer\Public\PrimitiveSceneProxy.h" />
     <ClInclude Include="Source\Render\Renderer\Public\Renderer.h" />
+    <ClInclude Include="Source\Render\Renderer\Public\StaticMeshSceneProxy.h" />
     <ClInclude Include="Source\Render\UI\Factory\Public\UIWindowFactory.h" />
     <ClInclude Include="Source\Render\UI\ImGui\Public\ImGuiHelper.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ActorDetailWidget.h" />
@@ -270,6 +275,7 @@
     <ClCompile Include="Source\Actor\Private\CubeActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SquareActor.cpp" />
+    <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp" />
     <ClCompile Include="Source\Actor\Private\TriangleActor.cpp" />
     <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />
     <ClCompile Include="Source\Asset\Private\StaticMesh.cpp" />
@@ -285,6 +291,7 @@
     <ClCompile Include="Source\Component\Mesh\Private\TriangleComponent.cpp" />
     <ClCompile Include="Source\Component\Mesh\Private\VertexDatas.cpp" />
     <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Factory\Actor\Private\StaticMeshActorFactory.cpp" />
     <ClCompile Include="Source\Global\Quaternion.cpp" />
     <ClCompile Include="Source\Physics\Private\AABB.cpp" />
     <ClCompile Include="Source\Physics\Private\BoundingSphere.cpp" />
@@ -328,10 +335,13 @@
     <ClCompile Include="Source\Manager\Path\Private\PathManager.cpp" />
     <ClCompile Include="Source\Manager\Time\Private\TimeManager.cpp" />
     <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp" />
+    <ClCompile Include="Source\Render\Renderer\Private\BillBoardSceneProxy.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\DeviceResources.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\Pipeline.cpp" />
+    <ClCompile Include="Source\Render\Renderer\Private\PrimitiveSceneProxy.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\Renderer.cpp" />
     <ClCompile Include="Source\Render\FontRenderer\Private\FontRenderer.cpp" />
+    <ClCompile Include="Source\Render\Renderer\Private\StaticMeshSceneProxy.cpp" />
     <ClCompile Include="Source\Render\UI\Factory\Private\UIWindowFactory.cpp" />
     <ClCompile Include="Source\Render\UI\ImGui\Private\ImGuiHelper.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ActorDetailWidget.cpp" />

@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Asset/Public/ObjImporter.h"
 
-bool FObjImporter::ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutObjectInfos)
+bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& OutObjectInfos)
 {
-	std::ifstream File(FilePath.c_str());
+	std::ifstream File(InFilePath.c_str());
 	if (!File.is_open())
 	{
 		return false;
@@ -52,9 +52,9 @@ bool FObjImporter::ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutO
 	return true;
 }
 
-bool FObjImporter::ParseMaterialLibrary(const FString& MTLFilePath, TArray<FObjMaterialInfo>& OutMaterials)
+bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FObjMaterialInfo>& OutMaterials)
 {
-	std::ifstream File(MTLFilePath.c_str());
+	std::ifstream File(InMTLFilePath.c_str());
 	if (!File.is_open())
 	{
 		return false;
@@ -140,9 +140,9 @@ bool FObjImporter::ParseMaterialLibrary(const FString& MTLFilePath, TArray<FObjM
 	return true;
 }
 
-bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FStaticMesh& OutStaticMesh)
+bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FStaticMesh& OutStaticMesh)
 {
-	if (ObjectInfos.empty())
+	if (InObjectInfos.empty())
 	{
 		return false;
 	}
@@ -151,7 +151,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FSta
 	OutStaticMesh.Indices.clear();
 
 	// 모든 객체를 하나의 스태틱 메시로 결합
-	for (const FObjInfo& ObjectInfo : ObjectInfos)
+	for (const FObjInfo& ObjectInfo : InObjectInfos)
 	{
 		TArray<FVertex> ObjectVertices;
 		TArray<uint32> ObjectIndices;
@@ -173,16 +173,16 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FSta
 	return !OutStaticMesh.Vertices.empty() && !OutStaticMesh.Indices.empty();
 }
 
-bool FObjImporter::ImportStaticMesh(const FString& FilePath, FStaticMesh& OutStaticMesh)
+bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh)
 {
 	TArray<FObjInfo> ObjectInfos;
 
-	if (!ImportOBJFile(FilePath, ObjectInfos))
+	if (!ImportObjFile(InFilePath, ObjectInfos))
 	{
 		return false;
 	}
 
-	OutStaticMesh.PathFileName = FilePath;
+	OutStaticMesh.PathFileName = InFilePath;
 	return ConvertToStaticMesh(ObjectInfos, OutStaticMesh);
 }
 
@@ -350,36 +350,36 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 	}
 }
 
-FString FObjImporter::TrimString(const FString& Str)
+FString FObjImporter::TrimString(const FString& String)
 {
-	if (Str.empty())
+	if (String.empty())
 	{
-		return Str;
+		return String;
 	}
 
 	size_t Start = 0;
-	size_t End = Str.length() - 1;
+	size_t End = String.length() - 1;
 
-	while (Start <= End && (Str[Start] == ' ' || Str[Start] == '\t' || Str[Start] == '\r' || Str[Start] == '\n'))
+	while (Start <= End && (String[Start] == ' ' || String[Start] == '\t' || String[Start] == '\r' || String[Start] == '\n'))
 	{
 		Start++;
 	}
 
-	while (End > Start && (Str[End] == ' ' || Str[End] == '\t' || Str[End] == '\r' || Str[End] == '\n'))
+	while (End > Start && (String[End] == ' ' || String[End] == '\t' || String[End] == '\r' || String[End] == '\n'))
 	{
 		End--;
 	}
 
-	return Str.substr(Start, End - Start + 1);
+	return String.substr(Start, End - Start + 1);
 }
 
-void FObjImporter::SplitString(const FString& Str, char Delimiter, TArray<FString>& OutTokens)
+void FObjImporter::SplitString(const FString& String, char Delimiter, TArray<FString>& OutTokens)
 {
 	OutTokens.clear();
-	std::stringstream ss(Str);
+	std::stringstream StringStream(String);
 	std::string Token;
 
-	while (std::getline(ss, Token, Delimiter))
+	while (std::getline(StringStream, Token, Delimiter))
 	{
 		FString TrimmedToken = TrimString(FString(Token.c_str()));
 		if (!TrimmedToken.empty())

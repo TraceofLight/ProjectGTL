@@ -23,5 +23,5 @@ UCubeActorFactory::UCubeActorFactory()
 TObjectPtr<AActor> UCubeActorFactory::CreateNewActor()
 {
 	UE_LOG_SUCCESS("CubeActorFactory: Creating new CubeActor instance");
-	return TObjectPtr<AActor>(new ACubeActor);
+	return TObjectPtr<AActor>(NewObject<ACubeActor>());
 }

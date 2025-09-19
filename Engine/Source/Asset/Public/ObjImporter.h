@@ -19,7 +19,7 @@ public:
 	 * @param OutObjectInfos 파싱된 객체 정보 배열
 	 * @return 임포트 성공 시 true, 그렇지 않으면 false
 	 */
-	static bool ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutObjectInfos);
+	static bool ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& OutObjectInfos);
 
 	/**
 	 * @brief 재질 라이브러리 파일(.mtl)을 파싱
@@ -27,7 +27,7 @@ public:
 	 * @param OutMaterials 파싱된 재질 정보 배열
 	 * @return 파싱 성공 시 true, 그렇지 않으면 false
 	 */
-	static bool ParseMaterialLibrary(const FString& MTLFilePath, TArray<FObjMaterialInfo>& OutMaterials);
+	static bool ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FObjMaterialInfo>& OutMaterials);
 
 	/**
 	 * @brief 원시 객체 데이터를 쿠킹된 스태틱 메시 데이터로 변환
@@ -35,7 +35,7 @@ public:
 	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
 	 * @return 변환 성공 시 true, 그렇지 않으면 false
 	 */
-	static bool ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FStaticMesh& OutStaticMesh);
+	static bool ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FStaticMesh& OutStaticMesh);
 
 	/**
 	 * @brief 전체 임포트 파이프라인: OBJ → 원시 데이터 → 쿠킹된 데이터
@@ -43,7 +43,7 @@ public:
 	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
 	 * @return 전체 파이프라인 성공 시 true, 그렇지 않으면 false
 	 */
-	static bool ImportStaticMesh(const FString& FilePath, FStaticMesh& OutStaticMesh);
+	static bool ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh);
 
 private:
 	/**
@@ -84,7 +84,7 @@ private:
 	 * @param Str 공백을 제거할 문자열
 	 * @return 공백이 제거된 문자열
 	 */
-	static FString TrimString(const FString& Str);
+	static FString TrimString(const FString& String);
 
 	/**
 	 * @brief 구분자로 문자열을 분할하는 헬퍼 함수
@@ -92,7 +92,7 @@ private:
 	 * @param Delimiter 구분자 문자
 	 * @param OutTokens 결과 토큰 배열
 	 */
-	static void SplitString(const FString& Str, char Delimiter, TArray<FString>& OutTokens);
+	static void SplitString(const FString& String, char Delimiter, TArray<FString>& OutTokens);
 
 	/**
 	 * @brief OBJ 위치를 UE 좌표계로 변환

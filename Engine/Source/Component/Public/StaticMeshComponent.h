@@ -33,6 +33,17 @@ public:
 	virtual uint32 GetNumVertices() const override;
 	virtual uint32 GetNumTriangles() const override;
 
+	// 공통 렌더링 인터페이스 오버라이드
+	virtual bool HasRenderData() const override;
+	virtual ID3D11Buffer* GetRenderVertexBuffer() const override;
+	virtual ID3D11Buffer* GetRenderIndexBuffer() const override;
+	virtual uint32 GetRenderVertexCount() const override;
+	virtual uint32 GetRenderIndexCount() const override;
+	virtual uint32 GetRenderVertexStride() const override;
+	virtual bool UseIndexedRendering() const override;
+	virtual EShaderType GetShaderType() const override;
+	virtual class FPrimitiveSceneProxy* CreateSceneProxy() const override;
+
 protected:
 	// UMeshComponent로부터 재정의
 	virtual void InitializeMeshRenderData() override;
