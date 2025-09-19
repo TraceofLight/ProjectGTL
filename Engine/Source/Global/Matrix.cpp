@@ -46,7 +46,7 @@ FMatrix::FMatrix(const FVector& x, const FVector& y, const FVector& z)
 			{y.X, y.Y, y.Z, 0.0f},
 			{z.X, z.Y, z.Z, 0.0f},
 			{0.0f, 0.0f, 0.0f, 1.0f}}
-{	
+{
 }
 
 FMatrix::FMatrix(const FVector4& x, const FVector4& y, const FVector4& z)
@@ -163,7 +163,7 @@ FMatrix FMatrix::RotationMatrix(const FVector& InOtherVector)
 }
 
 FMatrix FMatrix::CreateFromYawPitchRoll(const float yaw, const float pitch, const float roll)
-{	
+{
 	//return RotationZ(yaw) * RotationY(pitch)* RotationX(roll);
 	return RotationX(pitch) * RotationY(yaw) * RotationZ(roll);
 }

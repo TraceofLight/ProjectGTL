@@ -250,6 +250,12 @@
     <ClInclude Include="Source\Render\UI\Window\Public\OutlinerWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\DetailWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\UIWindow.h" />
+    <ClInclude Include="Source\Subsystem\Public\EditorSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\GameInstanceSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\LocalPlayerSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\Subsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\SubsystemManager.h" />
+    <ClInclude Include="Source\Subsystem\Public\EngineSubsystem.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
     <ClInclude Include="Source\Utility\Public\Metadata.h" />
@@ -376,5 +382,8 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Engine.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Source\Subsystem\Private\" />
   </ItemGroup>
 </Project>
