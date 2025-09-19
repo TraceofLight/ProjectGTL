@@ -98,8 +98,7 @@ const FMatrix& USceneComponent::GetWorldTransformMatrixInverse() const
 
 const TArray<FVertex>* UPrimitiveComponent::GetVerticesData() const
 {
-	UAssetManager& ResourceManager = UAssetManager::GetInstance();
-	return ResourceManager.GetVertexData(Type);
+	return Vertices;
 }
 
 ID3D11Buffer* UPrimitiveComponent::GetVertexBuffer() const

@@ -21,9 +21,6 @@ public:
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const FAABB& newBoundingBoxInfo);
 
-	// StaticMeshActor들의 AABB 업데이트
-	void UpdateStaticMeshActorAABBs(const TArray<AStaticMeshActor*>& InStaticMeshActors);
-
 	// 전체 업데이트
 	void UpdateBatchLineVertices(const float newCellSize, const FAABB& newBoundingBoxInfo);
 

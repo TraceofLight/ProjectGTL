@@ -34,9 +34,6 @@ public:
 		return &Camera;
 	}
 
-	// AABB 렌더링 업데이트
-	void UpdateStaticMeshActorAABBs();
-
 private:
 	void ProcessMouseInput(ULevel* InLevel);
 	TArray<UPrimitiveComponent*> FindCandidatePrimitives(ULevel* InLevel);

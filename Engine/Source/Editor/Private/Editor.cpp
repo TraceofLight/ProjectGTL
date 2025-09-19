@@ -44,9 +44,6 @@ void UEditor::Update()
 	auto& Renderer = URenderer::GetInstance();
 	Camera.Update();
 
-	// StaticMeshActor들의 AABB 업데이트
-	UpdateStaticMeshActorAABBs();
-
 	AActor* SelectedActor = ULevelManager::GetInstance().GetCurrentLevel()->GetSelectedActor();
 	if (SelectedActor)
 	{
@@ -323,37 +320,4 @@ FVector UEditor::GetGizmoDragScale(FRay& WorldRay)
 	}
 	else
 		return Gizmo.GetActorScale();
-}
-
-/**
- * @brief 현재 레벨의 모든 StaticMeshActor들의 AABB를 BatchLines에 업데이트
- */
-void UEditor::UpdateStaticMeshActorAABBs()
-{
-	ULevel* CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
-	if (!CurrentLevel)
-	{
-		return;
-	}
-
-	// 모든 StaticMeshActor들을 수집
-	TArray<AStaticMeshActor*> StaticMeshActors;
-
-	const auto& LevelActors = CurrentLevel->GetLevelActors();
-	for (const auto& Actor : LevelActors)
-	{
-		if (Actor)
-		{
-			// StaticMeshActor인지 확인하고 추가
-			AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(Actor);
-			if (StaticMeshActor)
-			{
-				StaticMeshActors.push_back(StaticMeshActor);
-			}
-		}
-	}
-
-	// BatchLines에 AABB 업데이트
-	BatchLines.UpdateStaticMeshActorAABBs(StaticMeshActors);
-	BatchLines.UpdateVertexBuffer();
 }
