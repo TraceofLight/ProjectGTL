@@ -315,6 +315,7 @@ void UFontRenderer::RenderText(const char* Text, const FMatrix& WorldMatrix, con
 	rasterDesc.CullMode = D3D11_CULL_BACK;    // 보통은 Back-face culling
 	rasterDesc.FrontCounterClockwise = FALSE;
 	rasterDesc.DepthClipEnable = TRUE;
+	rasterDesc.ScissorEnable = TRUE;
 
 	ID3D11RasterizerState* solidState = nullptr;
 	Device->CreateRasterizerState(&rasterDesc, &solidState);

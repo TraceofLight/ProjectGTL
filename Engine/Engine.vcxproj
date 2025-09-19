@@ -114,7 +114,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include;$(ProjectDir)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -260,6 +260,11 @@
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
     <ClInclude Include="Source\Utility\Public\Metadata.h" />
     <ClInclude Include="Source\Utility\Public\UELogParser.h" />
+    <ClInclude Include="Source\Window\Public\Splitter.h" />
+    <ClInclude Include="Source\Window\Public\SplitterH.h" />
+    <ClInclude Include="Source\Window\Public\SplitterV.h" />
+    <ClInclude Include="Source\Window\Public\Window.h" />
+    <ClInclude Include="Source\Window\Public\WindowSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -356,6 +361,11 @@
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\JsonSerializer.cpp" />
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp" />
+    <ClCompile Include="Source\Window\Private\Splitter.cpp" />
+    <ClCompile Include="Source\Window\Private\SplitterH.cpp" />
+    <ClCompile Include="Source\Window\Private\SplitterV.cpp" />
+    <ClCompile Include="Source\Window\Private\Window.cpp" />
+    <ClCompile Include="Source\Window\Private\WindowSystem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

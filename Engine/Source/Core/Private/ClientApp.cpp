@@ -12,6 +12,12 @@
 #include "Render/Renderer/Public/Renderer.h"
 
 #include "Render/UI/Window/Public/ConsoleWindow.h"
+#include "Window/Public/WindowSystem.h"
+#include "Window/Public/SplitterV.h"
+#include "Window/Public/SplitterH.h"
+#include "Window/Public/SplitterV.h"
+#include "Window/Public/SplitterH.h"
+
 
 FClientApp::FClientApp() = default;
 
@@ -90,6 +96,28 @@ int FClientApp::InitializeSystem() const
 	// TODO(KHJ): 나중에 Init에서 처리하도록 하는 게 맞을 듯
 	ULevelManager::GetInstance().CreateDefaultLevel();
 
+	// Build initial 4-way splitter layout and register as root
+	// Left/Right split
+	SSplitter* Root = new SplitterV();
+	Root->Ratio = 0.5f;
+	SSplitter* Left = new SplitterH(); Left->Ratio = 0.5f;
+	SSplitter* Right = new SplitterH(); Right->Ratio = 0.5f;
+	Root->SetChildren(Left, Right);
+	// Leaves (colored for prototype)
+	SWindow* Top = new SWindow();
+	SWindow* Front = new SWindow();
+	SWindow* Side = new SWindow();
+	SWindow* Persp = new SWindow();
+	Left->SetChildren(Top, Front);
+	Right->SetChildren(Side, Persp);
+
+	int32 w = 0, h = 0; Window->GetClientSize(w, h);
+	Root->OnResize({ 0,0,w,h });
+	WindowSystem::SetRoot(Root);
+
+	//WindowSystem::SetRoot()
+
+
 	return S_OK;
 }
 
@@ -109,6 +137,8 @@ void FClientApp::UpdateSystem() const
 	TimeManager.Update();
 	InputManager.Update(Window);
 	UIManager.Update();
+	// Route mouse input to window tree (splitters etc.)
+	WindowSystem::TickInput();
 	Renderer.Update();
 }
 
@@ -160,3 +190,4 @@ void FClientApp::ShutdownSystem() const
 
 	delete Window;
 }
+
