@@ -61,3 +61,25 @@ struct FTransform
 	{
 	}
 };
+
+/**
+ * @brief 2D 정수 좌표
+ */
+struct FPoint
+{
+	int32 X, Y;
+
+	constexpr FPoint() = default;
+	constexpr FPoint(int32 InX, int32 InY) : X(InX), Y(InY) {}
+};
+
+/**
+ * @brief 2D 정수 사각형
+ */
+struct FRect
+{
+	int32 X, Y, W, H;
+
+	constexpr FRect() = default;
+	constexpr FRect(int32 InX, int32 InY, int32 InW, int32 InH) : X(InX), Y(InY), W(InW), H(InH) {}
+};

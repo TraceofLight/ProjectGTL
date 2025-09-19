@@ -1,0 +1,36 @@
+#pragma once
+#include "Window.h"
+
+class SSplitter : public SWindow
+{
+public:
+    enum class EOrientation { Horizontal, Vertical };
+
+    // Config
+    EOrientation Orientation = EOrientation::Vertical;
+    float Ratio = 0.5f;          // 0..1
+    int32 Thickness = 6;         // handle thickness in px
+    int32 MinChildSize = 80;     // min child size in px
+
+    // Children (Left/Top and Right/Bottom)
+    SWindow* SideLT = nullptr;   // Left or Top
+    SWindow* SideRB = nullptr;   // Right or Bottom
+
+public:
+    void SetChildren(SWindow* InLT, SWindow* InRB);
+
+    // SWindow overrides
+    void LayoutChildren() override;
+    bool OnMouseDown(FPoint Coord, int Button) override;
+    bool OnMouseUp(FPoint Coord, int Button) override;
+    bool OnMouseMove(FPoint Coord) override;
+    SWindow* HitTest(FPoint ScreenCoord) override;
+    void OnPaint() override;
+
+    // Helpers
+    bool IsHandleHover(FPoint Coord) const;
+    FRect GetHandleRect() const;
+
+private:
+    bool bDragging = false;
+};
