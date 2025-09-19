@@ -3,6 +3,7 @@
 #include "Manager/Level/Public/LevelManager.h"
 #include "Editor/Public/Editor.h"
 #include "Actor/Public/Actor.h"
+#include "Render/Renderer/Public/BillBoardSceneProxy.h"
 /**
  * @brief Level에서 각 Actor마다 가지고 있는 UUID를 출력해주기 위한 빌보드 클래스
  * Actor has a UBillBoardComponent
@@ -42,4 +43,32 @@ void UBillBoardComponent::UpdateRotationMatrix()
 	const FVector Translation = OwnerActorLocation + FVector(0.0f, 0.0f, ZOffset);
 	//UE_LOG("%.2f, %.2f, %.2f", Translation.X, Translation.Y, Translation.Z);
 	RTMatrix *= FMatrix::TranslationMatrix(Translation);
+}
+
+// 공통 렌더링 인터페이스 구현
+bool UBillBoardComponent::HasRenderData() const
+{
+	// BillBoard는 항상 텍스트를 렌더링할 데이터가 있음
+	return POwnerActor != nullptr;
+}
+
+bool UBillBoardComponent::UseIndexedRendering() const
+{
+	// BillBoard는 FontRenderer를 사용하므로 일반적인 인덱스 렌더링을 사용하지 않음
+	return false;
+}
+
+EShaderType UBillBoardComponent::GetShaderType() const
+{
+	// BillBoard는 기본 셰이더 사용 (FontRenderer가 별도 처리)
+	return EShaderType::Default;
+}
+
+FPrimitiveSceneProxy* UBillBoardComponent::CreateSceneProxy() const
+{
+	// 렌더링 전에 회전 매트릭스 업데이트
+	const_cast<UBillBoardComponent*>(this)->UpdateRotationMatrix();
+
+	// BillBoard 전용 SceneProxy 사용
+	return new FBillBoardSceneProxy(this);
 }

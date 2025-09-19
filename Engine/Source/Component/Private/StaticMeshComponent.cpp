@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Component/Public/StaticMeshComponent.h"
+#include "Render/Renderer/Public/StaticMeshSceneProxy.h"
 
 IMPLEMENT_CLASS(UStaticMeshComponent, UMeshComponent)
 
@@ -82,4 +83,57 @@ void UStaticMeshComponent::UpdateRenderData()
 	// 기본 렌더 데이터 업데이트
 	Vertices = &StaticMesh->GetVertices();
 	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
+}
+
+// 공통 렌더링 인터페이스 구현
+bool UStaticMeshComponent::HasRenderData() const
+{
+	return HasValidMeshData();
+}
+
+ID3D11Buffer* UStaticMeshComponent::GetRenderVertexBuffer() const
+{
+	return StaticMesh ? StaticMesh->GetVertexBuffer() : nullptr;
+}
+
+ID3D11Buffer* UStaticMeshComponent::GetRenderIndexBuffer() const
+{
+	return StaticMesh ? StaticMesh->GetIndexBuffer() : nullptr;
+}
+
+uint32 UStaticMeshComponent::GetRenderVertexCount() const
+{
+	return GetNumVertices();
+}
+
+uint32 UStaticMeshComponent::GetRenderIndexCount() const
+{
+	if (StaticMesh)
+	{
+		return static_cast<uint32>(StaticMesh->GetIndices().size());
+	}
+	return 0;
+}
+
+uint32 UStaticMeshComponent::GetRenderVertexStride() const
+{
+	return sizeof(FVertex);
+}
+
+bool UStaticMeshComponent::UseIndexedRendering() const
+{
+	// StaticMesh는 인덱스 렌더링 사용
+	return HasRenderData() && GetRenderIndexCount() > 0;
+}
+
+EShaderType UStaticMeshComponent::GetShaderType() const
+{
+	// StaticMesh는 전용 셰이더 사용
+	return EShaderType::StaticMesh;
+}
+
+FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy() const
+{
+	// StaticMesh 전용 SceneProxy 사용
+	return new FStaticMeshSceneProxy(this);
 }

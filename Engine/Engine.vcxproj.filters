@@ -97,6 +97,7 @@
     <ClCompile Include="Source\Factory\Actor\Private\StaticMeshActorFactory.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\PrimitiveSceneProxy.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\StaticMeshSceneProxy.cpp" />
+    <ClCompile Include="Source\Render\Renderer\Private\BillBoardSceneProxy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -213,6 +214,7 @@
     <ClInclude Include="Source\Factory\Actor\Public\StaticMeshActorFactory.h" />
     <ClInclude Include="Source\Render\Renderer\Public\PrimitiveSceneProxy.h" />
     <ClInclude Include="Source\Render\Renderer\Public\StaticMeshSceneProxy.h" />
+    <ClInclude Include="Source\Render\Renderer\Public\BillBoardSceneProxy.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Asset\Shader\SampleShader.hlsl">

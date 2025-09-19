@@ -64,11 +64,22 @@ public:
 	void Update();
 	void RenderBegin() const;
 	void RenderLevel();
-	void RenderFont();
 	void RenderEnd() const;
 	void RenderPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState);
 	void RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState,
 	                            bool bInUseBaseConstantBuffer, uint32 InStride, uint32 InIndexBufferStride);
+
+	// 공통 렌더링 함수들
+	void RenderPrimitiveComponent(class UPrimitiveComponent* InPrimitiveComponent);
+	void SetupRenderPipeline(class UPrimitiveComponent* InPrimitiveComponent);
+	void RenderIndexed(class UPrimitiveComponent* InPrimitiveComponent);
+	void RenderDirect(class UPrimitiveComponent* InPrimitiveComponent);
+	void GetShadersForComponent(class UPrimitiveComponent* InComponent,
+	                           ID3D11VertexShader*& OutVertexShader,
+	                           ID3D11PixelShader*& OutPixelShader,
+	                           ID3D11InputLayout*& OutInputLayout);
+	void RenderWithSceneProxy(class FPrimitiveSceneProxy* InSceneProxy);
+	void RenderBillBoard(class FBillBoardSceneProxy* InBillBoardProxy);
 
 	void OnResize(uint32 Inwidth = 0, uint32 InHeight = 0) const;
 

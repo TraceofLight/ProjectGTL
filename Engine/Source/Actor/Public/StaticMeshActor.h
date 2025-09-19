@@ -1,5 +1,6 @@
 #pragma once
 #include "Actor/Public/Actor.h"
+#include "Physics/Public/AABB.h"
 
 class UStaticMeshComponent;
 
@@ -28,6 +29,19 @@ public:
 
 	// StaticMeshComponent 접근자
 	UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent.Get(); }
+
+	// AABB 관련 함수들
+	/**
+	 * @brief 액터의 월드 좌표계 AABB를 가져옴
+	 * @return 변환된 월드 AABB
+	 */
+	FAABB GetWorldAABB() const;
+
+	/**
+	 * @brief 액터의 로컬 좌표계 AABB를 가져옴
+	 * @return 로컬 AABB
+	 */
+	FAABB GetLocalAABB() const;
 
 protected:
 	// StaticMesh를 렌더링할 컴포넌트

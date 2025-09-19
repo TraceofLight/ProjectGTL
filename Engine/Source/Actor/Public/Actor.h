@@ -46,6 +46,9 @@ public:
 	const FVector& GetActorRotation() const;
 	const FVector& GetActorScale3D() const;
 
+	// PrimitiveComponent 관련 함수들
+	TArray<class UPrimitiveComponent*> GetPrimitiveComponents() const;
+
 private:
 	TObjectPtr<USceneComponent> RootComponent = nullptr;
 	TObjectPtr<UBillBoardComponent> BillBoardComponent = nullptr;

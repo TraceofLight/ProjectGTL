@@ -9,6 +9,9 @@ struct FVertex;
 
 class UBatchLines : UObject
 {
+	GENERATED_BODY()
+	DECLARE_CLASS(UBatchLines, UObject)
+
 public:
 	UBatchLines();
 	~UBatchLines();
@@ -28,27 +31,15 @@ public:
 		return Grid.GetCellSize();
 	}
 
-	/*void SetCellSize(const float newCellSize)
-	{
-		Grid.SetCellSize(newCellSize);
-	}*/
-
 	void DisableRenderBoundingBox()
 	{
 		UpdateBoundingBoxVertices({ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} });
 	}
 
-	//void UpdateConstant(FBoundingBox boundingBoxInfo);
-
-	//void Update();
-
 	void Render();
 
 private:
 	void SetIndices();
-
-	/*void AddWorldGridVerticesAndConstData();
-	void AddBoundingBoxVertices();*/
 
 	bool bChangedVertices = false;
 

@@ -3,10 +3,6 @@
 
 #include "Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
-#include "Actor/Public/CubeActor.h"
-#include "Actor/Public/SphereActor.h"
-#include "Actor/Public/SquareActor.h"
-#include "Actor/Public/TriangleActor.h"
 #include "Actor/Public/StaticMeshActor.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Asset/Public/StaticMesh.h"
@@ -39,19 +35,43 @@ void UPrimitiveSpawnWidget::RenderWidget()
 		"Cube",
 		"Triangle",
 		"Square",
-		"StaticMesh (test.obj)"
+		"Torus",
+		"Cylinder",
+		"Cone"
 	};
 
-	// None을 고려한 Enum 변환 처리
-	int TypeNumber = static_cast<int>(SelectedPrimitiveType) - 1;
+	// 콤보박스 인덱스와 EPrimitiveType 매핑
+	static const EPrimitiveType IndexToPrimitiveType[] = {
+		EPrimitiveType::Sphere,
+		EPrimitiveType::Cube,
+		EPrimitiveType::Triangle,
+		EPrimitiveType::Square,
+		EPrimitiveType::Torus,
+		EPrimitiveType::Cylinder,
+		EPrimitiveType::Cone
+	};
+
+	// 현재 선택된 타입을 인덱스로 변환
+	int TypeNumber = 0;
+	for (int i = 0; i < 7; i++)
+	{
+		if (IndexToPrimitiveType[i] == SelectedPrimitiveType)
+		{
+			TypeNumber = i;
+			break;
+		}
+	}
 
 	ImGui::Text("Primitive Type:");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(120);
-	ImGui::Combo("##PrimitiveType", &TypeNumber, PrimitiveTypes, 5);
+	ImGui::Combo("##PrimitiveType", &TypeNumber, PrimitiveTypes, 7);
 
 	// ImGui가 받은 값을 반영
-	SelectedPrimitiveType = static_cast<EPrimitiveType>(TypeNumber + 1);
+	if (TypeNumber >= 0 && TypeNumber < 7)
+	{
+		SelectedPrimitiveType = IndexToPrimitiveType[TypeNumber];
+	}
 
 	// Spawn 버튼과 개수 입력
 	ImGui::Text("Number of Spawn:");
@@ -99,79 +119,46 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 	// 지정된 개수만큼 액터 생성
 	for (int32 i = 0; i < NumberOfSpawn; i++)
 	{
+		// 모든 프리미티브 타입을 StaticMeshActor로 생성
+		AStaticMeshActor* StaticMeshActor = CurrentLevel->SpawnActor<AStaticMeshActor>();
 		AActor* NewActor = nullptr;
 
-		// 타입에 따라 액터 생성
-		if (SelectedPrimitiveType == EPrimitiveType::Cube)
+		if (StaticMeshActor)
 		{
-			NewActor = CurrentLevel->SpawnActor<ACubeActor>();
-		}
-		else if (SelectedPrimitiveType == EPrimitiveType::Sphere)
-		{
-			NewActor = CurrentLevel->SpawnActor<ASphereActor>();
-		}
-		else if (SelectedPrimitiveType == EPrimitiveType::Triangle)
-		{
-			NewActor = CurrentLevel->SpawnActor<ATriangleActor>();
-		}
-		else if (SelectedPrimitiveType == EPrimitiveType::Square)
-		{
-			NewActor = CurrentLevel->SpawnActor<ASquareActor>();
-		}
-		else if (SelectedPrimitiveType == EPrimitiveType::StaticMesh)
-		{
-			AStaticMeshActor* StaticMeshActor = CurrentLevel->SpawnActor<AStaticMeshActor>();
-			if (StaticMeshActor)
+			// AssetManager에서 프리미티브 타입에 맞는 StaticMesh 가져오기
+			UAssetManager& AssetManager = UAssetManager::GetInstance();
+			UStaticMesh* PrimitiveMesh = AssetManager.GetPrimitiveStaticMesh(SelectedPrimitiveType);
+
+			if (PrimitiveMesh)
 			{
-				// AssetManager에서 test.obj를 가져와서 설정
-				UAssetManager& AssetManager = UAssetManager::GetInstance();
-				UStaticMesh* TestMesh = AssetManager.GetStaticMesh("Data/Cylinder.obj");
-				if (TestMesh)
-				{
-					StaticMeshActor->SetStaticMesh(TestMesh);
-				}
+				StaticMeshActor->SetStaticMesh(PrimitiveMesh);
 				NewActor = StaticMeshActor;
+			}
+			else
+			{
+				// StaticMesh 로드 실패 시 액터 삭제
+				CurrentLevel->DestroyActor(StaticMeshActor);
+				UE_LOG_ERROR("프리미티브 StaticMesh를 찾을 수 없습니다: %s", EnumToString(SelectedPrimitiveType));
+				continue;
 			}
 		}
 
 		if (NewActor)
 		{
-			// StaticMesh의 경우 0,0,0 위치에 배치, 다른 프리미티브는 랜덤 위치
-			if (SelectedPrimitiveType == EPrimitiveType::StaticMesh)
-			{
-				NewActor->SetActorLocation(FVector(0.0f, 0.0f, 0.0f));
-			}
-			else
-			{
-				// 범위 내 랜덤 위치
-				float RandomX = SpawnRangeMin + (static_cast<float>(rand()) / RAND_MAX) * (SpawnRangeMax - SpawnRangeMin);
-				float RandomY = SpawnRangeMin + (static_cast<float>(rand()) / RAND_MAX) * (SpawnRangeMax - SpawnRangeMin);
-				float RandomZ = SpawnRangeMin + (static_cast<float>(rand()) / RAND_MAX) * (SpawnRangeMax - SpawnRangeMin);
+			// 범위 내 랜덤 위치 생성
+			float RandomX = SpawnRangeMin + (static_cast<float>(rand()) / RAND_MAX) * (SpawnRangeMax - SpawnRangeMin);
+			float RandomY = SpawnRangeMin + (static_cast<float>(rand()) / RAND_MAX) * (SpawnRangeMax - SpawnRangeMin);
+			float RandomZ = SpawnRangeMin + (static_cast<float>(rand()) / RAND_MAX) * (SpawnRangeMax - SpawnRangeMin);
 
-				NewActor->SetActorLocation(FVector(RandomX, RandomY, RandomZ));
-			}
+			NewActor->SetActorLocation(FVector(RandomX, RandomY, RandomZ));
 
-			// StaticMesh의 경우 1,1,1 스케일, 다른 프리미티브는 랜덤 스케일
-			if (SelectedPrimitiveType == EPrimitiveType::StaticMesh)
-			{
-				NewActor->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
-			}
-			else
-			{
-				// 임의의 스케일 (0.5 ~ 2.0 범위)
-				float RandomScale = 0.5f + (static_cast<float>(rand()) / RAND_MAX) * 1.5f;
-				NewActor->SetActorScale3D(FVector(RandomScale, RandomScale, RandomScale));
-			}
+			// 임의의 스케일 (0.5 ~ 2.0 범위)
+			float RandomScale = 0.5f + (static_cast<float>(rand()) / RAND_MAX) * 1.5f;
+			NewActor->SetActorScale3D(FVector(RandomScale, RandomScale, RandomScale));
 
-			if (SelectedPrimitiveType == EPrimitiveType::StaticMesh)
-			{
-				UE_LOG("ControlPanel: (0.0, 0.0, 0.0) 지점에 StaticMesh Actor를 배치했습니다");
-			}
-			else
-			{
-				UE_LOG("ControlPanel: (%.2f, %.2f, %.2f) 지점에 Actor를 배치했습니다",
-					NewActor->GetActorLocation().X, NewActor->GetActorLocation().Y, NewActor->GetActorLocation().Z);
-			}
+			UE_LOG("ControlPanel: (%.2f, %.2f, %.2f) 지점에 %s Actor를 배치했습니다",
+				NewActor->GetActorLocation().X, NewActor->GetActorLocation().Y, NewActor->GetActorLocation().Z,
+				EnumToString(SelectedPrimitiveType));
 		}
 		else
 		{

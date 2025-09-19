@@ -1,7 +1,5 @@
 #pragma once
 
-struct FAABB;
-
 /**
  * @brief 전역의 On-Memory Asset을 관리하는 매니저 클래스
  */
@@ -36,14 +34,16 @@ public:
 	static ID3D11ShaderResourceView* CreateTextureFromFile(const path& InFilePath);
 	static ID3D11ShaderResourceView* CreateTextureFromMemory(const void* InData, size_t InDataSize);
 
-	// Bounding Box
-	const FAABB& GetAABB(EPrimitiveType InType);
 
 	// StaticMesh 관련 함수들
 	class UStaticMesh* LoadStaticMesh(const FString& InFilePath);
 	class UStaticMesh* GetStaticMesh(const FString& InFilePath);
 	void ReleaseStaticMesh(const FString& InFilePath);
 	bool HasStaticMesh(const FString& InFilePath) const;
+
+	// Primitive StaticMesh 관련 함수들
+	class UStaticMesh* GetPrimitiveStaticMesh(EPrimitiveType InPrimitiveType);
+	void LoadAllPrimitiveStaticMeshes();
 
 private:
 	// Vertex Resource
@@ -62,13 +62,13 @@ private:
 	// StaticMesh Resource
 	TMap<FString, class UStaticMesh*> StaticMeshAssets;
 
+	// Primitive StaticMesh Resource (EPrimitiveType별로 미리 로드된 StaticMesh)
+	TMap<EPrimitiveType, class UStaticMesh*> PrimitiveStaticMeshes;
+
 	// Release Functions
 	void ReleaseAllTextures();
 
 	// Initialize Functions
 	void InitializeBasicPrimitives();	// 기본 도형 버퍼 생성 (Cube, Sphere, Plane, ...)
 	void LoadStaticMeshShaders();
-
-	// AABB Resource
-	TMap<EPrimitiveType, FAABB> AABBs; // 각 타입별 AABB 저장
 };

@@ -20,72 +20,6 @@ void UAssetManager::Initialize()
 {
 	URenderer& Renderer = URenderer::GetInstance();
 
-	// TMap.Add()
-	VertexDatas.emplace(EPrimitiveType::Cube, &VerticesCube);
-	VertexDatas.emplace(EPrimitiveType::Sphere, &VerticesSphere);
-	VertexDatas.emplace(EPrimitiveType::Triangle, &VerticesTriangle);
-	VertexDatas.emplace(EPrimitiveType::Square, &VerticesSquare);
-	VertexDatas.emplace(EPrimitiveType::Torus, &VerticesTorus);
-	VertexDatas.emplace(EPrimitiveType::Arrow, &VerticesArrow);
-	VertexDatas.emplace(EPrimitiveType::CubeArrow, &VerticesCubeArrow);
-	VertexDatas.emplace(EPrimitiveType::Ring, &VerticesRing);
-	VertexDatas.emplace(EPrimitiveType::Line, &VerticesLine);
-
-	// TArray.GetData(), TArray.Num()*sizeof(FVertexSimple), TArray.GetTypeSize()
-	Vertexbuffers.emplace(EPrimitiveType::Cube, Renderer.CreateVertexBuffer(
-		                      VerticesCube.data(), static_cast<int>(VerticesCube.size()) * sizeof(FVertex)));
-	Vertexbuffers.emplace(EPrimitiveType::Sphere, Renderer.CreateVertexBuffer(
-		                      VerticesSphere.data(), static_cast<int>(VerticesSphere.size() * sizeof(FVertex))));
-	Vertexbuffers.emplace(EPrimitiveType::Triangle, Renderer.CreateVertexBuffer(
-		                      VerticesTriangle.data(), static_cast<int>(VerticesTriangle.size() * sizeof(FVertex))));
-	Vertexbuffers.emplace(EPrimitiveType::Square, Renderer.CreateVertexBuffer(
-		                      VerticesSquare.data(), static_cast<int>(VerticesSquare.size() * sizeof(FVertex))));
-	Vertexbuffers.emplace(EPrimitiveType::Torus, Renderer.CreateVertexBuffer(
-		                      VerticesTorus.data(), static_cast<int>(VerticesTorus.size() * sizeof(FVertex))));
-	Vertexbuffers.emplace(EPrimitiveType::Arrow, Renderer.CreateVertexBuffer(
-		                      VerticesArrow.data(), static_cast<int>(VerticesArrow.size() * sizeof(FVertex))));
-	Vertexbuffers.emplace(EPrimitiveType::CubeArrow, Renderer.CreateVertexBuffer(
-		                      VerticesCubeArrow.data(), static_cast<int>(VerticesCubeArrow.size() * sizeof(FVertex))));
-	Vertexbuffers.emplace(EPrimitiveType::Ring, Renderer.CreateVertexBuffer(
-		                      VerticesRing.data(), static_cast<int>(VerticesRing.size() * sizeof(FVertex))));
-	Vertexbuffers.emplace(EPrimitiveType::Line, Renderer.CreateVertexBuffer(
-		                      VerticesLine.data(), static_cast<int>(VerticesLine.size() * sizeof(FVertex))));
-
-	NumVertices.emplace(EPrimitiveType::Cube, static_cast<uint32>(VerticesCube.size()));
-	NumVertices.emplace(EPrimitiveType::Sphere, static_cast<uint32>(VerticesSphere.size()));
-	NumVertices.emplace(EPrimitiveType::Triangle, static_cast<uint32>(VerticesTriangle.size()));
-	NumVertices.emplace(EPrimitiveType::Square, static_cast<uint32>(VerticesSquare.size()));
-	NumVertices.emplace(EPrimitiveType::Torus, static_cast<uint32>(VerticesTorus.size()));
-	NumVertices.emplace(EPrimitiveType::Arrow, static_cast<uint32>(VerticesArrow.size()));
-	NumVertices.emplace(EPrimitiveType::CubeArrow, static_cast<uint32>(VerticesCubeArrow.size()));
-	NumVertices.emplace(EPrimitiveType::Ring, static_cast<uint32>(VerticesRing.size()));
-	NumVertices.emplace(EPrimitiveType::Line, static_cast<uint32>(VerticesLine.size()));
-
-	// Calculate Cube AABB
-	for (const auto& pair : VertexDatas)
-	{
-		EPrimitiveType type = pair.first;
-		const auto* vertices = pair.second;
-		if (!vertices || vertices->empty())
-			continue;
-
-		FVector minPoint(+FLT_MAX, +FLT_MAX, +FLT_MAX);
-		FVector maxPoint(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-		for (const auto& vertex : *vertices)
-		{
-			minPoint.X = std::min(minPoint.X, vertex.Position.X);
-			minPoint.Y = std::min(minPoint.Y, vertex.Position.Y);
-			minPoint.Z = std::min(minPoint.Z, vertex.Position.Z);
-
-			maxPoint.X = std::max(maxPoint.X, vertex.Position.X);
-			maxPoint.Y = std::max(maxPoint.Y, vertex.Position.Y);
-			maxPoint.Z = std::max(maxPoint.Z, vertex.Position.Z);
-		}
-
-		AABBs[type] = FAABB(minPoint, maxPoint);
-	}
-
 	// Initialize Shaders
 	ID3D11VertexShader* vertexShader;
 	ID3D11InputLayout* inputLayout;
@@ -105,7 +39,10 @@ void UAssetManager::Initialize()
 	// StaticMesh 셰이더 로드
 	LoadStaticMeshShaders();
 
-	// test.obj 로드
+	// 모든 프리미티브 StaticMesh 로드
+	LoadAllPrimitiveStaticMeshes();
+
+	// test.obj 로드 (하위 호환성을 위해 유지)
 	LoadStaticMesh("Data/Cylinder.obj");
 }
 
@@ -161,10 +98,10 @@ ID3D11InputLayout* UAssetManager::GetInputLayout(EShaderType Type)
 	return InputLayouts[Type];
 }
 
-const FAABB& UAssetManager::GetAABB(EPrimitiveType InType)
-{
-	return AABBs[InType];
-}
+//const FAABB& UAssetManager::GetAABB(EPrimitiveType InType)
+//{
+//	return AABBs[InType];
+//}
 
 /**
  * @brief 파일에서 텍스처를 로드하고 캐시에 저장하는 함수
@@ -523,3 +460,56 @@ void UAssetManager::LoadStaticMeshShaders()
 			StaticMeshVS, StaticMeshPS, StaticMeshLayout);
 	}
 }
+
+/**
+ * @brief 모든 프리미티브 타입의 StaticMesh를 미리 로드하는 함수
+ */
+void UAssetManager::LoadAllPrimitiveStaticMeshes()
+{
+	// 각 프리미티브 타입별 OBJ 파일 경로 매핑
+	TMap<EPrimitiveType, FString> PrimitiveFilePaths = {
+		{EPrimitiveType::Sphere, "Data/Sphere.obj"},
+		{EPrimitiveType::Cube, "Data/Cube.obj"},
+		{EPrimitiveType::Triangle, "Data/Triangle.obj"},
+		{EPrimitiveType::Square, "Data/Square.obj"},
+		{EPrimitiveType::Torus, "Data/Torus.obj"},
+		{EPrimitiveType::Cylinder, "Data/Cylinder.obj"},
+		{EPrimitiveType::Cone, "Data/Untitled3.obj"}
+	//{ EPrimitiveType::StaticMesh, "Data/Cylinder.obj" }
+	};
+
+	// 각 프리미티브 타입별로 StaticMesh 로드
+	for (const auto& Pair : PrimitiveFilePaths)
+	{
+		EPrimitiveType PrimitiveType = Pair.first;
+		const FString& FilePath = Pair.second;
+
+		UStaticMesh* LoadedMesh = LoadStaticMesh(FilePath);
+		if (LoadedMesh)
+		{
+			PrimitiveStaticMeshes[PrimitiveType] = LoadedMesh;
+			UE_LOG_SUCCESS("프리미티브 StaticMesh 로드 성공: %s", EnumToString(PrimitiveType));
+		}
+		else
+		{
+			UE_LOG_ERROR("프리미티브 StaticMesh 로드 실패: %s (경로: %s)",
+				EnumToString(PrimitiveType), FilePath.c_str());
+		}
+	}
+}
+
+/**
+ * @brief 특정 프리미티브 타입의 StaticMesh를 가져오는 함수
+ * @param InPrimitiveType 가져올 프리미티브 타입
+ * @return 해당 타입의 StaticMesh 포인터 (없으면 nullptr)
+ */
+UStaticMesh* UAssetManager::GetPrimitiveStaticMesh(EPrimitiveType InPrimitiveType)
+{
+	auto It = PrimitiveStaticMeshes.find(InPrimitiveType);
+	if (It != PrimitiveStaticMeshes.end())
+	{
+		return It->second;
+	}
+	return nullptr;
+}
+

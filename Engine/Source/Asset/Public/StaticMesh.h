@@ -1,6 +1,7 @@
 #pragma once
 #include "../../Core/Public/Object.h"
 #include "Asset/Public/StaticMeshData.h"
+#include "Physics/Public/AABB.h"
 
 /**
  * @brief UStaticMesh: 스태틱 메시 데이터를 보유하는 애셋 클래스
@@ -81,6 +82,17 @@ public:
 	 */
 	void ReleaseRenderBuffers();
 
+	/**
+	 * @brief 메시의 로컬 AABB를 가져옴
+	 * @return 메시의 바운딩 박스
+	 */
+	const FAABB& GetLocalAABB() const { return LocalAABB; }
+
+	/**
+	 * @brief 메시 데이터로부터 AABB를 계산
+	 */
+	void CalculateAABB();
+
 protected:
 	/** 실제 메시 데이터 */
 	FStaticMesh StaticMeshData;
@@ -90,4 +102,7 @@ protected:
 
 	/** 인덱스 버퍼 */
 	ID3D11Buffer* IndexBuffer = nullptr;
+
+	/** 로컬 좌표계에서의 AABB */
+	FAABB LocalAABB;
 };
