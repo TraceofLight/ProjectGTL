@@ -2,9 +2,9 @@
 #include "Component/Public/PrimitiveComponent.h"
 
 /**
- * @brief UMeshComponent: Base class for all mesh-based components
- * @note Equivalent to Unreal Engine's UMeshComponent
- * Provides common functionality for components that render meshes
+ * @brief UMeshComponent: 모든 메시 기반 컴포넌트의 기본 클래스
+ * @note 언리얼 엔진의 UMeshComponent에 해당
+ * 메시를 렌더링하는 컴포넌트의 공통 기능을 제공
  */
 UCLASS()
 class UMeshComponent : public UPrimitiveComponent
@@ -16,32 +16,32 @@ public:
 	UMeshComponent();
 
 	/**
-	 * @brief Check if the component has valid mesh data for rendering
-	 * @return True if mesh data is available and valid
+	 * @brief 컴포넌트가 렌더링을 위한 유효한 메시 데이터를 가지고 있는지 확인
+	 * @return 메시 데이터가 사용 가능하고 유효하면 true
 	 */
 	virtual bool HasValidMeshData() const;
 
 	/**
-	 * @brief Get the number of vertices in the mesh
-	 * @return Number of vertices
+	 * @brief 메시의 정점 수를 가져옴
+	 * @return 정점 수
 	 */
 	virtual uint32 GetNumVertices() const;
 
 	/**
-	 * @brief Get the number of triangles in the mesh
-	 * @return Number of triangles
+	 * @brief 메시의 삼각형 수를 가져옴
+	 * @return 삼각형 수
 	 */
 	virtual uint32 GetNumTriangles() const;
 
 protected:
 	/**
-	 * @brief Initialize mesh-specific rendering data
-	 * Called when mesh data changes
+	 * @brief 메시 관련 렌더링 데이터를 초기화
+	 * 메시 데이터가 변경될 때 호출됨
 	 */
 	virtual void InitializeMeshRenderData();
 
 	/**
-	 * @brief Update mesh bounds for culling
+	 * @brief 컬링을 위해 메시 바운드를 업데이트
 	 */
 	virtual void UpdateMeshBounds();
 };

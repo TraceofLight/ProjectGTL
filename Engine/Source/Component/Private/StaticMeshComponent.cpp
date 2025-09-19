@@ -5,7 +5,7 @@ IMPLEMENT_CLASS(UStaticMeshComponent, UMeshComponent)
 
 UStaticMeshComponent::UStaticMeshComponent()
 {
-	// Set primitive type to StaticMesh
+	// 프리미티브 타입을 StaticMesh로 설정
 	Type = EPrimitiveType::StaticMesh;
 }
 
@@ -51,12 +51,12 @@ void UStaticMeshComponent::InitializeMeshRenderData()
 		return;
 	}
 
-	// Update vertex data pointer
+	// 정점 데이터 포인터 업데이트
 	Vertices = &StaticMesh->GetVertices();
 	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
 
-	// TODO: Create vertex buffer for GPU rendering
-	// This will be implemented when integrating with the rendering system
+	// TODO: GPU 렌더링을 위한 정점 버퍼 생성
+	// 렌더링 시스템과 통합 시 구현될 예정
 }
 
 void UStaticMeshComponent::UpdateMeshBounds()
@@ -66,8 +66,8 @@ void UStaticMeshComponent::UpdateMeshBounds()
 		return;
 	}
 
-	// TODO: Calculate bounding box from vertex data
-	// This will be implemented when integrating with the physics/culling system
+	// TODO: 정점 데이터로부터 바운딩 박스 계산
+	// 물리/컬링 시스템과 통합 시 구현될 예정
 }
 
 void UStaticMeshComponent::UpdateRenderData()
@@ -79,7 +79,7 @@ void UStaticMeshComponent::UpdateRenderData()
 		return;
 	}
 
-	// Update basic render data
+	// 기본 렌더 데이터 업데이트
 	Vertices = &StaticMesh->GetVertices();
 	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
 }

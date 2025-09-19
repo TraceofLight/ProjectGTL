@@ -11,12 +11,12 @@ bool FObjImporter::ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutO
 
 	OutObjectInfos.clear();
 
-	// Global data arrays (OBJ files have global vertex/UV/normal lists)
+	// 전역 데이터 배열 (OBJ 파일은 전역 정점/UV/노멀 목록을 가짐)
 	TArray<FVector> GlobalVertices;
 	TArray<FVector2> GlobalUVs;
 	TArray<FVector> GlobalNormals;
 
-	// Start with a default object
+	// 기본 객체로 시작
 	FObjInfo CurrentObject("DefaultObject");
 	OutObjectInfos.push_back(CurrentObject);
 
@@ -29,7 +29,7 @@ bool FObjImporter::ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutO
 
 	File.close();
 
-	// Copy global data to each object for easier processing
+	// 쉬운 처리를 위해 각 객체에 전역 데이터 복사
 	for (FObjInfo& ObjectInfo : OutObjectInfos)
 	{
 		ObjectInfo.VertexList = GlobalVertices;
@@ -58,7 +58,7 @@ bool FObjImporter::ParseMaterialLibrary(const FString& MTLFilePath, TArray<FObjM
 
 		if (MTLLine.empty() || MTLLine[0] == '#')
 		{
-			continue; // Skip empty lines and comments
+			continue; // 빈 줄과 주석은 건너뜀
 		}
 
 		TArray<FString> Tokens;
@@ -71,7 +71,7 @@ bool FObjImporter::ParseMaterialLibrary(const FString& MTLFilePath, TArray<FObjM
 
 		if (Tokens[0] == "newmtl" && Tokens.size() > 1)
 		{
-			// New material
+			// 새 재질
 			OutMaterials.emplace_back(Tokens[1]);
 			CurrentMaterial = &OutMaterials.back();
 		}
@@ -138,7 +138,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FSta
 	OutStaticMesh.Vertices.clear();
 	OutStaticMesh.Indices.clear();
 
-	// Combine all objects into one static mesh
+	// 모든 객체를 하나의 스태틱 메시로 결합
 	for (const FObjInfo& ObjectInfo : ObjectInfos)
 	{
 		TArray<FVertex> ObjectVertices;
@@ -146,14 +146,14 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FSta
 
 		ConvertToTriangleList(ObjectInfo, ObjectVertices, ObjectIndices);
 
-		// Adjust indices for the combined mesh
+		// 결합된 메시에 맞게 인덱스 조정
 		uint32 VertexOffset = static_cast<uint32>(OutStaticMesh.Vertices.size());
 		for (uint32& Index : ObjectIndices)
 		{
 			Index += VertexOffset;
 		}
 
-		// Append to final mesh
+		// 최종 메시에 추가
 		OutStaticMesh.Vertices.insert(OutStaticMesh.Vertices.end(), ObjectVertices.begin(), ObjectVertices.end());
 		OutStaticMesh.Indices.insert(OutStaticMesh.Indices.end(), ObjectIndices.begin(), ObjectIndices.end());
 	}
@@ -185,7 +185,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 
 	if (TrimmedLine.empty() || TrimmedLine[0] == '#')
 	{
-		return; // Skip empty lines and comments
+		return; // 빈 줄과 주석은 건너뜀
 	}
 
 	TArray<FString> Tokens;
@@ -198,7 +198,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 
 	if (Tokens[0] == "v" && Tokens.size() >= 4)
 	{
-		// Vertex position - convert to UE coordinate system
+		// 정점 위치 - UE 좌표계로 변환
 		FVector ObjPosition(
 			std::stof(Tokens[1].c_str()),
 			std::stof(Tokens[2].c_str()),
@@ -208,7 +208,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	}
 	else if (Tokens[0] == "vt" && Tokens.size() >= 3)
 	{
-		// Texture coordinate - convert to UE coordinate system
+		// 텍스처 좌표 - UE 좌표계로 변환
 		FVector2 ObjUV(
 			std::stof(Tokens[1].c_str()),
 			std::stof(Tokens[2].c_str())
@@ -217,7 +217,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	}
 	else if (Tokens[0] == "vn" && Tokens.size() >= 4)
 	{
-		// Vertex normal - convert to UE coordinate system
+		// 정점 노멀 - UE 좌표계로 변환
 		FVector ObjNormal(
 			std::stof(Tokens[1].c_str()),
 			std::stof(Tokens[2].c_str()),
@@ -227,7 +227,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	}
 	else if (Tokens[0] == "f" && Tokens.size() >= 4)
 	{
-		// Face data
+		// 면 데이터
 		FString FaceData = "";
 		for (size_t i = 1; i < Tokens.size(); ++i)
 		{
@@ -238,7 +238,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	}
 	else if ((Tokens[0] == "o" || Tokens[0] == "g") && Tokens.size() > 1)
 	{
-		// New object or group
+		// 새 객체 또는 그룹
 		AllObjects.emplace_back(Tokens[1]);
 	}
 }
@@ -248,21 +248,21 @@ void FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObjec
 	TArray<FString> FaceVertices;
 	SplitString(FaceData, ' ', FaceVertices);
 
-	// Convert face to triangles (assuming face is at least a triangle)
+	// 면을 삼각형으로 변환 (면이 최소 삼각형이라고 가정)
 	for (size_t i = 1; i < FaceVertices.size() - 1; ++i)
 	{
-		// Parse each vertex of the triangle
+		// 삼각형의 각 정점을 파싱
 		TArray<FString> VertexComponents[3];
 		SplitString(FaceVertices[0], '/', VertexComponents[0]);
 		SplitString(FaceVertices[i], '/', VertexComponents[1]);
 		SplitString(FaceVertices[i + 1], '/', VertexComponents[2]);
 
-		// Add indices for each vertex of the triangle
+		// 삼각형의 각 정점에 대한 인덱스 추가
 		for (int j = 0; j < 3; ++j)
 		{
 			if (!VertexComponents[j].empty() && !VertexComponents[j][0].empty())
 			{
-				CurrentObject.VertexIndexList.push_back(std::stoi(VertexComponents[j][0].c_str()) - 1); // OBJ indices are 1-based
+				CurrentObject.VertexIndexList.push_back(std::stoi(VertexComponents[j][0].c_str()) - 1); // OBJ 인덱스는 1부터 시작
 			}
 
 			if (VertexComponents[j].size() > 1 && !VertexComponents[j][1].empty())
@@ -294,7 +294,7 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 			size_t Index = i * 3 + j;
 			FVertex Vertex;
 
-			// Position
+			// 위치
 			if (Index < ObjectInfo.VertexIndexList.size())
 			{
 				uint32 VertexIndex = ObjectInfo.VertexIndexList[Index];
@@ -314,7 +314,7 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 				}
 			}
 
-			// Normal
+			// 노멀
 			if (Index < ObjectInfo.NormalIndexList.size())
 			{
 				uint32 NormalIndex = ObjectInfo.NormalIndexList[Index];

@@ -3,9 +3,9 @@
 #include "Asset/Public/StaticMeshData.h"
 
 /**
- * @brief UStaticMesh: Asset class that holds static mesh data
- * @note Equivalent to Unreal Engine's UStaticMesh
- * Contains the cooked mesh data for rendering
+ * @brief UStaticMesh: 스태틱 메시 데이터를 보유하는 애셋 클래스
+ * @note 언리얼 엔진의 UStaticMesh에 해당
+ * 렌더링을 위해 쿠킹된 메시 데이터를 포함
  */
 UCLASS()
 class UStaticMesh : public UObject
@@ -17,42 +17,42 @@ public:
 	UStaticMesh();
 
 	/**
-	 * @brief Get the static mesh data
-	 * @return Reference to the FStaticMesh data structure
+	 * @brief 스태틱 메시 데이터를 가져옴
+	 * @return FStaticMesh 데이터 구조에 대한 참조
 	 */
 	const FStaticMesh& GetStaticMeshData() const { return StaticMeshData; }
 
 	/**
-	 * @brief Set the static mesh data
-	 * @param InStaticMeshData The mesh data to set
+	 * @brief 스태틱 메시 데이터를 설정
+	 * @param InStaticMeshData 설정할 메시 데이터
 	 */
 	void SetStaticMeshData(const FStaticMesh& InStaticMeshData);
 
 	/**
-	 * @brief Get the source file path
-	 * @return Path to the source mesh file
+	 * @brief 원본 파일 경로를 가져옴
+	 * @return 원본 메시 파일의 경로
 	 */
 	const FString& GetSourceFilePath() const { return StaticMeshData.PathFileName; }
 
 	/**
-	 * @brief Get vertex data for rendering
-	 * @return Array of vertices
+	 * @brief 렌더링을 위한 정점 데이터를 가져옴
+	 * @return 정점 배열
 	 */
 	const TArray<FVertex>& GetVertices() const { return StaticMeshData.Vertices; }
 
 	/**
-	 * @brief Get index data for rendering
-	 * @return Array of indices
+	 * @brief 렌더링을 위한 인덱스 데이터를 가져옴
+	 * @return 인덱스 배열
 	 */
 	const TArray<uint32>& GetIndices() const { return StaticMeshData.Indices; }
 
 	/**
-	 * @brief Check if the mesh has valid data
-	 * @return True if mesh has vertices and indices
+	 * @brief 메시가 유효한 데이터를 가지고 있는지 확인
+	 * @return 메시가 정점과 인덱스를 가지고 있으면 true
 	 */
 	bool IsValidMesh() const;
 
 protected:
-	/** The actual mesh data */
+	/** 실제 메시 데이터 */
 	FStaticMesh StaticMeshData;
 };

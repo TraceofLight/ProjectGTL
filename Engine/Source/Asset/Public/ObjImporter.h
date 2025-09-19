@@ -3,57 +3,57 @@
 #include "Global/Types.h"
 
 /**
- * @brief FObjImporter: Handles importing and parsing of OBJ files
- * @note Equivalent to Unreal Engine's FBX/OBJ importers
- * Converts raw OBJ data to engine-ready formats
+ * @brief FObjImporter: OBJ 파일의 임포트 및 파싱을 처리
+ * @note 언리얼 엔진의 FBX/OBJ 임포터에 해당
+ * 원시 OBJ 데이터를 엔진에 바로 사용할 수 있는 형식으로 변환
  */
-class FObjImporter
+struct FObjImporter
 {
 public:
 	FObjImporter() = default;
 	~FObjImporter() = default;
 
 	/**
-	 * @brief Import an OBJ file and parse it into raw object data
-	 * @param FilePath Path to the OBJ file to import
-	 * @param OutObjectInfos Array of parsed object information
-	 * @return True if import was successful, false otherwise
+	 * @brief OBJ 파일을 임포트하고 원시 객체 데이터로 파싱
+	 * @param FilePath 임포트할 OBJ 파일의 경로
+	 * @param OutObjectInfos 파싱된 객체 정보 배열
+	 * @return 임포트 성공 시 true, 그렇지 않으면 false
 	 */
 	static bool ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutObjectInfos);
 
 	/**
-	 * @brief Parse material library file (.mtl)
-	 * @param MTLFilePath Path to the MTL file
-	 * @param OutMaterials Array of parsed material information
-	 * @return True if parsing was successful, false otherwise
+	 * @brief 재질 라이브러리 파일(.mtl)을 파싱
+	 * @param MTLFilePath MTL 파일의 경로
+	 * @param OutMaterials 파싱된 재질 정보 배열
+	 * @return 파싱 성공 시 true, 그렇지 않으면 false
 	 */
 	static bool ParseMaterialLibrary(const FString& MTLFilePath, TArray<FObjMaterialInfo>& OutMaterials);
 
 	/**
-	 * @brief Convert raw object data to cooked static mesh data
-	 * @param ObjectInfos Array of raw object data
-	 * @param OutStaticMesh The resulting cooked static mesh data
-	 * @return True if conversion was successful, false otherwise
+	 * @brief 원시 객체 데이터를 쿠킹된 스태틱 메시 데이터로 변환
+	 * @param ObjectInfos 원시 객체 데이터 배열
+	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
+	 * @return 변환 성공 시 true, 그렇지 않으면 false
 	 */
 	static bool ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FStaticMesh& OutStaticMesh);
 
 	/**
-	 * @brief Complete import pipeline: OBJ → Raw Data → Cooked Data
-	 * @param FilePath Path to the OBJ file to import
-	 * @param OutStaticMesh The resulting cooked static mesh data
-	 * @return True if entire pipeline was successful, false otherwise
+	 * @brief 전체 임포트 파이프라인: OBJ → 원시 데이터 → 쿠킹된 데이터
+	 * @param FilePath 임포트할 OBJ 파일의 경로
+	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
+	 * @return 전체 파이프라인 성공 시 true, 그렇지 않으면 false
 	 */
 	static bool ImportStaticMesh(const FString& FilePath, FStaticMesh& OutStaticMesh);
 
 private:
 	/**
-	 * @brief Parse a single line from an OBJ file
-	 * @param Line The line to parse
-	 * @param CurrentObject The object currently being parsed
-	 * @param AllObjects All objects being parsed (for group management)
-	 * @param GlobalVertices Global vertex list
-	 * @param GlobalUVs Global UV list
-	 * @param GlobalNormals Global normal list
+	 * @brief OBJ 파일의 한 줄을 파싱
+	 * @param Line 파싱할 줄
+	 * @param CurrentObject 현재 파싱 중인 객체
+	 * @param AllObjects 파싱 중인 모든 객체 (그룹 관리용)
+	 * @param GlobalVertices 전역 정점 목록
+	 * @param GlobalUVs 전역 UV 목록
+	 * @param GlobalNormals 전역 노멀 목록
 	 */
 	static void ParseOBJLine(const FString& Line,
 		FObjInfo& CurrentObject,
@@ -63,48 +63,48 @@ private:
 		TArray<FVector>& GlobalNormals);
 
 	/**
-	 * @brief Parse face data from OBJ file
-	 * @param FaceData The face data string (e.g., "1/1/1 2/2/2 3/3/3")
-	 * @param CurrentObject The object to add face data to
+	 * @brief OBJ 파일에서 면 데이터를 파싱
+	 * @param FaceData 면 데이터 문자열 (예: "1/1/1 2/2/2 3/3/3")
+	 * @param CurrentObject 면 데이터를 추가할 객체
 	 */
 	static void ParseFaceData(const FString& FaceData, FObjInfo& CurrentObject);
 
 	/**
-	 * @brief Convert face indices to triangle list with proper vertex data
-	 * @param ObjectInfo Raw object data with separate vertex/UV/normal arrays
-	 * @param OutVertices Final vertex array with combined data
-	 * @param OutIndices Final index array for triangles
+	 * @brief 면 인덱스를 적절한 정점 데이터를 가진 삼각형 목록으로 변환
+	 * @param ObjectInfo 개별 정점/UV/노멀 배열을 가진 원시 객체 데이터
+	 * @param OutVertices 결합된 데이터를 가진 최종 정점 배열
+	 * @param OutIndices 삼각형을 위한 최종 인덱스 배열
 	 */
 	static void ConvertToTriangleList(const FObjInfo& ObjectInfo,
 		TArray<FVertex>& OutVertices,
 		TArray<uint32>& OutIndices);
 
 	/**
-	 * @brief Helper function to trim whitespace from strings
-	 * @param Str String to trim
-	 * @return Trimmed string
+	 * @brief 문자열의 공백을 제거하는 헬퍼 함수
+	 * @param Str 공백을 제거할 문자열
+	 * @return 공백이 제거된 문자열
 	 */
 	static FString TrimString(const FString& Str);
 
 	/**
-	 * @brief Helper function to split strings by delimiter
-	 * @param Str String to split
-	 * @param Delimiter Delimiter character
-	 * @param OutTokens Array of resulting tokens
+	 * @brief 구분자로 문자열을 분할하는 헬퍼 함수
+	 * @param Str 분할할 문자열
+	 * @param Delimiter 구분자 문자
+	 * @param OutTokens 결과 토큰 배열
 	 */
 	static void SplitString(const FString& Str, char Delimiter, TArray<FString>& OutTokens);
 
 	/**
-	 * @brief Convert OBJ position to UE coordinate system
-	 * @param InVector Position vector from OBJ file
-	 * @return Position vector in UE coordinate system
+	 * @brief OBJ 위치를 UE 좌표계로 변환
+	 * @param InVector OBJ 파일의 위치 벡터
+	 * @return UE 좌표계의 위치 벡터
 	 */
 	static FVector PositionToUEBasis(const FVector& InVector);
 
 	/**
-	 * @brief Convert OBJ UV coordinates to UE coordinate system
-	 * @param InVector UV vector from OBJ file
-	 * @return UV vector in UE coordinate system
+	 * @brief OBJ UV 좌표를 UE 좌표계로 변환
+	 * @param InVector OBJ 파일의 UV 벡터
+	 * @return UE 좌표계의 UV 벡터
 	 */
 	static FVector2 UVToUEBasis(const FVector2& InVector);
 };

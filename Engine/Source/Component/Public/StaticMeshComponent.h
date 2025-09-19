@@ -3,9 +3,9 @@
 #include "Asset/Public/StaticMesh.h"
 
 /**
- * @brief UStaticMeshComponent: Component for rendering static meshes
- * @note Equivalent to Unreal Engine's UStaticMeshComponent
- * Holds a reference to a UStaticMesh asset and renders it
+ * @brief UStaticMeshComponent: 스태틱 메시 렌더링을 위한 컴포넌트
+ * @note 언리얼 엔진의 UStaticMeshComponent에 해당
+ * UStaticMesh 애셋에 대한 참조를 보유하고 렌더링함
  */
 UCLASS()
 class UStaticMeshComponent : public UMeshComponent
@@ -17,33 +17,33 @@ public:
 	UStaticMeshComponent();
 
 	/**
-	 * @brief Set the static mesh asset to render
-	 * @param InStaticMesh Pointer to the static mesh asset
+	 * @brief 렌더링할 스태틱 메시 애셋을 설정
+	 * @param InStaticMesh 스태틱 메시 애셋에 대한 포인터
 	 */
 	void SetStaticMesh(UStaticMesh* InStaticMesh);
 
 	/**
-	 * @brief Get the current static mesh asset
-	 * @return Pointer to the static mesh asset, or nullptr if none set
+	 * @brief 현재 스태틱 메시 애셋을 가져옴
+	 * @return 스태틱 메시 애셋에 대한 포인터, 설정되지 않은 경우 nullptr
 	 */
 	UStaticMesh* GetStaticMesh() const { return StaticMesh; }
 
-	// Override from UMeshComponent
+	// UMeshComponent로부터 재정의
 	virtual bool HasValidMeshData() const override;
 	virtual uint32 GetNumVertices() const override;
 	virtual uint32 GetNumTriangles() const override;
 
 protected:
-	// Override from UMeshComponent
+	// UMeshComponent로부터 재정의
 	virtual void InitializeMeshRenderData() override;
 	virtual void UpdateMeshBounds() override;
 
 	/**
-	 * @brief Update vertex and index buffers from static mesh data
+	 * @brief 스태틱 메시 데이터로부터 정점 및 인덱스 버퍼를 업데이트
 	 */
 	void UpdateRenderData();
 
 private:
-	/** The static mesh asset to render */
+	/** 렌더링할 스태틱 메시 애셋 */
 	UStaticMesh* StaticMesh = nullptr;
 };

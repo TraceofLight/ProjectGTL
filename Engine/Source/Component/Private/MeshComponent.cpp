@@ -19,16 +19,16 @@ uint32 UMeshComponent::GetNumVertices() const
 
 uint32 UMeshComponent::GetNumTriangles() const
 {
-	// Assuming triangle topology
+	// 삼각형 토폴로지로 가정
 	return NumVertices / 3;
 }
 
 void UMeshComponent::InitializeMeshRenderData()
 {
-	// Base implementation - derived classes should override
+	// 기본 구현 - 파생 클래스에서 재정의해야 함
 }
 
 void UMeshComponent::UpdateMeshBounds()
 {
-	// Base implementation - derived classes should override
+	// 기본 구현 - 파생 클래스에서 재정의해야 함
 }
