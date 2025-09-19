@@ -40,17 +40,17 @@ void SSplitter::LayoutChildren()
     const FRect h = GetHandleRect();
     if (Orientation == EOrientation::Vertical)
     {
-        FRect left{ Rect.X, Rect.Y, std::max(0, h.X - Rect.X), Rect.H };
+        FRect left{ Rect.X, Rect.Y, max(0L, h.X - Rect.X), Rect.H };
         int32 rightX = h.X + h.W;
-        FRect right{ rightX, Rect.Y, std::max(0, (Rect.X + Rect.W) - rightX), Rect.H };
+        FRect right{ rightX, Rect.Y, max(0L, (Rect.X + Rect.W) - rightX), Rect.H };
         SideLT->OnResize(left);
         SideRB->OnResize(right);
     }
     else
     {
-        FRect top{ Rect.X, Rect.Y, Rect.W, std::max(0, h.Y - Rect.Y) };
+        FRect top{ Rect.X, Rect.Y, Rect.W, max(0L, h.Y - Rect.Y) };
         int32 bottomY = h.Y + h.H;
-        FRect bottom{ Rect.X, bottomY, Rect.W, std::max(0, (Rect.Y + Rect.H) - bottomY) };
+        FRect bottom{ Rect.X, bottomY, Rect.W, max(0L, (Rect.Y + Rect.H) - bottomY) };
         SideLT->OnResize(top);
         SideRB->OnResize(bottom);
     }
@@ -76,14 +76,14 @@ bool SSplitter::OnMouseMove(FPoint Coord)
 
     if (Orientation == EOrientation::Vertical)
     {
-        const int32 span = std::max(1, Rect.W);
+        const int32 span = std::max(1L, Rect.W);
         float r = float(Coord.X - Rect.X) / float(span);
         float limit = float(MinChildSize) / float(span);
         Ratio = std::clamp(r, limit, 1.0f - limit);
     }
     else
     {
-        const int32 span = std::max(1, Rect.H);
+        const int32 span = std::max(1L, Rect.H);
         float r = float(Coord.Y - Rect.Y) / float(span);
         float limit = float(MinChildSize) / float(span);
         Ratio = std::clamp(r, limit, 1.0f - limit);

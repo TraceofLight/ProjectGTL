@@ -12,6 +12,10 @@
 #include "Render/Renderer/Public/Renderer.h"
 
 #include "Render/UI/Window/Public/ConsoleWindow.h"
+#include "Window/Public/WindowSystem.h"
+#include "Window/Public/SplitterV.h"
+#include "Window/Public/SplitterH.h"
+
 
 FClientApp::FClientApp() = default;
 
@@ -90,6 +94,9 @@ int FClientApp::InitializeSystem() const
 	// TODO(KHJ): 나중에 Init에서 처리하도록 하는 게 맞을 듯
 	ULevelManager::GetInstance().CreateDefaultLevel();
 
+	//WindowSystem::SetRoot()
+
+
 	return S_OK;
 }
 
@@ -108,8 +115,10 @@ void FClientApp::UpdateSystem() const
 	LevelManager.Update();
 	TimeManager.Update();
 	InputManager.Update(Window);
-	UIManager.Update();
-	Renderer.Update();
+    UIManager.Update();
+    // Route mouse input to window tree (splitters etc.)
+    WindowSystem::TickInput();
+    Renderer.Update();
 }
 
 /**
@@ -160,3 +169,4 @@ void FClientApp::ShutdownSystem() const
 
 	delete Window;
 }
+

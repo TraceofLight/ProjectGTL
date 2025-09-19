@@ -258,6 +258,7 @@
     <ClInclude Include="Source\Window\Public\SplitterH.h" />
     <ClInclude Include="Source\Window\Public\SplitterV.h" />
     <ClInclude Include="Source\Window\Public\Window.h" />
+    <ClInclude Include="Source\Window\Public\WindowSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -654,6 +655,7 @@
       <AdditionalOptions>/utf-8 </AdditionalOptions>
       <LinkCompiled>true</LinkCompiled>
     </ClCompile>
+    <ClCompile Include="Source\Window\Private\WindowSystem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

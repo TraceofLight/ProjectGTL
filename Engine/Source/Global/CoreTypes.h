@@ -67,10 +67,10 @@ struct FTransform
  */
 struct FPoint
 {
-	int32 X, Y;
+	LONG X, Y;
 
 	constexpr FPoint() = default;
-	constexpr FPoint(int32 InX, int32 InY) : X(InX), Y(InY) {}
+	constexpr FPoint(LONG InX, LONG InY) : X(InX), Y(InY) {}
 };
 
 /**
@@ -78,8 +78,8 @@ struct FPoint
  */
 struct FRect
 {
-	int32 X, Y, W, H;
+	LONG X, Y, W, H;
 
 	constexpr FRect() = default;
-	constexpr FRect(int32 InX, int32 InY, int32 InW, int32 InH) : X(InX), Y(InY), W(InW), H(InH) {}
+	constexpr FRect(LONG InX, LONG InY, LONG InW, LONG InH) : X(InX), Y(InY), W(InW), H(InH) {}
 };
