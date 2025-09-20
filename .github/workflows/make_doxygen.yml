@@ -7,27 +7,44 @@ on:
         branches: [ develop ]
 
 jobs:
-    # 프로젝트를 빌드하고 문서를 생성
+    # 프로젝트를 빌드하고 문서를 생성하는 역할
     build:
         runs-on: windows-2022
         steps:
             - name: Checkout Code
               uses: actions/checkout@v4
 
-            - name: Install Doxygen and Graphviz
+            # 초콜릿티 패키지 캐싱
+            - name: Cache Chocolatey packages
+              id: choco-cache
+              uses: actions/cache@v4
+              with:
+                  path: C:\ProgramData\chocolatey
+                  key: choco-cache-${{ runner.os }}
+
+            # 캐시가 없을 때만 Doxygen과 Graphviz 설치
+            - name: Install Doxygen and Graphviz if cache missed
+              if: steps.choco-cache.outputs.cache-hit != 'true'
               run: |
                   choco install doxygen.install -y
                   choco install graphviz -y
 
+            # Doxygen 명령어 경로(PATH) 추가
             - name: Add Doxygen to PATH
               run: echo "C:\Program Files\doxygen\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
             - name: Set UTF-8 Code Page
               run: chcp 65001
 
+            # Doxygen 문서 생성 실행
             - name: Generate Doxygen Documentation
               run: doxygen Doxyfile
 
+            # 생성된 파일 목록 출력
+            - name: List generated files for debugging
+              run: dir docs /s
+
+            # 생성된 문서를 GitHub Pages 배포용 아티팩트로 업로드
             - name: Upload GitHub Pages artifact
               uses: actions/upload-pages-artifact@v3
               with:
