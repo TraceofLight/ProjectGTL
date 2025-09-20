@@ -12,6 +12,8 @@
 #include "Render/Renderer/Public/Renderer.h"
 
 #include "Render/UI/Window/Public/ConsoleWindow.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
+
 
 FClientApp::FClientApp() = default;
 
@@ -90,6 +92,10 @@ int FClientApp::InitializeSystem() const
 	// TODO(KHJ): 나중에 Init에서 처리하도록 하는 게 맞을 듯
 	ULevelManager::GetInstance().CreateDefaultLevel();
 
+    // Initialize viewport manager (build root layout)
+    UViewportManager::GetInstance().Initialize(Window);
+
+
 	return S_OK;
 }
 
@@ -103,13 +109,15 @@ void FClientApp::UpdateSystem() const
 	auto& UIManager = UUIManager::GetInstance();
 	auto& Renderer = URenderer::GetInstance();
 	auto& LevelManager = ULevelManager::GetInstance();
+	auto& ViewportManager = UViewportManager::GetInstance();
 
 	//Editor->Update();
 	LevelManager.Update();
 	TimeManager.Update();
 	InputManager.Update(Window);
 	UIManager.Update();
-	Renderer.Update();
+	ViewportManager.Update();
+    Renderer.Update();
 }
 
 /**
@@ -160,3 +168,4 @@ void FClientApp::ShutdownSystem() const
 
 	delete Window;
 }
+

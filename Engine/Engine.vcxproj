@@ -178,6 +178,8 @@
     <ClInclude Include="Source\Component\Public\StaticMeshComponent.h" />
     <ClInclude Include="Source\Factory\Actor\Public\StaticMeshActorFactory.h" />
     <ClInclude Include="Source\Global\Quaternion.h" />
+    <ClInclude Include="Source\Manager\Viewport\Public\ViewportManager.h" />
+    <ClInclude Include="Source\Material\Public\Material.h" />
     <ClInclude Include="Source\Physics\Public\AABB.h" />
     <ClInclude Include="Source\Physics\Public\BoundingSphere.h" />
     <ClInclude Include="Source\Physics\Public\BoundingVolume.h" />
@@ -262,6 +264,11 @@
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
     <ClInclude Include="Source\Utility\Public\Metadata.h" />
     <ClInclude Include="Source\Utility\Public\UELogParser.h" />
+    <ClInclude Include="Source\Window\Public\Splitter.h" />
+    <ClInclude Include="Source\Window\Public\SplitterH.h" />
+    <ClInclude Include="Source\Window\Public\SplitterV.h" />
+    <ClInclude Include="Source\Window\Public\Window.h" />
+    <ClInclude Include="Source\Window\Public\WindowSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -290,6 +297,7 @@
     <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Factory\Actor\Private\StaticMeshActorFactory.cpp" />
     <ClCompile Include="Source\Global\Quaternion.cpp" />
+    <ClCompile Include="Source\Manager\Viewport\Private\ViewportManager.cpp" />
     <ClCompile Include="Source\Physics\Private\AABB.cpp" />
     <ClCompile Include="Source\Physics\Private\BoundingSphere.cpp" />
     <ClCompile Include="Source\Core\Private\AppWindow.cpp" />
@@ -360,6 +368,11 @@
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\JsonSerializer.cpp" />
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp" />
+    <ClCompile Include="Source\Window\Private\Splitter.cpp" />
+    <ClCompile Include="Source\Window\Private\SplitterH.cpp" />
+    <ClCompile Include="Source\Window\Private\SplitterV.cpp" />
+    <ClCompile Include="Source\Window\Private\Window.cpp" />
+    <ClCompile Include="Source\Window\Private\WindowSystem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
