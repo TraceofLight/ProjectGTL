@@ -179,6 +179,7 @@
     <ClInclude Include="Source\Factory\Actor\Public\StaticMeshActorFactory.h" />
     <ClInclude Include="Source\Global\Quaternion.h" />
     <ClInclude Include="Source\Manager\Viewport\Public\ViewportManager.h" />
+    <ClInclude Include="Source\Material\Public\Material.h" />
     <ClInclude Include="Source\Physics\Public\AABB.h" />
     <ClInclude Include="Source\Physics\Public\BoundingSphere.h" />
     <ClInclude Include="Source\Physics\Public\BoundingVolume.h" />

@@ -533,3 +533,6 @@ editor.ini
 # OBJ Files
 *.obj
 *.mtl
+
+# LLM Agent Files
+AGENTS.md
