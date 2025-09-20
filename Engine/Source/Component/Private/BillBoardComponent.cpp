@@ -3,7 +3,6 @@
 #include "Manager/Level/Public/LevelManager.h"
 #include "Editor/Public/Editor.h"
 #include "Actor/Public/Actor.h"
-#include "Render/Renderer/Public/BillBoardSceneProxy.h"
 /**
  * @brief Level에서 각 Actor마다 가지고 있는 UUID를 출력해주기 위한 빌보드 클래스
  * Actor has a UBillBoardComponent
@@ -62,13 +61,4 @@ EShaderType UBillBoardComponent::GetShaderType() const
 {
 	// BillBoard는 기본 셰이더 사용 (FontRenderer가 별도 처리)
 	return EShaderType::Default;
-}
-
-FPrimitiveSceneProxy* UBillBoardComponent::CreateSceneProxy() const
-{
-	// 렌더링 전에 회전 매트릭스 업데이트
-	const_cast<UBillBoardComponent*>(this)->UpdateRotationMatrix();
-
-	// BillBoard 전용 SceneProxy 사용
-	return new FBillBoardSceneProxy(this);
 }

@@ -18,7 +18,6 @@ public:
 	virtual bool HasRenderData() const override;
 	virtual bool UseIndexedRendering() const override;
 	virtual EShaderType GetShaderType() const override;
-	virtual class FPrimitiveSceneProxy* CreateSceneProxy() const override;
 private:
 	FMatrix RTMatrix;
 	AActor* POwnerActor;

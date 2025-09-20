@@ -11,8 +11,6 @@
 //#include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
-#include "Render/Renderer/Public/StaticMeshSceneProxy.h"
-#include "Render/Renderer/Public/BillBoardSceneProxy.h"
 #include "Actor/Public/Actor.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
@@ -266,18 +264,6 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 		return;
 	}
 
-	// BillBoard인 경우 SceneProxy를 통한 특수 렌더링
-	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
-	{
-		FPrimitiveSceneProxy* SceneProxy = InPrimitiveComponent->CreateSceneProxy();
-		if (SceneProxy)
-		{
-			RenderWithSceneProxy(SceneProxy);
-			delete SceneProxy; // SceneProxy는 임시 객체이므로 삭제
-		}
-		return;
-	}
-
 	// 일반 프리미티브의 경우 기존 렌더링 방식 사용
 	// 공통 파이프라인 설정
 	SetupRenderPipeline(InPrimitiveComponent);
@@ -480,29 +466,6 @@ void URenderer::RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, cons
 }
 
 /**
- * @brief SceneProxy를 통한 렌더링
- * @param InSceneProxy 렌더링할 SceneProxy
- */
-void URenderer::RenderWithSceneProxy(FPrimitiveSceneProxy* InSceneProxy)
-{
-	if (!InSceneProxy || !InSceneProxy->IsValidForRendering())
-	{
-		return;
-	}
-
-	// BillBoard SceneProxy인 경우 특수 처리 (TODO: 나중에 일관되게 되도록 수정해야함.)
-	FBillBoardSceneProxy* BillBoardProxy = dynamic_cast<FBillBoardSceneProxy*>(InSceneProxy);
-	if (BillBoardProxy)
-	{
-		RenderBillBoard(BillBoardProxy);
-		return;
-	}
-
-	// 다른 타입의 SceneProxy 처리는 향후 구현
-	// (StaticMesh SceneProxy 등은 필요에 따라 추가)
-}
-
-/**
  * @brief BillBoard 렌더링
  * @param InBillBoardProxy BillBoard SceneProxy
  */
@@ -514,12 +477,12 @@ void URenderer::RenderBillBoard(FBillBoardSceneProxy* InBillBoardProxy)
 	}
 
 	// BillBoard의 RT 매트릭스와 텍스트 가져오기
-	const FMatrix& RTMatrix = InBillBoardProxy->GetRTMatrix();
-	const FString& DisplayText = InBillBoardProxy->GetDisplayText();
-
-	// FontRenderer를 통한 텍스트 렌더링
-	const FViewProjConstants& ViewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-	FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, ViewProjConstData);
+	//const FMatrix& RTMatrix = InBillBoardProxy->GetRTMatrix();
+	//const FString& DisplayText = InBillBoardProxy->GetDisplayText();
+	//
+	//// FontRenderer를 통한 텍스트 렌더링
+	//const FViewProjConstants& ViewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
+	//FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, ViewProjConstData);
 }
 
 /**
