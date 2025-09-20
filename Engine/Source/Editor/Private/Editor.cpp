@@ -25,17 +25,11 @@ UEditor::UEditor()
 
 	// Set Camera to Control Panel
 	auto& UIManager = UUIManager::GetInstance();
-	auto* CameraControlWidget =
-		reinterpret_cast<UCameraControlWidget*>(UIManager.FindWidget("Camera Control Widget"));
+	auto CameraControlWidget = Cast<UCameraControlWidget>(UIManager.FindWidget("Camera Control Widget"));
 	CameraControlWidget->SetCamera(&Camera);
 
-	// Set UBatchLines to FPSWidget Panel
-	auto* FPSWidget =
-		reinterpret_cast<UFPSWidget*>(UIManager.FindWidget("FPS Widget"));
-	FPSWidget->SetBatchLine(&BatchLines);
 	// Set Camera to Scene Hierarchy Widget
-	auto* SceneHierarchyWidget =
-		reinterpret_cast<USceneHierarchyWidget*>(UIManager.FindWidget("Scene Hierarchy Widget"));
+	auto SceneHierarchyWidget = Cast<USceneHierarchyWidget>(UIManager.FindWidget("Scene Hierarchy Widget"));
 	SceneHierarchyWidget->SetCamera(&Camera);
 };
 

@@ -269,7 +269,7 @@ void UUIWindow::RenderWindow()
 
 void UUIWindow::RenderWidget() const
 {
-	for (auto* Widget : Widgets)
+	for (auto Widget : Widgets)
 	{
 		Widget->RenderWidget();
 		Widget->PostProcess();
@@ -278,7 +278,7 @@ void UUIWindow::RenderWidget() const
 
 void UUIWindow::Update() const
 {
-	for (UWidget* Widget : Widgets)
+	for (auto Widget : Widgets)
 	{
 		Widget->Update();
 	}

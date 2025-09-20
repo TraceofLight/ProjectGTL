@@ -1,6 +1,6 @@
 #pragma once
 
-class FClientApp;
+class FEngineLoop;
 
 /**
  * @brief 윈도우 생성 및 메시지 처리를 담당하는 클래스
@@ -20,11 +20,11 @@ public:
 	void SetNewTitle(const wstring& InNewTitle) const;
 
 	// Special Member Function
-	FAppWindow(FClientApp* InOwner);
+	FAppWindow(FEngineLoop* InOwner);
 	~FAppWindow();
 
 private:
-    FClientApp* Owner;
+    FEngineLoop* Owner;
     HINSTANCE InstanceHandle;
     HWND MainWindowHandle;
 

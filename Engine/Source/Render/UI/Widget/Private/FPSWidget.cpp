@@ -1,16 +1,13 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/FPSWidget.h"
 
-#include "Manager/Time/Public/TimeManager.h"
-
-#include "Manager/Config/Public/ConfigManager.h"
+IMPLEMENT_CLASS(UFPSWidget, UWidget)
 
 constexpr float REFRESH_INTERVAL = 0.1f;
 
 UFPSWidget::UFPSWidget()
-	: UWidget("FPS Widget")
 {
-
+	SetDisplayName("FPS Widget");
 }
 
 UFPSWidget::~UFPSWidget() = default;
@@ -23,7 +20,14 @@ void UFPSWidget::Initialize()
 		FrameTimeHistory[i] = 0.0f;
 	}
 
+	// FPS 계산 샘플 배열 초기화
+	for (int i = 0; i < FPS_SAMPLE_COUNT; ++i)
+	{
+		FrameSpeedSamples[i] = 0.0f;
+	}
+
 	FrameTimeIndex = 0;
+	FrameSpeedSampleIndex = 0;
 	AverageFrameTime = 0.0f;
 	CurrentFPS = 0.0f;
 	MinFPS = 999.0f;
@@ -38,8 +42,7 @@ void UFPSWidget::Update()
 	CurrentDeltaTime = DT;
 	TotalGameTime += DT;
 
-	auto& TimeManager = UTimeManager::GetInstance();
-	CurrentFPS = TimeManager.GetFPS();
+	CalculateFPS();
 
 	// FPS 통계 업데이트
 	MaxFPS = max(CurrentFPS, MaxFPS);
@@ -55,6 +58,7 @@ void UFPSWidget::Update()
 	{
 		Total += FrameTimeHistory[i];
 	}
+
 	AverageFrameTime = Total / 60.0f;
 }
 
@@ -95,21 +99,27 @@ void UFPSWidget::RenderWidget()
 
 		if (ImGui::Button("Reset Statistics"))
 		{
-			MinFPS = 999.0f;
-			MaxFPS = 0.0f;
+			MinFPS = static_cast<float>(INT_MAX);
+			MaxFPS = static_cast<float>(INT_MIN);
 			for (int i = 0; i < 60; ++i)
 			{
 				FrameTimeHistory[i] = 0.0f;
 			}
+
+			FrameSpeedSampleIndex = 0;
+			for (int i = 0; i < FPS_SAMPLE_COUNT; ++i)
+			{
+				FrameSpeedSamples[i] = 0.0f;
+			}
 		}
 	}
 
-	// test용: CellSize 값을 실시간으로 조정
-	CellSize = PbatchLine->GetCellSize();
-	if (ImGui::SliderFloat("Grid Spacing", &CellSize, 0.0f, 10.0f, "%.1f"))
-	{
-		PbatchLine->UpdateUGridVertices(CellSize);
-	}
+	// TODO(KHJ): Grid 툴바 상단으로 이동
+	// CellSize = BatchLinePtr->GetCellSize();
+	// if (ImGui::SliderFloat("Grid Spacing", &CellSize, 0.0f, 10.0f, "%.1f"))
+	// {
+	// 	BatchLinePtr->UpdateUGridVertices(CellSize);
+	// }
 
 	ImGui::Separator();
 }
@@ -127,5 +137,34 @@ ImVec4 UFPSWidget::GetFPSColor(float InFPS)
 	else
 	{
 		return {1.0f, 0.0f, 0.0f, 1.0f}; // 빨간색 (주의)
+	}
+}
+
+/**
+ * @brief FPS를 계산하는 함수
+ */
+void UFPSWidget::CalculateFPS()
+{
+	if (GDeltaTime > 0.0f)
+	{
+		FrameSpeedSamples[FrameSpeedSampleIndex] = 1.0f / GDeltaTime;
+		FrameSpeedSampleIndex = (FrameSpeedSampleIndex + 1) % FPS_SAMPLE_COUNT;
+	}
+
+	float FPSSum = 0.0f;
+	int ValidSampleCount = 0;
+
+	for (int i = 0; i < FPS_SAMPLE_COUNT; ++i)
+	{
+		if (FrameSpeedSamples[i] > 0.0f)
+		{
+			FPSSum += FrameSpeedSamples[i];
+			++ValidSampleCount;
+		}
+	}
+
+	if (ValidSampleCount > 0)
+	{
+		CurrentFPS = FPSSum / ValidSampleCount;
 	}
 }

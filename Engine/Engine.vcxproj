@@ -185,7 +185,7 @@
     <ClInclude Include="Source\Physics\Public\BoundingVolume.h" />
     <ClInclude Include="Source\Core\Public\AppWindow.h" />
     <ClInclude Include="Source\Core\Public\Class.h" />
-    <ClInclude Include="Source\Core\Public\ClientApp.h" />
+    <ClInclude Include="Source\Core\Public\EngineLoop.h" />
     <ClInclude Include="Source\Core\Public\EngineStatics.h" />
     <ClInclude Include="Source\Core\Public\Name.h" />
     <ClInclude Include="Source\Core\Public\Object.h" />
@@ -233,7 +233,6 @@
     <ClInclude Include="Source\Manager\Input\Public\InputManager.h" />
     <ClInclude Include="Source\Manager\Level\Public\LevelManager.h" />
     <ClInclude Include="Source\Manager\Path\Public\PathManager.h" />
-    <ClInclude Include="Source\Manager\Time\Public\TimeManager.h" />
     <ClInclude Include="Source\Manager\UI\Public\UIManager.h" />
     <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h" />
     <ClInclude Include="Source\Render\Renderer\Public\DeviceResources.h" />
@@ -260,6 +259,12 @@
     <ClInclude Include="Source\Render\UI\Window\Public\OutlinerWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\DetailWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\UIWindow.h" />
+    <ClInclude Include="Source\Subsystem\Public\EditorSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\GameInstanceSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\LocalPlayerSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\Subsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\SubsystemManager.h" />
+    <ClInclude Include="Source\Subsystem\Public\EngineSubsystem.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
     <ClInclude Include="Source\Utility\Public\Metadata.h" />
@@ -302,7 +307,7 @@
     <ClCompile Include="Source\Physics\Private\BoundingSphere.cpp" />
     <ClCompile Include="Source\Core\Private\AppWindow.cpp" />
     <ClCompile Include="Source\Core\Private\Class.cpp" />
-    <ClCompile Include="Source\Core\Private\ClientApp.cpp" />
+    <ClCompile Include="Source\Core\Private\EngineLoop.cpp" />
     <ClCompile Include="Source\Core\Private\Name.cpp" />
     <ClCompile Include="Source\Core\Private\Object.cpp" />
     <ClCompile Include="Source\Editor\Private\Axis.cpp" />
@@ -338,7 +343,6 @@
     <ClCompile Include="Source\Manager\Input\Private\InputManager.cpp" />
     <ClCompile Include="Source\Manager\Level\Private\LevelManager.cpp" />
     <ClCompile Include="Source\Manager\Path\Private\PathManager.cpp" />
-    <ClCompile Include="Source\Manager\Time\Private\TimeManager.cpp" />
     <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\DeviceResources.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\Pipeline.cpp" />
@@ -365,6 +369,7 @@
     <ClCompile Include="Source\Render\UI\Window\Private\OutlinerWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\DetailWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\UIWindow.cpp" />
+    <ClCompile Include="Source\Subsystem\Private\SubsystemManager.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\JsonSerializer.cpp" />
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp" />
