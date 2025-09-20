@@ -16,9 +16,9 @@ void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
 
 	if (StaticMesh && StaticMesh->IsValidMesh())
 	{
-		UpdateRenderData();
+		//UpdateRenderData();
 		InitializeMeshRenderData();
-		UpdateMeshBounds();
+		//UpdateMeshBounds();
 	}
 }
 
@@ -55,9 +55,6 @@ void UStaticMeshComponent::InitializeMeshRenderData()
 	// 정점 데이터 포인터 업데이트
 	Vertices = &StaticMesh->GetVertices();
 	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
-
-	// TODO: GPU 렌더링을 위한 정점 버퍼 생성
-	// 렌더링 시스템과 통합 시 구현될 예정
 }
 
 void UStaticMeshComponent::UpdateMeshBounds()
@@ -81,8 +78,8 @@ void UStaticMeshComponent::UpdateRenderData()
 	}
 
 	// 기본 렌더 데이터 업데이트
-	Vertices = &StaticMesh->GetVertices();
-	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
+	//Vertices = &StaticMesh->GetVertices();
+	//NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
 }
 
 // 공통 렌더링 인터페이스 구현

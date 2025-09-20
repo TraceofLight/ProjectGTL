@@ -305,6 +305,50 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 	OutVertices.clear();
 	OutIndices.clear();
 
+	// 커스텀 해시 함수 정의
+	struct VertexHash
+	{
+		std::size_t operator()(const std::tuple<FVector, FVector2, FVector>& v) const
+		{
+			const auto& pos = std::get<0>(v);
+			const auto& uv = std::get<1>(v);
+			const auto& normal = std::get<2>(v);
+
+			// 간단한 해시 조합
+			std::size_t h1 = std::hash<float>{}(pos.X) ^ (std::hash<float>{}(pos.Y) << 1) ^ (std::hash<float>{}(pos.Z) << 2);
+			std::size_t h2 = std::hash<float>{}(uv.X) ^ (std::hash<float>{}(uv.Y) << 1);
+			std::size_t h3 = std::hash<float>{}(normal.X) ^ (std::hash<float>{}(normal.Y) << 1) ^ (std::hash<float>{}(normal.Z) << 2);
+
+			return h1 ^ (h2 << 1) ^ (h3 << 2);
+		}
+	};
+
+	// 커스텀 동등성 비교자 정의
+	struct VertexEqual
+	{
+		bool operator()(const std::tuple<FVector, FVector2, FVector>& lhs,
+		               const std::tuple<FVector, FVector2, FVector>& rhs) const
+		{
+			const auto& pos1 = std::get<0>(lhs);
+			const auto& uv1 = std::get<1>(lhs);
+			const auto& normal1 = std::get<2>(lhs);
+
+			const auto& pos2 = std::get<0>(rhs);
+			const auto& uv2 = std::get<1>(rhs);
+			const auto& normal2 = std::get<2>(rhs);
+
+			// float 비교를 위한 epsilon 사용
+			const float epsilon = 1e-6f;
+
+			return (abs(pos1.X - pos2.X) < epsilon && abs(pos1.Y - pos2.Y) < epsilon && abs(pos1.Z - pos2.Z) < epsilon) &&
+			       (abs(uv1.X - uv2.X) < epsilon && abs(uv1.Y - uv2.Y) < epsilon) &&
+			       (abs(normal1.X - normal2.X) < epsilon && abs(normal1.Y - normal2.Y) < epsilon && abs(normal1.Z - normal2.Z) < epsilon);
+		}
+	};
+
+	// 고유 정점을 추적하기 위한 맵 (정점 데이터 → 인덱스)
+	std::unordered_map<std::tuple<FVector, FVector2, FVector>, uint32, VertexHash, VertexEqual> VertexMap;
+
 	size_t NumTriangles = ObjectInfo.VertexIndexList.size() / 3;
 
 	for (size_t i = 0; i < NumTriangles; ++i)
@@ -344,8 +388,24 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 				}
 			}
 
-			OutVertices.push_back(Vertex);
-			OutIndices.push_back(static_cast<uint32>((OutVertices.size() - 1)));
+			// 정점 고유성 확인을 위한 키 생성
+			auto VertexKey = std::make_tuple(Vertex.Position, Vertex.TextureCoord, Vertex.Normal);
+
+			// 이미 존재하는 정점인지 확인
+			auto It = VertexMap.find(VertexKey);
+			if (It != VertexMap.end())
+			{
+				// 기존 정점 인덱스 사용
+				OutIndices.push_back(It->second);
+			}
+			else
+			{
+				// 새로운 정점 추가
+				uint32 NewVertexIndex = static_cast<uint32>(OutVertices.size());
+				OutVertices.push_back(Vertex);
+				VertexMap[VertexKey] = NewVertexIndex;
+				OutIndices.push_back(NewVertexIndex);
+			}
 		}
 	}
 }
