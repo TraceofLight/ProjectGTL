@@ -1,7 +1,7 @@
 #pragma once
 #include "Editor/Public/EditorPrimitive.h"
-#include "Core/Public/Object.h"
-#include "Actor/Public/Actor.h"
+#include "Runtime/Core/Public/Object.h"
+#include "Runtime/Actor/Public/Actor.h"
 
 class UObjectPicker;
 

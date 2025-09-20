@@ -2,7 +2,7 @@
 
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Manager/Input/Public/InputManager.h"
-#include "Core/Public/AppWindow.h"
+#include "Runtime/Core/Public/AppWindow.h"
 #include "Window/Public/Window.h"
 #include "Window/Public/Splitter.h"
 #include "Window/Public/SplitterV.h"

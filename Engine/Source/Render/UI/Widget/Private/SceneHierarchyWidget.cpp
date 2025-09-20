@@ -2,10 +2,10 @@
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
 #include "Manager/Level/Public/LevelManager.h"
-#include "Level/Public/Level.h"
-#include "Actor/Public/Actor.h"
+#include "Runtime/Level/Public/Level.h"
+#include "Runtime/Actor/Public/Actor.h"
 #include "Editor/Public/Camera.h"
-#include "Component/Public/PrimitiveComponent.h"
+#include "Runtime/Component/Public/PrimitiveComponent.h"
 
 USceneHierarchyWidget::USceneHierarchyWidget()
 	: UWidget("Scene Hierarchy Widget")

@@ -1,7 +1,7 @@
 #pragma once
 #include "Factory.h"
 #include "Factory/Actor/Public/ActorFactory.h"
-#include "Core/Public/ObjectPtr.h"
+#include "Runtime/Core/Public/ObjectPtr.h"
 
 using std::is_base_of_v;
 

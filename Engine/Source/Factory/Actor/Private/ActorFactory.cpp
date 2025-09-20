@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Factory/Actor/Public/ActorFactory.h"
-#include "Actor/Public/Actor.h"
-#include "Level/Public/Level.h"
+#include "Runtime/Actor/Public/Actor.h"
+#include "Runtime/Level/Public/Level.h"
 
 IMPLEMENT_CLASS(UActorFactory, UFactory)
 

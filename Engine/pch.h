@@ -63,10 +63,12 @@ using filesystem::create_directories;
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "Source/Render/UI/Window/Public/ConsoleWindow.h"
 
-#include "Engine/Public/Engine.h"
-#include "Engine/Public/EngineEditor.h"
-#include "Engine/Public/GameInstance.h"
-#include "Engine/Public/LocalPlayer.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Engine/Public/EngineEditor.h"
+#include "Runtime/Engine/Public/GameInstance.h"
+#include "Runtime/Engine/Public/LocalPlayer.h"
+
+#include "Factory/Public/NewObject.h"
 
 // DT Include - 전역 DeltaTime 접근을 위한 extern 선언
 extern float GDeltaTime;

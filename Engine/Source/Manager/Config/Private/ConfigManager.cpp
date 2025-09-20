@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Manager/Config/Public/ConfigManager.h"
-#include "Core/Public/Class.h"
+#include "Runtime/Core/Public/Class.h"
 #include "Editor/Public/Camera.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UConfigManager)

@@ -1,6 +1,5 @@
 #pragma once
-#include "Core/Public/Object.h"
-//#include "Editor/Public/Editor.h"
+#include "Runtime/Core/Public/Object.h"
 
 class UEditor;
 class ULevel;

@@ -4,7 +4,7 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "DirectXTK/WICTextureLoader.h"
 #include "DirectXTK/DDSTextureLoader.h"
-#include "Component/Mesh/Public/VertexDatas.h"
+#include "Runtime/Component/Mesh/Public/VertexDatas.h"
 #include "Asset/Public/ObjImporter.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Factory/Public/NewObject.h"

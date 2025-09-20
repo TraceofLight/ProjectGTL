@@ -1,10 +1,10 @@
 #pragma once
-#include "Global/Types.h"
-#include "Core/Public/Object.h"
-#include "Core/Public/Name.h"
+#include "Runtime/Core/Public/Object.h"
+#include "Runtime/Core/Public/Name.h"
 
 UCLASS()
-class UConfigManager : public UObject
+class UConfigManager :
+	public UObject
 {
 	GENERATED_BODY()
 	DECLARE_SINGLETON_CLASS(UConfigManager, UObject)
@@ -32,7 +32,6 @@ public:
 	{
 		CameraSensitivity = cameraSensitivity;
 	}
-
 
 private:
 	FName EditorIniFileName;

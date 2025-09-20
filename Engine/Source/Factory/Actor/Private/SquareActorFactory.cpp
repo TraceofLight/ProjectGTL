@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Factory/Actor/Public/SquareActorFactory.h"
-#include "Actor/Public/SquareActor.h"
+#include "Runtime/Actor/Public/SquareActor.h"
 
 IMPLEMENT_CLASS(USquareActorFactory, UActorFactory)
 

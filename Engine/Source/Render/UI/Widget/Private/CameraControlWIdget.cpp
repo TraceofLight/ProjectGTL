@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/CameraControlWidget.h"
 
+IMPLEMENT_CLASS(UCameraControlWidget, UWidget)
+
 #include "Editor/Public/Camera.h"
 
 // Camera Mode

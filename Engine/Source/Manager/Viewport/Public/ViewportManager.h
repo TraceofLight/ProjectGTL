@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Public/Object.h"
+#include "Runtime/Core/Public/Object.h"
 
 class SWindow;
 class SSplitter;
