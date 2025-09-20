@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Component/Public/StaticMeshComponent.h"
-#include "Render/Renderer/Public/StaticMeshSceneProxy.h"
 
 IMPLEMENT_CLASS(UStaticMeshComponent, UMeshComponent)
 
@@ -16,9 +15,9 @@ void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
 
 	if (StaticMesh && StaticMesh->IsValidMesh())
 	{
-		UpdateRenderData();
+		//UpdateRenderData();
 		InitializeMeshRenderData();
-		UpdateMeshBounds();
+		//UpdateMeshBounds();
 	}
 }
 
@@ -55,20 +54,6 @@ void UStaticMeshComponent::InitializeMeshRenderData()
 	// 정점 데이터 포인터 업데이트
 	Vertices = &StaticMesh->GetVertices();
 	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
-
-	// TODO: GPU 렌더링을 위한 정점 버퍼 생성
-	// 렌더링 시스템과 통합 시 구현될 예정
-}
-
-void UStaticMeshComponent::UpdateMeshBounds()
-{
-	if (!HasValidMeshData())
-	{
-		return;
-	}
-
-	// TODO: 정점 데이터로부터 바운딩 박스 계산
-	// 물리/컬링 시스템과 통합 시 구현될 예정
 }
 
 void UStaticMeshComponent::UpdateRenderData()
@@ -81,8 +66,8 @@ void UStaticMeshComponent::UpdateRenderData()
 	}
 
 	// 기본 렌더 데이터 업데이트
-	Vertices = &StaticMesh->GetVertices();
-	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
+	//Vertices = &StaticMesh->GetVertices();
+	//NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
 }
 
 // 공통 렌더링 인터페이스 구현
@@ -130,10 +115,4 @@ EShaderType UStaticMeshComponent::GetShaderType() const
 {
 	// StaticMesh는 전용 셰이더 사용
 	return EShaderType::StaticMesh;
-}
-
-FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy() const
-{
-	// StaticMesh 전용 SceneProxy 사용
-	return new FStaticMeshSceneProxy(this);
 }

@@ -40,9 +40,6 @@ public:
 	virtual bool UseIndexedRendering() const;
 	virtual EShaderType GetShaderType() const;
 
-	// SceneProxy 생성 인터페이스
-	virtual class FPrimitiveSceneProxy* CreateSceneProxy() const;
-
 protected:
 	const TArray<FVertex>* Vertices = nullptr;
 	FVector4 Color = FVector4{ 0.f,0.f,0.f,0.f };

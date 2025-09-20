@@ -491,8 +491,7 @@ void UAssetManager::LoadAllPrimitiveStaticMeshes()
 		{EPrimitiveType::Square, "Data/Square.obj"},
 		{EPrimitiveType::Torus, "Data/Torus.obj"},
 		{EPrimitiveType::Cylinder, "Data/Cylinder.obj"},
-		{EPrimitiveType::Cone, "Data/Untitled3.obj"}
-	//{ EPrimitiveType::StaticMesh, "Data/Cylinder.obj" }
+		{EPrimitiveType::Cone, "Data/Cone.obj"},
 	};
 
 	// 각 프리미티브 타입별로 StaticMesh 로드

@@ -39,9 +39,4 @@ protected:
 	 * 메시 데이터가 변경될 때 호출됨
 	 */
 	virtual void InitializeMeshRenderData();
-
-	/**
-	 * @brief 컬링을 위해 메시 바운드를 업데이트
-	 */
-	virtual void UpdateMeshBounds();
 };

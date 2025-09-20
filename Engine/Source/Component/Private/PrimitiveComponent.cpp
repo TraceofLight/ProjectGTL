@@ -3,7 +3,6 @@
 
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Physics/Public/AABB.h"
-#include "Render/Renderer/Public/PrimitiveSceneProxy.h"
 
 IMPLEMENT_CLASS(UPrimitiveComponent, USceneComponent)
 
@@ -193,12 +192,6 @@ EShaderType UPrimitiveComponent::GetShaderType() const
 {
 	// 기본 프리미티브는 기본 셰이더 사용
 	return EShaderType::Default;
-}
-
-FPrimitiveSceneProxy* UPrimitiveComponent::CreateSceneProxy() const
-{
-	// 기본 프리미티브는 기본 FPrimitiveSceneProxy 사용
-	return new FPrimitiveSceneProxy(this);
 }
 
 /*

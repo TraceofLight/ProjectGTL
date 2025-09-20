@@ -42,12 +42,10 @@ public:
 	virtual uint32 GetRenderVertexStride() const override;
 	virtual bool UseIndexedRendering() const override;
 	virtual EShaderType GetShaderType() const override;
-	virtual class FPrimitiveSceneProxy* CreateSceneProxy() const override;
 
 protected:
 	// UMeshComponent로부터 재정의
 	virtual void InitializeMeshRenderData() override;
-	virtual void UpdateMeshBounds() override;
 
 	/**
 	 * @brief 스태틱 메시 데이터로부터 정점 및 인덱스 버퍼를 업데이트

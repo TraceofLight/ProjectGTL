@@ -27,8 +27,3 @@ void UMeshComponent::InitializeMeshRenderData()
 {
 	// 기본 구현 - 파생 클래스에서 재정의해야 함
 }
-
-void UMeshComponent::UpdateMeshBounds()
-{
-	// 기본 구현 - 파생 클래스에서 재정의해야 함
-}
