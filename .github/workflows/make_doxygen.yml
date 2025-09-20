@@ -16,8 +16,11 @@ jobs:
 
             - name: Install Doxygen and Graphviz
               run: |
-                  choco install doxygen.install
-                  choco install graphviz
+                  choco install doxygen.install -y
+                  choco install graphviz -y
+
+            - name: Add Doxygen to PATH
+              run: echo "C:\Program Files\doxygen\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
             - name: Set UTF-8 Code Page
               run: chcp 65001
@@ -25,7 +28,6 @@ jobs:
             - name: Generate Doxygen Documentation
               run: doxygen Doxyfile
 
-            # 생성된 문서를 GitHub Pages에 배포할 아티팩트로 업로드
             - name: Upload GitHub Pages artifact
               uses: actions/upload-pages-artifact@v3
               with:
