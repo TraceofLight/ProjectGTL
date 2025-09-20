@@ -29,7 +29,7 @@ UConsoleWindow::UConsoleWindow()
 	SetConfig(Config);
 
 	ConsoleWidget = &UConsoleWidget::GetInstance();
-	AddWidget(ConsoleWidget);
+	AddWidget(TObjectPtr<UWidget>(ConsoleWidget));
 }
 
 void UConsoleWindow::Initialize()

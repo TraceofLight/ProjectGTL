@@ -29,7 +29,7 @@ class UUIWindowFactory
 {
 public:
 	static void CreateDefaultUILayout();
-	static UMainMenuWindow& CreateMainMenuWindow();
+	static UMainMenuWindow* CreateMainMenuWindow();
 	static UConsoleWindow* CreateConsoleWindow(EUIDockDirection InDockDirection = EUIDockDirection::Bottom);
 	static UControlPanelWindow* CreateControlPanelWindow(EUIDockDirection InDockDirection = EUIDockDirection::Left);
 	static UOutlinerWindow* CreateOutlinerWindow(EUIDockDirection InDockDirection = EUIDockDirection::Center);

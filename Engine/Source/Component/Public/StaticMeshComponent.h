@@ -43,6 +43,16 @@ public:
 	virtual bool UseIndexedRendering() const override;
 	virtual EShaderType GetShaderType() const override;
 
+	// BoundingVolume 관련 기능
+	/**
+	 * @brief 스태틱 메시를 기반으로 AABB 계산
+	 * @return 계산된 AABB
+	 */
+	FAABB GetAABB() const;
+
+	// PrimitiveComponent 오버라이드
+	virtual void GetWorldAABB(FVector& OutMin, FVector& OutMax) const override;
+
 protected:
 	// UMeshComponent로부터 재정의
 	virtual void InitializeMeshRenderData() override;

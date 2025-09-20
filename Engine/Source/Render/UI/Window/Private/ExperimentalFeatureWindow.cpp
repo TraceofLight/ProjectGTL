@@ -23,8 +23,8 @@ UExperimentalFeatureWindow::UExperimentalFeatureWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	AddWidget(new UInputInformationWidget);
-	AddWidget(new USceneIOWidget);
+	AddWidget(NewObject<UInputInformationWidget>());
+	AddWidget(NewObject<USceneIOWidget>());
 }
 
 /**

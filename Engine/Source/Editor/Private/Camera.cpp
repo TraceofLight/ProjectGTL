@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Editor/Public/Camera.h"
 #include "Manager/Input/Public/InputManager.h"
-#include "Manager/Time/Public/TimeManager.h"
+#include "Core/Public/EngineLoop.h"  // GDeltaTime 사용을 위해
 #include "Render/Renderer/Public/Renderer.h"
 
 void UCamera::Update()
@@ -48,7 +48,7 @@ void UCamera::Update()
 		if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up; }
 		if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up; }
 		Direction.Normalize();
-		RelativeLocation += Direction * CurrentMoveSpeed * DT;
+		RelativeLocation += Direction * CurrentMoveSpeed * GDeltaTime;
 
 		// 오른쪽 마우스 버튼 + 마우스 휠로 카메라 이동속도 조절
 		float WheelDelta = Input.GetMouseWheelDelta();

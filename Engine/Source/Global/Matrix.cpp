@@ -46,7 +46,7 @@ FMatrix::FMatrix(const FVector& x, const FVector& y, const FVector& z)
 			{y.X, y.Y, y.Z, 0.0f},
 			{z.X, z.Y, z.Z, 0.0f},
 			{0.0f, 0.0f, 0.0f, 1.0f}}
-{	
+{
 }
 
 FMatrix::FMatrix(const FVector4& x, const FVector4& y, const FVector4& z)
@@ -163,7 +163,7 @@ FMatrix FMatrix::RotationMatrix(const FVector& InOtherVector)
 }
 
 FMatrix FMatrix::CreateFromYawPitchRoll(const float yaw, const float pitch, const float roll)
-{	
+{
 	//return RotationZ(yaw) * RotationY(pitch)* RotationX(roll);
 	return RotationX(pitch) * RotationY(yaw) * RotationZ(roll);
 }
@@ -267,11 +267,9 @@ FVector4 FMatrix::VectorMultiply(const FVector4& v, const FMatrix& m)
 FVector FMatrix::VectorMultiply(const FVector& v, const FMatrix& m)
 {
 	FVector result = {};
-	result.X = (v.X * m.Data[0][0]) + (v.Y * m.Data[1][0]) + (v.Z * m.Data[2][0]);
-	result.Y = (v.X * m.Data[0][1]) + (v.Y * m.Data[1][1]) + (v.Z * m.Data[2][1]);
-	result.Z = (v.X * m.Data[0][2]) + (v.Y * m.Data[1][2]) + (v.Z * m.Data[2][2]);
-	//result.W = (v.X * m.Data[0][3]) + (v.Y * m.Data[1][3]) + (v.Z * m.Data[2][3]) + (v.W * m.Data[3][3]);
-
+	result.X = (v.X * m.Data[0][0]) + (v.Y * m.Data[1][0]) + (v.Z * m.Data[2][0]) + m.Data[3][0];
+	result.Y = (v.X * m.Data[0][1]) + (v.Y * m.Data[1][1]) + (v.Z * m.Data[2][1]) + m.Data[3][1];
+	result.Z = (v.X * m.Data[0][2]) + (v.Y * m.Data[1][2]) + (v.Z * m.Data[2][2]) + m.Data[3][2];
 
 	return result;
 }

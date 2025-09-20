@@ -14,6 +14,7 @@ public:
 	void RemoveChild(USceneComponent* ChildDeleted);
 
 	void MarkAsDirty();
+	virtual void OnTransformChanged() {}
 
 	void SetRelativeLocation(const FVector& Location);
 	void SetRelativeRotation(const FVector& Rotation);

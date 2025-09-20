@@ -25,12 +25,12 @@ public:
 	void Shutdown();
 	void Update();
 	void Render();
-	bool RegisterUIWindow(UUIWindow* InWindow);
-	bool UnregisterUIWindow(UUIWindow* InWindow);
+	bool RegisterUIWindow(TObjectPtr<UUIWindow> InWindow);
+	bool UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow);
 	void PrintDebugInfo() const;
 
-	UUIWindow* FindUIWindow(const FName& InWindowName) const;
-	UWidget* FindWidget(const FName& InWidgetName) const;
+	TObjectPtr<UUIWindow> FindUIWindow(const FName& InWindowName) const;
+	TObjectPtr<UWidget> FindWidget(const FName& InWidgetName) const;
 	void HideAllWindows() const;
 	void ShowAllWindows() const;
 
@@ -40,10 +40,10 @@ public:
 
 	// Getter & Setter
 	size_t GetUIWindowCount() const { return UIWindows.size(); }
-	const TArray<UUIWindow*>& GetAllUIWindows() const { return UIWindows; }
-	UUIWindow* GetFocusedWindow() const { return FocusedWindow; }
+	const TArray<TObjectPtr<UUIWindow>>& GetAllUIWindows() const { return UIWindows; }
+	TObjectPtr<UUIWindow> GetFocusedWindow() const { return FocusedWindow; }
 
-	void SetFocusedWindow(UUIWindow* InWindow);
+	void SetFocusedWindow(TObjectPtr<UUIWindow> InWindow);
 
 	// ImGui 관련 메서드
 	static LRESULT WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
@@ -51,12 +51,12 @@ public:
 	void RepositionImGuiWindows() const;
 
 	// 메인 메뉴바 관련 메서드
-	void RegisterMainMenuWindow(UMainMenuWindow* InMainMenuWindow);
+	void RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow> InMainMenuWindow);
 	float GetMainMenuBarHeight() const;
 
 private:
-	TArray<UUIWindow*> UIWindows;
-	UUIWindow* FocusedWindow = nullptr;
+	TArray<TObjectPtr<UUIWindow>> UIWindows;
+	TObjectPtr<UUIWindow> FocusedWindow = nullptr;
 	bool bIsInitialized = false;
 	float TotalTime = 0.0f;
 

@@ -64,3 +64,27 @@ void UStaticMesh::ReleaseRenderBuffers()
 		IndexBuffer = nullptr;
 	}
 }
+
+FAABB UStaticMesh::CalculateAABB() const
+{
+	if (StaticMeshData.Vertices.empty())
+	{
+		return FAABB();
+	}
+
+	FVector Min = StaticMeshData.Vertices[0].Position;
+	FVector Max = StaticMeshData.Vertices[0].Position;
+
+	for (const FVertex& Vertex : StaticMeshData.Vertices)
+	{
+		Min.X = std::min(Min.X, Vertex.Position.X);
+		Min.Y = std::min(Min.Y, Vertex.Position.Y);
+		Min.Z = std::min(Min.Z, Vertex.Position.Z);
+
+		Max.X = std::max(Max.X, Vertex.Position.X);
+		Max.Y = std::max(Max.Y, Vertex.Position.Y);
+		Max.Z = std::max(Max.Z, Vertex.Position.Z);
+	}
+
+	return FAABB(Min, Max);
+}

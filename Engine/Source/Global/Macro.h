@@ -1,6 +1,8 @@
 #pragma once
 
-#define DT UTimeManager::GetInstance().GetDeltaTime()
+// 전역 DeltaTime 사용을 위한 매크로 선언
+extern float GDeltaTime;
+#define DT GDeltaTime
 
 // UE_LOG Macro 시스템
 // 기본 UE_LOG (Info 타입)

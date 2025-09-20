@@ -20,7 +20,6 @@ void UAssetManager::Initialize()
 {
 	URenderer& Renderer = URenderer::GetInstance();
 
-	// TMap.Add()
 	VertexDatas.emplace(EPrimitiveType::Arrow, &VerticesArrow);
 	VertexDatas.emplace(EPrimitiveType::CubeArrow, &VerticesCubeArrow);
 	VertexDatas.emplace(EPrimitiveType::Ring, &VerticesRing);
@@ -60,7 +59,7 @@ void UAssetManager::Initialize()
 	LoadAllPrimitiveStaticMeshes();
 
 	// test.obj 로드 (하위 호환성을 위해 유지)
-	LoadStaticMesh("Data/Cylinder.obj");
+	//LoadStaticMesh("Data/Cylinder.obj");
 }
 
 void UAssetManager::Release()

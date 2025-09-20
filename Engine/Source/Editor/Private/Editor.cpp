@@ -25,17 +25,11 @@ UEditor::UEditor()
 
 	// Set Camera to Control Panel
 	auto& UIManager = UUIManager::GetInstance();
-	auto* CameraControlWidget =
-		reinterpret_cast<UCameraControlWidget*>(UIManager.FindWidget("Camera Control Widget"));
+	auto CameraControlWidget = Cast<UCameraControlWidget>(UIManager.FindWidget("Camera Control Widget"));
 	CameraControlWidget->SetCamera(&Camera);
 
-	// Set UBatchLines to FPSWidget Panel
-	auto* FPSWidget =
-		reinterpret_cast<UFPSWidget*>(UIManager.FindWidget("FPS Widget"));
-	FPSWidget->SetBatchLine(&BatchLines);
 	// Set Camera to Scene Hierarchy Widget
-	auto* SceneHierarchyWidget =
-		reinterpret_cast<USceneHierarchyWidget*>(UIManager.FindWidget("Scene Hierarchy Widget"));
+	auto SceneHierarchyWidget = Cast<USceneHierarchyWidget>(UIManager.FindWidget("Scene Hierarchy Widget"));
 	SceneHierarchyWidget->SetCamera(&Camera);
 };
 
@@ -47,7 +41,9 @@ void UEditor::Update()
 	AActor* SelectedActor = ULevelManager::GetInstance().GetCurrentLevel()->GetSelectedActor();
 	if (SelectedActor)
 	{
-		for (const auto& Component : SelectedActor->GetOwnedComponents())
+		const auto& Components = SelectedActor->GetOwnedComponents();
+
+		for (const auto& Component : Components)
 		{
 			if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 			{
@@ -56,7 +52,6 @@ void UEditor::Update()
 
 				// 프리미티브와 바운딩박스 플래그가 모두 켜져있을 때만 바운딩박스 표시
 				uint64 ShowFlags = ULevelManager::GetInstance().GetCurrentLevel()->GetShowFlags();
-
 				if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
 				{
 					BatchLines.UpdateBoundingBoxVertices(FAABB(WorldMin, WorldMax));
