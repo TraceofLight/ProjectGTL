@@ -1,0 +1,52 @@
+name: Build and Deploy Doxygen Documentation
+
+on:
+    push:
+        branches: [ develop ]
+    pull_request:
+        branches: [ develop ]
+
+jobs:
+    # 프로젝트를 빌드하고 문서를 생성
+    build:
+        runs-on: windows-2022
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Install Doxygen and Graphviz
+              run: |
+                  choco install doxygen.install
+                  choco install graphviz
+
+            - name: Set UTF-8 Code Page
+              run: chcp 65001
+
+            - name: Generate Doxygen Documentation
+              run: doxygen Doxyfile
+
+            # 생성된 문서를 GitHub Pages에 배포할 아티팩트로 업로드
+            - name: Upload GitHub Pages artifact
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: ./docs/html
+
+    # 빌드된 문서를 웹에 게시
+    deploy:
+        needs: build
+
+        # 배포를 위한 권한 설정
+        permissions:
+            pages: write
+            id-token: write
+
+        # 배포 환경 지정
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deploy to GitHub Pages
+              id: deployment
+              uses: actions/deploy-pages@v4
