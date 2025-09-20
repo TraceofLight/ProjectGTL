@@ -201,6 +201,7 @@ void URenderer::Update()
 		RenderLevel();
 		ULevelManager::GetInstance().GetEditor()->RenderEditor();
 	}
+	//리프창이 있을때
 	else
 	{
 		ID3D11DeviceContext* ctx = GetDeviceContext();
@@ -246,9 +247,10 @@ void URenderer::Update()
  */
 void URenderer::RenderBegin() const
 {
-	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
+	ID3D11RenderTargetView* RenderTargetView = DeviceResources->GetRenderTargetView();
 	GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
-	auto* DepthStencilView = DeviceResources->GetDepthStencilView();
+
+	ID3D11DepthStencilView* DepthStencilView = DeviceResources->GetDepthStencilView();
 	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	GetDeviceContext()->RSSetViewports(1, &DeviceResources->GetViewportInfo());

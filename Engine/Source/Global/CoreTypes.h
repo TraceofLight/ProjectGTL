@@ -86,7 +86,7 @@ struct FTransform
  */
 struct FPoint
 {
-	LONG X, Y;
+	INT X, Y;
 
 	FPoint() = default;
 	constexpr FPoint(LONG InX, LONG InY) : X(InX), Y(InY) {}
