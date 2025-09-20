@@ -521,9 +521,6 @@ Build/
 # ImGui
 imgui.ini
 
-# Warp
-WARP.md
-
 # Visual Studio Class Diagram
 *.cd
 
@@ -536,3 +533,7 @@ editor.ini
 
 # LLM Agent Files
 AGENTS.md
+WARP.md
+
+# Claude
+.claude/
