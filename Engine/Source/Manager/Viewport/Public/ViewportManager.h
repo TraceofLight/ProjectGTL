@@ -34,16 +34,18 @@ public:
 	void GetLeafRects(TArray<FRect>& OutRects);
 
 	// 공유 오쏘 카메라(읽기 전용 포인터를 클라에 주입)
-	UCamera* GetOrthographicCamera() const { return OrthographicCamera; }
+    UCamera* GetOrthographicCamera() const { return OrthographicCamera; }
 
-	TArray<FViewport*>& GetViewports() { return Viewports; }
+    TArray<FViewport*>& GetViewports() { return Viewports; }
+    TArray<FViewportClient*>& GetClients() { return Clients; }
 
 private:
 	// 내부 유틸
-	void CreateViewportsAndClients(int32 InCount); // 싱글(1) 또는 쿼드(4)
-	void SyncRectsToViewports();                   // 리프Rect → Viewport.Rect
-	void PumpAllViewportInput();                   // 각 뷰포트 → 클라 입력 전달
-	void TickCameras(float InDeltaSeconds);          // 카메라 업데이트 일원화(공유 오쏘 1회)
+    void CreateViewportsAndClients(int32 InCount); // 싱글(1) 또는 쿼드(4)
+    void SyncRectsToViewports();                   // 리프Rect → Viewport.Rect
+    void PumpAllViewportInput();                   // 각 뷰포트 → 클라 입력 전달
+    void TickCameras(float InDeltaSeconds);          // 카메라 업데이트 일원화(공유 오쏘 1회)
+    void UpdateActiveRmbViewportIndex();            // 우클릭 드래그 대상 뷰포트 인덱스 계산
 
 private:
     SWindow* Root = nullptr;
@@ -53,8 +55,11 @@ private:
 	TArray<FViewport*>       Viewports;
 	TArray<FViewportClient*> Clients;
 
-	UCamera* OrthographicCamera = nullptr;
+    UCamera* OrthographicCamera = nullptr;
 
-	// 프레임 타이밍
-	double LastTime = 0.0;
+    // 프레임 타이밍
+    double LastTime = 0.0;
+
+    // 현재 우클릭(카메라 제어) 입력이 적용될 뷰포트 인덱스 (-1이면 없음)
+    int32 ActiveRmbViewportIdx = -1;
 };

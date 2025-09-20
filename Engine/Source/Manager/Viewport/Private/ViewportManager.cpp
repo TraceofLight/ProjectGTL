@@ -100,14 +100,14 @@ void UViewportManager::BuildFourSplitLayout()
 	// 뷰/클라 재구성 (4쌍)
 	CreateViewportsAndClients(4);
 
-	// 뷰 타입 지정(Top/Front/Right/Persp)
-	if (Clients.size() == 4)
-	{
-		Clients[0]->SetViewType(EViewType::OrthoTop);
-		Clients[1]->SetViewType(EViewType::OrthoFront);
-		Clients[2]->SetViewType(EViewType::OrthoRight);
-		Clients[3]->SetViewType(EViewType::Perspective);
-	}
+    // 디버그: 4개의 뷰포트를 모두 Perspective로 설정하여 드래그 입력을 통일된 경로로 검증
+    if (Clients.size() == 4)
+    {
+        Clients[0]->SetViewType(EViewType::Perspective);
+        Clients[1]->SetViewType(EViewType::Perspective);
+        Clients[2]->SetViewType(EViewType::Perspective);
+        Clients[3]->SetViewType(EViewType::Perspective);
+    }
 }
 
 void UViewportManager::GetLeafRects(TArray<FRect>& OutRects)
@@ -146,16 +146,25 @@ void UViewportManager::CreateViewportsAndClients(int32 InCount)
 	Viewports.reserve(InCount);
 	Clients.reserve(InCount);
 
-	// 2) 새로 생성
-	for (int32 i = 0; i < InCount; ++i)
-	{
-		FViewport* VP = new FViewport();
-		FViewportClient* CL = new FViewportClient();
+    // 2) 새로 생성
+    for (int32 i = 0; i < InCount; ++i)
+    {
+        FViewport* VP = new FViewport();
+        FViewportClient* CL = new FViewportClient();
 
-		// 오쏘 공유 카메라(읽기 전용) 주입
-		CL->SetSharedOrthoCamera(OrthographicCamera);
+        // 각 클라이언트별 카메라 구성 (오쏘/퍼스 각각 전용)
+        {
+            UCamera* OrthoCam = new UCamera();
+            OrthoCam->SetCameraType(ECameraType::ECT_Orthographic);
+            // Orthographic 초기 가시성 개선: 넓은 보기와 원점 근처 위치
+            OrthoCam->SetFovY(140.0f);           // OrthoWidth ~= 2 * tan(70°) ≈ 5.5 유닛
+            OrthoCam->SetLocation(FVector(0,0,0));
+            CL->SetOrthoCamera(OrthoCam);
 
-		CL->SetPerspectiveCamera(new UCamera);
+            UCamera* PerspCam = new UCamera();
+            PerspCam->SetCameraType(ECameraType::ECT_Perspective);
+            CL->SetPerspectiveCamera(PerspCam);
+        }
 
 		// 뷰 ↔ 클라 연결
 		VP->SetViewportClient(CL);
@@ -193,21 +202,49 @@ void UViewportManager::PumpAllViewportInput()
 	}
 }
 
+void UViewportManager::UpdateActiveRmbViewportIndex()
+{
+    ActiveRmbViewportIdx = -1;
+    const auto& Input = UInputManager::GetInstance();
+    if (!Input.IsKeyDown(EKeyInput::MouseRight))
+    {
+        return;
+    }
+
+    const FVector& mp = Input.GetMousePosition();
+    const LONG mx = (LONG)mp.X;
+    const LONG my = (LONG)mp.Y;
+
+    const int32 N = (int32)Viewports.size();
+    for (int32 i = 0; i < N; ++i)
+    {
+        const FRect& r = Viewports[i]->GetRect();
+        if (mx >= r.X && mx < r.X + r.W && my >= r.Y && my < r.Y + r.H)
+        {
+            ActiveRmbViewportIdx = i;
+            break;
+        }
+    }
+}
+
 void UViewportManager::TickCameras(float DeltaSeconds)
 {
-	// 1) 공유 오쏘 카메라: 프레임당 1회만 Update (입력은 클라가 했더라도 실제 상태 변경은 카메라 내부에서 처리)
-	if (OrthographicCamera)
-	{
-		OrthographicCamera->SetCameraType(ECameraType::ECT_Orthographic);
-		OrthographicCamera->Update();
-	}
-
-	// 2) 각 클라이언트 Tick (퍼스펙티브는 각자 Update, 오쏘는 Tick 내부에서 Update 안 하는 게 이상적)
-	const int32 N = (int32)Clients.size();
-	for (int32 i = 0; i < N; ++i)
-	{
-		Clients[i]->Tick(DeltaSeconds);
-	}
+    // 우클릭이 눌린 상태라면 해당 뷰포트의 카메라만 입력 반영(Update)
+    // 그렇지 않다면(비상호작용) 카메라 이동 입력은 생략하여 타 뷰포트에 영향이 가지 않도록 함
+    const int32 N = (int32)Clients.size();
+    const bool bRmbDown = UInputManager::GetInstance().IsKeyDown(EKeyInput::MouseRight);
+    if (bRmbDown)
+    {
+        if (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < N)
+        {
+            Clients[ActiveRmbViewportIdx]->Tick(DeltaSeconds);
+        }
+    }
+    else
+    {
+        // 우클릭이 아닐 때는 입력 기반 이동이 없어도 무방하므로, 필요한 경우에만 Tick을 호출할 수 있음
+        // 여기서는 보수적으로 아무 것도 하지 않음 (Draw에서 행렬 갱신 수행)
+    }
 }
 
 void UViewportManager::Update()
@@ -232,8 +269,11 @@ void UViewportManager::Update()
         PumpAllViewportInput();
     }
 
-	// 3) 카메라 업데이트 (공유 오쏘 1회, 퍼스펙티브는 각자)
-	TickCameras(DeltaTime);
+    // 2.5) 현재 우클릭 중이면 어떤 뷰포트가 카메라 제어 대상인지 결정
+    UpdateActiveRmbViewportIndex();
+
+    // 3) 카메라 업데이트 (공유 오쏘 1회, 퍼스펙티브는 각자)
+    TickCameras(DeltaTime);
 
 	// 4) 드로우(3D) — 실제 렌더러 루프에서 Viewport 적용 후 호출해도 됨
 	//    여기서는 뷰/클라 페어 순회만 보여줌. (RS 바인딩은 네 렌더러 Update에서 수행 중)

@@ -16,16 +16,20 @@ void FViewportClient::Tick(float InDeltaSeconds)
 {
 	// 필요 시 뷰 모드/기즈모 상태 업데이트 등
 	// 카메라 입력은 UCamera::Update()가 UInputManager를 직접 읽는 구조라면 여기서 호출만 하면 됨.
-	if (IsOrtho())
-	{
-		UCamera* Camera = UViewportManager::GetInstance().GetOrthographicCamera();
-		ApplyOrthoBasisForViewType(*Camera);  // Top/Front/Right 등 기준 축 세팅
-		Camera->Update();                     // 내부에서 입력 처리 + View/Proj 갱신
-	}
-	else
-	{
-		PerspectiveCamera->Update();
-	}
+    if (IsOrtho())
+    {
+        if (OrthoGraphicCamera)
+        {
+            ApplyOrthoBasisForViewType(*OrthoGraphicCamera);  // Top/Front/Right 등 기준 축 세팅
+            OrthoGraphicCamera->SetCameraType(ECameraType::ECT_Orthographic);
+            OrthoGraphicCamera->Update();                     // 내부에서 입력 처리 + View/Proj 갱신
+        }
+    }
+    else if (PerspectiveCamera)
+    {
+        PerspectiveCamera->SetCameraType(ECameraType::ECT_Perspective);
+        PerspectiveCamera->Update();
+    }
 }
 
 void FViewportClient::Draw(FViewport* InViewport)
@@ -36,23 +40,25 @@ void FViewportClient::Draw(FViewport* InViewport)
 	const float Aspect = InViewport->GetAspect();
 	FMatrix ViewMatrix, ProjMMatrix;
 
-	if (IsOrtho())
-	{
-		UCamera* Camera = UViewportManager::GetInstance().GetOrthographicCamera();
-		Camera->SetAspect(Aspect);
-		Camera->SetCameraType(ECameraType::ECT_Orthographic);
-		Camera->UpdateMatrixByOrth();               
-		ViewMatrix = Camera->GetFViewProjConstants().View;
-		ProjMMatrix = Camera->GetFViewProjConstants().Projection;
-	}
-	else
-	{
-		PerspectiveCamera->SetAspect(Aspect);
-		PerspectiveCamera->SetCameraType(ECameraType::ECT_Perspective);
-		PerspectiveCamera->UpdateMatrixByPers();
-		ViewMatrix = PerspectiveCamera->GetFViewProjConstants().View;
-		ProjMMatrix = PerspectiveCamera->GetFViewProjConstants().Projection;
-	}
+    if (IsOrtho())
+    {
+        if (OrthoGraphicCamera)
+        {
+            OrthoGraphicCamera->SetAspect(Aspect);
+            OrthoGraphicCamera->SetCameraType(ECameraType::ECT_Orthographic);
+            OrthoGraphicCamera->UpdateMatrixByOrth();
+            ViewMatrix = OrthoGraphicCamera->GetFViewProjConstants().View;
+            ProjMMatrix = OrthoGraphicCamera->GetFViewProjConstants().Projection;
+        }
+    }
+    else if (PerspectiveCamera)
+    {
+        PerspectiveCamera->SetAspect(Aspect);
+        PerspectiveCamera->SetCameraType(ECameraType::ECT_Perspective);
+        PerspectiveCamera->UpdateMatrixByPers();
+        ViewMatrix = PerspectiveCamera->GetFViewProjConstants().View;
+        ProjMMatrix = PerspectiveCamera->GetFViewProjConstants().Projection;
+    }
 
 	// 렌더러에 바인딩 (프로젝트의 렌더 경로에 맞춰 호출)
 	//SetViewProjection(ViewMatrix, ProjM);

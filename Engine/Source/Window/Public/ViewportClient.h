@@ -26,8 +26,9 @@ public:
 	void     SetPerspectiveCamera(UCamera* InPerspectiveCamera) { PerspectiveCamera = InPerspectiveCamera; }
 	UCamera* GetPerspectiveCamera() { return PerspectiveCamera; }
 
-	// 오쏘 카메라
-	void     SetSharedOrthoCamera(UCamera* InCamera) { OrthoGraphicCameraShared = InCamera; }
+    // 오쏘 카메라 (뷰포트별)
+    void     SetOrthoCamera(UCamera* InCamera) { OrthoGraphicCamera = InCamera; }
+    UCamera* GetOrthoCamera() { return OrthoGraphicCamera; }
 
 
 	bool        IsOrtho() const { return ViewType != EViewType::Perspective; }
@@ -54,8 +55,8 @@ public:
 	// 현재 뷰 타입에 맞는 월드 기준 축을 카메라(Right/Up/Forward)로 세팅
 	void ApplyOrthoBasisForViewType(UCamera& OutCamera);
 
-	FViewProjConstants GetPerspectiveViewProjConstData() const { return PerspectiveCamera->GetFViewProjConstants(); }
-	FViewProjConstants GetOrthoGraphicViewProjConstData() const { return OrthoGraphicCameraShared->GetFViewProjConstants(); }
+    FViewProjConstants GetPerspectiveViewProjConstData() const { return PerspectiveCamera->GetFViewProjConstants(); }
+    FViewProjConstants GetOrthoGraphicViewProjConstData() const { return OrthoGraphicCamera->GetFViewProjConstants(); }
 private:
 
 private:
@@ -63,10 +64,8 @@ private:
 	EViewType   ViewType = EViewType::Perspective;
 	EViewMode   ViewMode = EViewMode::Lit;
 
-	UCamera* PerspectiveCamera = nullptr;
-
-	// 오쏘 그래픽 카메라는 여기서는 공유로 해두었는데, 언리얼에서는 설정으로 공유되지않게 할 수 도 있음 추후에 수정할라면 하세용
-	UCamera* OrthoGraphicCameraShared = nullptr;
+    UCamera* PerspectiveCamera = nullptr;
+    UCamera* OrthoGraphicCamera = nullptr;
 
 
 	// 뷰/입력 상태
