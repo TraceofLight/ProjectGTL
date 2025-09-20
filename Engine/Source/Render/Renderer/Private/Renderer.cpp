@@ -229,14 +229,11 @@ void URenderer::Update()
 		ctx->RSSetScissorRects(1, &scFull);
 	}
 
-	// Splitter handle overlay rendering (leaves do not draw)
-    UViewportManager::GetInstance().RenderOverlay();
-
-	// 폰트 렌더링
-	//RenderFont();
+    // 폰트 렌더링
+    //RenderFont();
 
 	// ImGui 자체 Render 처리가 진행되어야 하므로 따로 처리
-	UUIManager::GetInstance().Render();
+    UUIManager::GetInstance().Render();
 
 	RenderEnd();
 }

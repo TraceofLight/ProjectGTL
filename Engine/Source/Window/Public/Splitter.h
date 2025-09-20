@@ -52,4 +52,9 @@ public:
 
 private:
     bool bDragging = false;
+    bool bCrossDragging = false;
+
+    // RTTI helper
+public:
+    SSplitter* AsSplitter() override { return this; }
 };

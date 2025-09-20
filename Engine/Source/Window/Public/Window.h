@@ -1,5 +1,7 @@
 #pragma once
 
+class SSplitter;
+
 class SWindow
 {
 public:
@@ -24,6 +26,15 @@ public:
 public:
     bool IsHover(FPoint coord) const;
 
+    // Lightweight RTTI helper for window hierarchy
+    virtual SSplitter* AsSplitter() { return nullptr; }
+
 protected:
     FRect Rect;
 };
+
+// Non-UObject Cast overload for window hierarchy
+inline SSplitter* Cast(SWindow* In)
+{
+    return In ? In->AsSplitter() : nullptr;
+}

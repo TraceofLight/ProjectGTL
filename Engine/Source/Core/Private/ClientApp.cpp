@@ -109,13 +109,14 @@ void FClientApp::UpdateSystem() const
 	auto& UIManager = UUIManager::GetInstance();
 	auto& Renderer = URenderer::GetInstance();
 	auto& LevelManager = ULevelManager::GetInstance();
+	auto& ViewportManager = UViewportManager::GetInstance();
 
 	//Editor->Update();
 	LevelManager.Update();
 	TimeManager.Update();
 	InputManager.Update(Window);
 	UIManager.Update();
-    UViewportManager::GetInstance().Update();
+	ViewportManager.Update();
     Renderer.Update();
 }
 

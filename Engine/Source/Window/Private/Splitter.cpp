@@ -1,5 +1,9 @@
 #include "pch.h"
 #include "Window/Public/Splitter.h"
+#include "Window//Public/SplitterH.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
+// For hover detection using current mouse position
+#include "Manager/Input/Public/InputManager.h"
 
 void SSplitter::SetChildren(SWindow* InLT, SWindow* InRB)
 {
@@ -29,9 +33,15 @@ FRect SSplitter::GetHandleRect() const
 
 bool SSplitter::IsHandleHover(FPoint Coord) const
 {
-    const FRect h = GetHandleRect();
-    return (Coord.X >= h.X) && (Coord.X < h.X + h.W) &&
-           (Coord.Y >= h.Y) && (Coord.Y < h.Y + h.H);
+	// Slightly extend the hit area to make grabbing the handle easier
+	   // and to be more forgiving at the cross intersection.
+	const FRect h = GetHandleRect();
+	const int32 extend = 2; // pixels of tolerance on each side
+	const int32 x0 = h.X - extend;
+	const int32 y0 = h.Y - extend;
+	const int32 x1 = h.X + h.W + extend;
+	const int32 y1 = h.Y + h.H + extend;
+	return (Coord.X >= x0) && (Coord.X < x1) && (Coord.Y >= y0) && (Coord.Y < y1);
 }
 
 
@@ -65,6 +75,33 @@ bool SSplitter::OnMouseDown(FPoint Coord, int Button)
     if (Button == 0 && IsHandleHover(Coord))
     {
         bDragging = true;
+        // Determine if we are dragging at the cross (both handles overlap)
+        bCrossDragging = false;
+        if (Orientation == EOrientation::Vertical)
+        {
+            if (SSplitter* HLeft = Cast(SideLT))
+            {
+                if (HLeft->Orientation == EOrientation::Horizontal && HLeft->IsHandleHover(Coord)) bCrossDragging = true;
+            }
+            if (!bCrossDragging)
+            {
+                if (SSplitter* HRight = Cast(SideRB))
+                {
+                    if (HRight->Orientation == EOrientation::Horizontal && HRight->IsHandleHover(Coord)) bCrossDragging = true;
+                }
+            }
+        }
+        else // Horizontal
+        {
+            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            {
+                if (Root->Orientation == EOrientation::Vertical && Root->IsHandleHover(Coord))
+                {
+                    bCrossDragging = true;
+					UE_LOG("bCrossDragging");
+                }
+            }
+        }
         return true; // handled
     }
     return false;
@@ -77,9 +114,41 @@ bool SSplitter::OnMouseMove(FPoint Coord)
 		return IsHandleHover(Coord);
 	}
 
+    // Cross-drag: update both axes
+    if (bCrossDragging)
+    {
+        if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+        {
+            // Vertical ratio from root rect
+            const int32 spanX = std::max(1L, Root->Rect.W);
+            float rX = float(Coord.X - Root->Rect.X) / float(spanX);
+            float limitX = float(Root->MinChildSize) / float(spanX);
+            Root->SetEffectiveRatio(std::clamp(rX, limitX, 1.0f - limitX));
+
+            // Horizontal ratio from one of the horizontal splitters (they share a ratio)
+            SSplitter* H = Cast(Root->SideLT);
+            if (!H || H->Orientation != EOrientation::Horizontal)
+            {
+                H = Cast(Root->SideRB);
+            }
+            if (H && H->Orientation == EOrientation::Horizontal)
+            {
+                const int32 spanY = std::max(1L, H->Rect.H);
+                float rY = float(Coord.Y - H->Rect.Y) / float(spanY);
+                float limitY = float(H->MinChildSize) / float(spanY);
+                H->SetEffectiveRatio(std::clamp(rY, limitY, 1.0f - limitY));
+            }
+
+            // Re-layout whole tree
+            const FRect current = Root->GetRect();
+            Root->OnResize(current);
+        }
+        return true;
+    }
+
 	if (Orientation == EOrientation::Vertical)
 	{
-		UE_LOG("v");
+		//UE_LOG("v");
 		const int32 span = std::max(1L, Rect.W);
 		float r = float(Coord.X - Rect.X) / float(span);
 		float limit = float(MinChildSize) / float(span);
@@ -87,15 +156,19 @@ bool SSplitter::OnMouseMove(FPoint Coord)
 	}
 	else
 	{
-		UE_LOG("h");
+		//UE_LOG("h");
 		const int32 span = std::max(1L, Rect.H);
 		float r = float(Coord.Y - Rect.Y) / float(span);
 		float limit = float(MinChildSize) / float(span);
 		SetEffectiveRatio(std::clamp(r, limit, 1.0f - limit)); // ★ 핵심
 	}
 
-	LayoutChildren();
-	//RequestRelayoutTree();
+	// Re-layout entire viewport tree so siblings using shared ratio update too
+	if (auto* Root = UViewportManager::GetInstance().GetRoot())
+	{
+		const FRect current = Root->GetRect();
+		Root->OnResize(current);
+	}
 
 	return true;
 }
@@ -105,6 +178,7 @@ bool SSplitter::OnMouseUp(FPoint, int Button)
     if (Button == 0 && bDragging)
     {
         bDragging = false;
+        bCrossDragging = false;
         return true;
     }
     return false;
@@ -112,14 +186,67 @@ bool SSplitter::OnMouseUp(FPoint, int Button)
 
 void SSplitter::OnPaint()
 {
-    if (SideLT) SideLT->OnPaint();
-    if (SideRB) SideRB->OnPaint();
-    // Draw handle line for visual feedback (ImGui overlay)
-    const FRect h = GetHandleRect();
-    ImDrawList* dl = ImGui::GetBackgroundDrawList();
-    ImVec2 p0{ (float)h.X, (float)h.Y };
-    ImVec2 p1{ (float)(h.X + h.W), (float)(h.Y + h.H) };
-    dl->AddRectFilled(p0, p1, IM_COL32(80,80,80,160));
+
+	if (SideLT) SideLT->OnPaint();
+	if (SideRB) SideRB->OnPaint();
+	    // Draw handle line for visual feedback (ImGui overlay)
+	const FRect h = GetHandleRect();
+	//ImDrawList * dl = ImGui::GetBackgroundDrawList();
+	//ImVec2 p0{ (float)h.X, (float)h.Y };
+	//ImVec2 p1{ (float)(h.X + h.W), (float)(h.Y + h.H) };
+	//dl->AddRectFilled(p0, p1, IM_COL32(80, 80, 80, 160));
+	auto& InputManager = UInputManager::GetInstance();
+	const FVector & mp = InputManager.GetMousePosition();
+    FPoint P{ LONG(mp.X), LONG(mp.Y) };
+    bool hovered = IsHandleHover(P);
+
+    if (Orientation == EOrientation::Horizontal)
+    {
+        // 1) If sibling horizontal handle is hovered, mirror-hover this one too
+        if (!hovered)
+        {
+            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            {
+                if (Root->Orientation == EOrientation::Vertical)
+                {
+                    SSplitter* leftH  = Cast(Root->SideLT);
+                    SSplitter* rightH = Cast(Root->SideRB);
+                    if (leftH && leftH->Orientation == EOrientation::Horizontal && leftH != this && leftH->IsHandleHover(P))
+                        hovered = true;
+                    if (!hovered && rightH && rightH->Orientation == EOrientation::Horizontal && rightH != this && rightH->IsHandleHover(P))
+                        hovered = true;
+                }
+            }
+        }
+
+        // 2) If vertical handle (root) is hovered and Y matches our handle band, also hover
+        if (!hovered)
+        {
+            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            {
+                if (Root->Orientation == EOrientation::Vertical && Root->IsHandleHover(P))
+                {
+                    const FRect hh = GetHandleRect();
+                    if (P.Y >= hh.Y && P.Y < hh.Y + hh.H)
+                        hovered = true;
+                }
+            }
+        }
+    }
+
+	ImDrawList* dl = ImGui::GetForegroundDrawList();
+
+
+	//UE_LOG("splitter rect=(%d,%d %dx%d) handle=(%d,%d %dx%d) mouse=(%d,%d) hovered=%d vp=(%.1f,%.1f)", Rect.X,
+	//	Rect.Y, Rect.W, Rect.H, h.X, h.Y, h.W, h.H, (int)P.X, (int)P.Y, hovered ? 1 : 0, ImGui::GetMainViewport()->Pos.x,
+	//	ImGui::GetMainViewport()->Pos.y);
+
+
+	// Only highlight the splitter handle, not the full rect
+	ImVec2 p0{ (float)h.X, (float)h.Y };
+	ImVec2 p1{ (float)(h.X + h.W), (float)(h.Y + h.H) };
+	const ImU32 col = hovered ? IM_COL32(255, 255, 255, 200) : IM_COL32(80, 80, 80, 160);
+	dl->AddRectFilled(p0, p1, col);
 }
 
 SWindow* SSplitter::HitTest(FPoint ScreenCoord)

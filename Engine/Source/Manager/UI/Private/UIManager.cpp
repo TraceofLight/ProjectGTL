@@ -6,6 +6,8 @@
 #include "Render/UI/Widget/Public/Widget.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
+// For overlay rendering after ImGui::NewFrame()
+#include "Manager/Viewport/Public/ViewportManager.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UUIManager)
 
@@ -134,8 +136,11 @@ void UUIManager::Render()
 		return;
 	}
 
-	// ImGui 프레임 시작
-	ImGuiHelper->BeginFrame();
+	
+    // ImGui 프레임 시작
+    ImGuiHelper->BeginFrame();
+
+	//UE_LOG("begin frame after");
 
 	// 뷰포트 자동 조정을 위해 메인 메뉴바를 가장 먼저 렌더링
 	if (MainMenuWindow && MainMenuWindow->IsVisible())
@@ -146,17 +151,20 @@ void UUIManager::Render()
 	// 우선순위에 따라 정렬
 	SortUIWindowsByPriority();
 
-	// 나머지 UI 윈도우 렌더링
-	for (auto* Window : UIWindows)
-	{
-		if (Window && Window != MainMenuWindow)
-		{
-			Window->RenderWindow();
-		}
-	}
+    // 나머지 UI 윈도우 렌더링
+    for (auto* Window : UIWindows)
+    {
+        if (Window && Window != MainMenuWindow)
+        {
+            Window->RenderWindow();
+        }
+    }
 
-	// ImGui 프레임 종료
-	ImGuiHelper->EndFrame();
+    // Overlay (splitter handles etc.) should render after NewFrame() and before ImGui::Render()
+    UViewportManager::GetInstance().RenderOverlay();
+
+    // ImGui 프레임 종료
+    ImGuiHelper->EndFrame();
 }
 
 /**
