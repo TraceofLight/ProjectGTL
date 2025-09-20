@@ -15,6 +15,5 @@ UTriangleComponent::UTriangleComponent()
 	NumVertices = ResourceManager.GetNumVertices(Type);
 	RenderState.CullMode = ECullMode::None;
 	RenderState.FillMode = EFillMode::Solid;
-	// BoundingBox = &ResourceManager.GetAABB(Type); // 제거됨: StaticMeshActor 시스템 사용
-	BoundingBox = nullptr;
+	BoundingVolume = nullptr;
 }

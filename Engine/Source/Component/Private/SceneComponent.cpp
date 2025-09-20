@@ -52,6 +52,8 @@ void USceneComponent::MarkAsDirty()
 	bIsTransformDirty = true;
 	bIsTransformDirtyInverse = true;
 
+	OnTransformChanged();
+
 	for (USceneComponent* Child : Children)
 	{
 		Child->MarkAsDirty();

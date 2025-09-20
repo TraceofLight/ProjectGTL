@@ -267,11 +267,9 @@ FVector4 FMatrix::VectorMultiply(const FVector4& v, const FMatrix& m)
 FVector FMatrix::VectorMultiply(const FVector& v, const FMatrix& m)
 {
 	FVector result = {};
-	result.X = (v.X * m.Data[0][0]) + (v.Y * m.Data[1][0]) + (v.Z * m.Data[2][0]);
-	result.Y = (v.X * m.Data[0][1]) + (v.Y * m.Data[1][1]) + (v.Z * m.Data[2][1]);
-	result.Z = (v.X * m.Data[0][2]) + (v.Y * m.Data[1][2]) + (v.Z * m.Data[2][2]);
-	//result.W = (v.X * m.Data[0][3]) + (v.Y * m.Data[1][3]) + (v.Z * m.Data[2][3]) + (v.W * m.Data[3][3]);
-
+	result.X = (v.X * m.Data[0][0]) + (v.Y * m.Data[1][0]) + (v.Z * m.Data[2][0]) + m.Data[3][0];
+	result.Y = (v.X * m.Data[0][1]) + (v.Y * m.Data[1][1]) + (v.Z * m.Data[2][1]) + m.Data[3][1];
+	result.Z = (v.X * m.Data[0][2]) + (v.Y * m.Data[1][2]) + (v.Z * m.Data[2][2]) + m.Data[3][2];
 
 	return result;
 }
