@@ -11,6 +11,7 @@
 //#include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
+#include "Render/Renderer/Public/BillBoardSceneProxy.h"
 #include "Actor/Public/Actor.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 
@@ -32,6 +33,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateConstantBuffer();
 
 	// FontRenderer 초기화
+	// TODO: 삭제해야하고, 삭제해도 잘 돌아가도록 수정해줘야 합니다~
 	FontRenderer = new UFontRenderer();
 	if (!FontRenderer->Initialize())
 	{
@@ -301,6 +303,22 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 		return;
 	}
 
+	// BillBoard 컴포넌트의 경우 특별 처리
+	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
+	{
+		UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
+		if (BillBoardComponent)
+		{
+			FBillBoardSceneProxy* SceneProxy = BillBoardComponent->CreateSceneProxy();
+			if (SceneProxy)
+			{
+				RenderBillBoard(SceneProxy);
+				delete SceneProxy; // 임시 Scene Proxy 삭제
+			}
+		}
+		return;
+	}
+
 	// 일반 프리미티브의 경우 기존 렌더링 방식 사용
 	// 공통 파이프라인 설정
 	SetupRenderPipeline(InPrimitiveComponent);
@@ -514,12 +532,12 @@ void URenderer::RenderBillBoard(FBillBoardSceneProxy* InBillBoardProxy)
 	}
 
 	// BillBoard의 RT 매트릭스와 텍스트 가져오기
-	//const FMatrix& RTMatrix = InBillBoardProxy->GetRTMatrix();
-	//const FString& DisplayText = InBillBoardProxy->GetDisplayText();
-	//
-	//// FontRenderer를 통한 텍스트 렌더링
-	//const FViewProjConstants& ViewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-	//FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, ViewProjConstData);
+	const FMatrix& RTMatrix = InBillBoardProxy->GetRTMatrix();
+	const FString& DisplayText = InBillBoardProxy->GetDisplayText();
+
+	// FontRenderer를 통한 텍스트 렌더링
+	const FViewProjConstants& ViewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
+	FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, ViewProjConstData);
 }
 
 /**

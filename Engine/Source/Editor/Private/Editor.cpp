@@ -51,7 +51,6 @@ void UEditor::Update()
 
 		for (const auto& Component : Components)
 		{
-			UE_LOG_DEBUG("Component: %p\n", Component.Get());
 			if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 			{
 				FVector WorldMin, WorldMax;

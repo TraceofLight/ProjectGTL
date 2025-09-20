@@ -1,11 +1,12 @@
 #pragma once
 #include "Render/Renderer/Public/PrimitiveSceneProxy.h"
+#include "Global/Matrix.h"
 
 class UBillBoardComponent;
 
 /**
- * @brief FBillBoardSceneProxy: BillBoard를 위한 특화된 씬 프록시
- * FontRenderer를 사용한 텍스트 렌더링을 지원
+ * @brief FBillBoardSceneProxy: BillBoard 컴포넌트의 렌더링 데이터를 관리하는 프록시 클래스
+ * @note BillBoard는 항상 카메라를 향하는 2D 스프라이트로 텍스트를 표시
  */
 class FBillBoardSceneProxy : public FPrimitiveSceneProxy
 {
@@ -17,25 +18,24 @@ public:
 	explicit FBillBoardSceneProxy(const UBillBoardComponent* InComponent);
 
 	/**
-	 * @brief BillBoard는 특수한 렌더링 방식 사용
-	 * @return 텍스트가 있으면 true (FontRenderer 사용)
+	 * @brief 소멸자
 	 */
-	bool IsValidForRendering() const;
+	virtual ~FBillBoardSceneProxy() override = default;
 
 	/**
-	 * @brief RT 매트릭스 가져오기
-	 * @return BillBoard의 RT 매트릭스
+	 * @brief RT 매트릭스를 가져옴 (회전 및 평행이동)
+	 * @return RT 매트릭스
 	 */
-	FMatrix GetRTMatrix() const { return RTMatrix; }
+	const FMatrix& GetRTMatrix() const { return RTMatrix; }
 
 	/**
-	 * @brief 렌더링할 텍스트 가져오기
-	 * @return UUID 문자열
+	 * @brief 표시할 텍스트를 가져옴
+	 * @return 표시할 텍스트 문자열
 	 */
 	const FString& GetDisplayText() const { return DisplayText; }
 
 private:
-	/** BillBoard의 변환 매트릭스 */
+	/** RT 매트릭스 (회전 및 평행이동) */
 	FMatrix RTMatrix;
 
 	/** 표시할 텍스트 */

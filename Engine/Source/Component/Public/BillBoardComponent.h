@@ -7,12 +7,15 @@ class AActor;
 class UBillBoardComponent : public UPrimitiveComponent
 {
 public:
-	UBillBoardComponent(AActor* InOwnerActor, float InYOffset);
+	UBillBoardComponent();
 	~UBillBoardComponent();
 
 	void UpdateRotationMatrix();
 
 	FMatrix GetRTMatrix() const { return RTMatrix; }
+
+	// Scene Proxy 생성
+	class FBillBoardSceneProxy* CreateSceneProxy();
 
 	// 공통 렌더링 인터페이스 오버라이드
 	virtual bool HasRenderData() const override;
@@ -20,6 +23,4 @@ public:
 	virtual EShaderType GetShaderType() const override;
 private:
 	FMatrix RTMatrix;
-	AActor* POwnerActor;
-	float ZOffset;
 };

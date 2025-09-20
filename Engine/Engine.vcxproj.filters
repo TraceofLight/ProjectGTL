@@ -213,13 +213,22 @@
     <ClCompile Include="Source\Level\Private\Level.cpp">
       <Filter>Source\Level\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Render\Renderer\Private\BillBoardSceneProxy.cpp">
+      <Filter>Source\Render\Renderer\Private</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Render\Renderer\Private\DeviceResources.cpp">
       <Filter>Source\Render\Renderer\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Render\Renderer\Private\Pipeline.cpp">
       <Filter>Source\Render\Renderer\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Render\Renderer\Private\PrimitiveSceneProxy.cpp">
+      <Filter>Source\Render\Renderer\Private</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Render\Renderer\Private\Renderer.cpp">
+      <Filter>Source\Render\Renderer\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Render\Renderer\Private\StaticMeshSceneProxy.cpp">
       <Filter>Source\Render\Renderer\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Render\FontRenderer\Private\FontRenderer.cpp">
@@ -568,13 +577,22 @@
     <ClInclude Include="Source\Level\Public\Level.h">
       <Filter>Source\Level\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Render\Renderer\Public\BillBoardSceneProxy.h">
+      <Filter>Source\Render\Renderer\Public</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Render\Renderer\Public\DeviceResources.h">
       <Filter>Source\Render\Renderer\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\Renderer\Public\Pipeline.h">
       <Filter>Source\Render\Renderer\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Render\Renderer\Public\PrimitiveSceneProxy.h">
+      <Filter>Source\Render\Renderer\Public</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Render\Renderer\Public\Renderer.h">
+      <Filter>Source\Render\Renderer\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\Renderer\Public\StaticMeshSceneProxy.h">
       <Filter>Source\Render\Renderer\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h">

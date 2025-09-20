@@ -2,6 +2,7 @@
 #include "Actor/Public/StaticMeshActor.h"
 #include "Component/Public/StaticMeshComponent.h"
 #include "Asset/Public/StaticMesh.h"
+#include "Component/Public/BillBoardComponent.h"
 #include <algorithm>
 
 IMPLEMENT_CLASS(AStaticMeshActor, AActor)
@@ -11,6 +12,7 @@ AStaticMeshActor::AStaticMeshActor()
 {
 	// StaticMeshComponent 생성 및 RootComponent로 설정
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent");
+
 	SetRootComponent(StaticMeshComponent.Get());
 }
 
@@ -19,6 +21,7 @@ AStaticMeshActor::AStaticMeshActor(UObject* InOuter)
 {
 	// StaticMeshComponent 생성 및 RootComponent로 설정
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent");
+
 	SetRootComponent(StaticMeshComponent.Get());
 }
 
