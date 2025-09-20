@@ -3,6 +3,8 @@
 #include "Global/Vector.h"
 #include "Global/CoreTypes.h"
 
+class UMaterialInterface;
+
 /**
  * @brief 스태틱 메시 내 객체의 재질 정보
  * 텍스처 경로 및 조명 매개변수를 포함한 모든 재질 속성을 포함.
@@ -29,6 +31,16 @@ struct FObjMaterialInfo
 		: MaterialName(InMaterialName)
 	{
 	}
+};
+
+/**
+* @brief 다중 머터리얼 사용시 각 슬롯 정보
+* @note
+*/
+struct FMateiralSlot
+{
+	FName MaterialName; // 머터리얼 이름
+	UMaterialInterface* DefaultMaterial = nullptr; // 기본 머터리얼
 };
 
 /**
@@ -63,6 +75,17 @@ struct FObjInfo
 };
 
 /**
+ * @brief 스테틱 메시 섹션 구조
+ * @note 같은 섹션 내의 triangle들은 같은 material을 사용
+ */
+struct FStaticMeshSection
+{
+	int32 StartIndex = 0;   // 섹션의 시작 인덱스 (Indices 배열에서)
+	int32 IndexCount = 0;  // 섹션의 인덱스 개수
+	int32 MaterialSlotIndex = 0; // 슬롯은 UStaticMesh에서 관리
+};
+
+/**
  * @brief 스태틱 메시 데이터 구조 (언리얼의 `FStaticMeshLODResources`에 해당)
  * @note 이 구조는 렌더링을 위해 최종 처리된 데이터를 보유.
  * GPU 버퍼 생성을 위한 쿠킹된 정점 데이터와 인덱스를 포함.
@@ -72,6 +95,7 @@ struct FStaticMesh
 	FString PathFileName;			// 원본 파일 경로 (예: "Assets/Models/House.obj")
 	TArray<FVertex> Vertices;		// 최종 처리된 정점 (위치, 노멀, UV 결합)
 	TArray<uint32> Indices;			// 삼각형 렌더링을 위한 인덱스 버퍼
+	TArray<FStaticMeshSection> Sections; // 다중 머터리얼 사용을 위한 메시 섹션
 
 	FStaticMesh() = default;
 
