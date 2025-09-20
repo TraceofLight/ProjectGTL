@@ -1,12 +1,13 @@
 #include "pch.h"
 #include "Manager/Level/Public/LevelManager.h"
 
-#include "Level/Public/Level.h"
-#include "Actor/Public/CubeActor.h"
-#include "Actor/Public/SphereActor.h"
-#include "Actor/Public/TriangleActor.h"
-#include "Actor/Public/SquareActor.h"
-#include "Manager/Path/Public/PathManager.h"
+#include "Runtime/Level/Public/Level.h"
+#include "Runtime/Actor/Public/CubeActor.h"
+#include "Runtime/Actor/Public/SphereActor.h"
+#include "Runtime/Actor/Public/TriangleActor.h"
+#include "Runtime/Actor/Public/SquareActor.h"
+#include "Runtime/Subsystem/Public/PathSubsystem.h"
+#include "Runtime/Engine/Public/Engine.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Utility/Public/Metadata.h"
 #include "Editor/Public/Editor.h"
@@ -263,8 +264,8 @@ bool ULevelManager::CreateNewLevel(const FString& InLevelName)
  */
 path ULevelManager::GetLevelDirectory()
 {
-	UPathManager& PathManager = UPathManager::GetInstance();
-	return PathManager.GetWorldPath();
+	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
+	return PathSubsystem->GetWorldPath();
 }
 
 /**

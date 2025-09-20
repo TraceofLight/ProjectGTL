@@ -2,12 +2,7 @@
 #include "Editor/Public/ObjectPicker.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Gizmo.h"
-#include "Component/Public/PrimitiveComponent.h"
-#include "Manager/Input/Public/InputManager.h"
-#include "Core/Public/AppWindow.h"
-#include "ImGui/imgui.h"
-#include "Level/Public/Level.h"
-#include "Global/Quaternion.h"
+#include "Runtime/Component/Public/PrimitiveComponent.h"
 
 UObjectPicker::UObjectPicker(UCamera& InCamera)
 	:Camera( InCamera)

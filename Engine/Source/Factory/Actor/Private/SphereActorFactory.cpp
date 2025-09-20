@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Factory/Actor/Public/SphereActorFactory.h"
-#include "Actor/Public/SphereActor.h"
+#include "Runtime/Actor/Public/SphereActor.h"
 
 IMPLEMENT_CLASS(USphereActorFactory, UActorFactory)
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Public/Object.h"
-#include "Core/Public/ObjectPtr.h"
+#include "Runtime/Core/Public/Object.h"
+#include "Runtime/Core/Public/ObjectPtr.h"
 
 /**
  * @brief Base Factory Class

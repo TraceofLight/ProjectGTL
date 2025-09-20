@@ -1,6 +1,5 @@
 #pragma once
-#include "Core/Public/Object.h"
-#include "Global/CoreTypes.h"
+#include "Runtime/Core/Public/Object.h"
 #include "Editor/Public/EditorPrimitive.h"
 
 class UGrid : public UObject
@@ -8,12 +7,9 @@ class UGrid : public UObject
 public:
 	UGrid();
 	~UGrid() override;
-	//void SetLineVertices();
-	//void SetGridProperty(float InCellSize, int InNumLines);
 
 	void UpdateVerticesBy(float NewCellSize);
 	void MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartIndex);
-	//void RenderGrid();
 
 	uint32 GetNumVertices() const
 	{

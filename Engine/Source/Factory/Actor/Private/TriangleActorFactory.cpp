@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Factory/Actor/Public/TriangleActorFactory.h"
-#include "Actor/Public/TriangleActor.h"
+#include "Runtime/Actor/Public/TriangleActor.h"
 
 IMPLEMENT_CLASS(UTriangleActorFactory, UActorFactory)
 

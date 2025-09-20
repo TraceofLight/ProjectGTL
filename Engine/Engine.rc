@@ -1,4 +1,4 @@
-#include "Source/Core/Public/resource.h"
+#include "resource.h"
 #include "winres.h"
 
 // Korean Resource

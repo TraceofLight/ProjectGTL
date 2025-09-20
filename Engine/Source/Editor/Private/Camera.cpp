@@ -1,23 +1,12 @@
 #include "pch.h"
 #include "Editor/Public/Camera.h"
 #include "Manager/Input/Public/InputManager.h"
-#include "Core/Public/EngineLoop.h"  // GDeltaTime 사용을 위해
 #include "Render/Renderer/Public/Renderer.h"
 
 void UCamera::Update()
 {
 	const UInputManager& Input = UInputManager::GetInstance();
 
-	//FVector rotationRadians = {};
-	//// roll
-	//rotationRadians.X = 0.0f;
-	//// pitch
-	//rotationRadians.Y = FVector::GetDegreeToRadian(RelativeRotation.X);
-	//// yaw
-	//rotationRadians.Z = FVector::GetDegreeToRadian(RelativeRotation.Y);
-
-	//FMatrix rotationMatrix = FMatrix::RotationMatrix(rotationRadians);
-	
 	FMatrix rotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
 
 	FVector4 Forward4 = FVector4(1, 0, 0, 1) * rotationMatrix;
@@ -30,7 +19,7 @@ void UCamera::Update()
 	Right.Normalize();
 	Up = Right.Cross(Forward);
 	Up.Normalize();
-	
+
 	/**
 	 * @brief 마우스 우클릭을 하고 있는 동안 카메라 제어가 가능합니다.
 	 */
@@ -69,7 +58,7 @@ void UCamera::Update()
 		// Yaw 래핑(값이 무한히 커지지 않도록)
 		if (RelativeRotation.Z > 180.0f) RelativeRotation.Z -= 360.0f;
 		if (RelativeRotation.Z < -180.0f) RelativeRotation.Z += 360.0f;
-		
+
 		// Pitch 클램프(짐벌 플립 방지)
 		if (RelativeRotation.Y > 89.0f)  RelativeRotation.Y = 89.0f;
 		if (RelativeRotation.Y < -89.0f) RelativeRotation.Y = -89.0f;
@@ -94,11 +83,11 @@ void UCamera::Update()
 
 	// TEST CODE
 	URenderer::GetInstance().UpdateConstant(ViewProjConstants);
-	
+
 }
 
 void UCamera::UpdateMatrixByPers()
-{	
+{
 	/**
 	 * @brief View 행렬 연산
 	 */
@@ -109,7 +98,7 @@ void UCamera::UpdateMatrixByPers()
 	/*FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
 	FMatrix R = FMatrix::RotationMatrixInverse(FVector::GetDegreeToRadian(RelativeRotation));
 	ViewProjConstants.View = T * R;*/
-	
+
 
 	/**
 	 * @brief Projection 행렬 연산
@@ -175,7 +164,7 @@ const FViewProjConstants UCamera::GetFViewProjConstantsInverse() const
 	*/
 	FViewProjConstants Result = {};
 	//FMatrix R = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
-	FMatrix R = FMatrix(Right, Up, Forward);	
+	FMatrix R = FMatrix(Right, Up, Forward);
 	FMatrix T = FMatrix::TranslationMatrix(RelativeLocation);
 	Result.View = R * T;
 

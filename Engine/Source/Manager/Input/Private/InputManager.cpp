@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Manager/Input/Public/InputManager.h"
-#include "Core/Public/AppWindow.h"
+#include "Runtime/Core/Public/AppWindow.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UInputManager)
 
