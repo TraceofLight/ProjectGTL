@@ -132,6 +132,8 @@ private:
 	ID3D11InputLayout* DefaultInputLayout = nullptr;
 	uint32 Stride = 0;
 
+	uint32 ViewportIdx = 0;
+
 	struct FRasterKey
 	{
 		D3D11_FILL_MODE FillMode = {};
