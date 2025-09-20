@@ -47,8 +47,11 @@ void UEditor::Update()
 	AActor* SelectedActor = ULevelManager::GetInstance().GetCurrentLevel()->GetSelectedActor();
 	if (SelectedActor)
 	{
-		for (const auto& Component : SelectedActor->GetOwnedComponents())
+		const auto& Components = SelectedActor->GetOwnedComponents();
+
+		for (const auto& Component : Components)
 		{
+			UE_LOG_DEBUG("Component: %p\n", Component.Get());
 			if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 			{
 				FVector WorldMin, WorldMax;
@@ -56,7 +59,6 @@ void UEditor::Update()
 
 				// 프리미티브와 바운딩박스 플래그가 모두 켜져있을 때만 바운딩박스 표시
 				uint64 ShowFlags = ULevelManager::GetInstance().GetCurrentLevel()->GetShowFlags();
-
 				if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
 				{
 					BatchLines.UpdateBoundingBoxVertices(FAABB(WorldMin, WorldMax));

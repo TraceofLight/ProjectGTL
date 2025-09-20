@@ -82,6 +82,12 @@ public:
 	 */
 	void ReleaseRenderBuffers();
 
+	/**
+	 * @brief 메시의 AABB를 계산
+	 * @return 계산된 AABB
+	 */
+	FAABB CalculateAABB() const;
+
 protected:
 	/** 실제 메시 데이터 */
 	FStaticMesh StaticMeshData;
