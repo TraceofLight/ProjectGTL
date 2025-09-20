@@ -34,7 +34,6 @@ public:
 	static ID3D11ShaderResourceView* CreateTextureFromFile(const path& InFilePath);
 	static ID3D11ShaderResourceView* CreateTextureFromMemory(const void* InData, size_t InDataSize);
 
-
 	// StaticMesh 관련 함수들
 	class UStaticMesh* LoadStaticMesh(const FString& InFilePath);
 	class UStaticMesh* GetStaticMesh(const FString& InFilePath);
@@ -43,7 +42,7 @@ public:
 
 	// Primitive StaticMesh 관련 함수들
 	class UStaticMesh* GetPrimitiveStaticMesh(EPrimitiveType InPrimitiveType);
-	void LoadAllPrimitiveStaticMeshes();
+	
 
 private:
 	// Vertex Resource
@@ -59,10 +58,7 @@ private:
 	// Texture Resource
 	TMap<FString, ID3D11ShaderResourceView*> TextureCache;
 
-	// StaticMesh Resource
-	TMap<FString, class UStaticMesh*> StaticMeshAssets;
-
-	// Primitive StaticMesh Resource (EPrimitiveType별로 미리 로드된 StaticMesh)
+	// Default Primitive StaticMesh Resource
 	TMap<EPrimitiveType, class UStaticMesh*> PrimitiveStaticMeshes;
 
 	// Release Functions

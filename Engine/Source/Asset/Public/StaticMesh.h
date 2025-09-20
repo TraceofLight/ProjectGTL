@@ -34,7 +34,7 @@ public:
 	 * @brief 원본 파일 경로를 가져옴
 	 * @return 원본 메시 파일의 경로
 	 */
-	const FString& GetSourceFilePath() const { return StaticMeshData.PathFileName; }
+	const FString& GetAssetPathFileName() const { return StaticMeshData.PathFileName; }
 
 	/**
 	 * @brief 렌더링을 위한 정점 데이터를 가져옴
