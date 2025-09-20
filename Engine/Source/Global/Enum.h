@@ -165,3 +165,13 @@ enum class EFillMode : uint8_t
 
 	End = 0xFF
 };
+
+
+// View types
+enum class EEditorViewType : uint8
+{
+	Perspective,
+	OrthoTop,   // Z-up 기준
+	OrthoFront, // X-forward 기준
+	OrthoSide   // Y-right 기준
+};
