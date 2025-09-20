@@ -23,5 +23,5 @@ USphereActorFactory::USphereActorFactory()
 TObjectPtr<AActor> USphereActorFactory::CreateNewActor()
 {
 	UE_LOG_SUCCESS("SphereActorFactory: Creating new SphereActor instance");
-	return TObjectPtr<AActor>(new ASphereActor);
+	return TObjectPtr<AActor>(NewObject<ASphereActor>());
 }

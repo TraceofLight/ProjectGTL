@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Asset/Public/ObjImporter.h"
 
-bool FObjImporter::ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutObjectInfos)
+bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& OutObjectInfos)
 {
-	std::ifstream File(FilePath.c_str());
+	std::ifstream File(InFilePath.c_str());
 	if (!File.is_open())
 	{
 		return false;
@@ -52,9 +52,9 @@ bool FObjImporter::ImportOBJFile(const FString& FilePath, TArray<FObjInfo>& OutO
 	return true;
 }
 
-bool FObjImporter::ParseMaterialLibrary(const FString& MTLFilePath, TArray<FObjMaterialInfo>& OutMaterials)
+bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FObjMaterialInfo>& OutMaterials)
 {
-	std::ifstream File(MTLFilePath.c_str());
+	std::ifstream File(InMTLFilePath.c_str());
 	if (!File.is_open())
 	{
 		return false;
@@ -140,9 +140,9 @@ bool FObjImporter::ParseMaterialLibrary(const FString& MTLFilePath, TArray<FObjM
 	return true;
 }
 
-bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FStaticMesh& OutStaticMesh)
+bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FStaticMesh& OutStaticMesh)
 {
-	if (ObjectInfos.empty())
+	if (InObjectInfos.empty())
 	{
 		return false;
 	}
@@ -151,7 +151,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FSta
 	OutStaticMesh.Indices.clear();
 
 	// 모든 객체를 하나의 스태틱 메시로 결합
-	for (const FObjInfo& ObjectInfo : ObjectInfos)
+	for (const FObjInfo& ObjectInfo : InObjectInfos)
 	{
 		TArray<FVertex> ObjectVertices;
 		TArray<uint32> ObjectIndices;
@@ -173,16 +173,16 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& ObjectInfos, FSta
 	return !OutStaticMesh.Vertices.empty() && !OutStaticMesh.Indices.empty();
 }
 
-bool FObjImporter::ImportStaticMesh(const FString& FilePath, FStaticMesh& OutStaticMesh)
+bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh)
 {
 	TArray<FObjInfo> ObjectInfos;
 
-	if (!ImportOBJFile(FilePath, ObjectInfos))
+	if (!ImportObjFile(InFilePath, ObjectInfos))
 	{
 		return false;
 	}
 
-	OutStaticMesh.PathFileName = FilePath;
+	OutStaticMesh.PathFileName = InFilePath;
 	return ConvertToStaticMesh(ObjectInfos, OutStaticMesh);
 }
 
@@ -305,6 +305,50 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 	OutVertices.clear();
 	OutIndices.clear();
 
+	// 커스텀 해시 함수 정의
+	struct VertexHash
+	{
+		std::size_t operator()(const std::tuple<FVector, FVector2, FVector>& v) const
+		{
+			const auto& pos = std::get<0>(v);
+			const auto& uv = std::get<1>(v);
+			const auto& normal = std::get<2>(v);
+
+			// 간단한 해시 조합
+			std::size_t h1 = std::hash<float>{}(pos.X) ^ (std::hash<float>{}(pos.Y) << 1) ^ (std::hash<float>{}(pos.Z) << 2);
+			std::size_t h2 = std::hash<float>{}(uv.X) ^ (std::hash<float>{}(uv.Y) << 1);
+			std::size_t h3 = std::hash<float>{}(normal.X) ^ (std::hash<float>{}(normal.Y) << 1) ^ (std::hash<float>{}(normal.Z) << 2);
+
+			return h1 ^ (h2 << 1) ^ (h3 << 2);
+		}
+	};
+
+	// 커스텀 동등성 비교자 정의
+	struct VertexEqual
+	{
+		bool operator()(const std::tuple<FVector, FVector2, FVector>& lhs,
+		               const std::tuple<FVector, FVector2, FVector>& rhs) const
+		{
+			const auto& pos1 = std::get<0>(lhs);
+			const auto& uv1 = std::get<1>(lhs);
+			const auto& normal1 = std::get<2>(lhs);
+
+			const auto& pos2 = std::get<0>(rhs);
+			const auto& uv2 = std::get<1>(rhs);
+			const auto& normal2 = std::get<2>(rhs);
+
+			// float 비교를 위한 epsilon 사용
+			const float epsilon = 1e-6f;
+
+			return (abs(pos1.X - pos2.X) < epsilon && abs(pos1.Y - pos2.Y) < epsilon && abs(pos1.Z - pos2.Z) < epsilon) &&
+			       (abs(uv1.X - uv2.X) < epsilon && abs(uv1.Y - uv2.Y) < epsilon) &&
+			       (abs(normal1.X - normal2.X) < epsilon && abs(normal1.Y - normal2.Y) < epsilon && abs(normal1.Z - normal2.Z) < epsilon);
+		}
+	};
+
+	// 고유 정점을 추적하기 위한 맵 (정점 데이터 → 인덱스)
+	std::unordered_map<std::tuple<FVector, FVector2, FVector>, uint32, VertexHash, VertexEqual> VertexMap;
+
 	size_t NumTriangles = ObjectInfo.VertexIndexList.size() / 3;
 
 	for (size_t i = 0; i < NumTriangles; ++i)
@@ -344,42 +388,58 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 				}
 			}
 
-			OutVertices.push_back(Vertex);
-			OutIndices.push_back(static_cast<uint32>((OutVertices.size() - 1)));
+			// 정점 고유성 확인을 위한 키 생성
+			auto VertexKey = std::make_tuple(Vertex.Position, Vertex.TextureCoord, Vertex.Normal);
+
+			// 이미 존재하는 정점인지 확인
+			auto It = VertexMap.find(VertexKey);
+			if (It != VertexMap.end())
+			{
+				// 기존 정점 인덱스 사용
+				OutIndices.push_back(It->second);
+			}
+			else
+			{
+				// 새로운 정점 추가
+				uint32 NewVertexIndex = static_cast<uint32>(OutVertices.size());
+				OutVertices.push_back(Vertex);
+				VertexMap[VertexKey] = NewVertexIndex;
+				OutIndices.push_back(NewVertexIndex);
+			}
 		}
 	}
 }
 
-FString FObjImporter::TrimString(const FString& Str)
+FString FObjImporter::TrimString(const FString& String)
 {
-	if (Str.empty())
+	if (String.empty())
 	{
-		return Str;
+		return String;
 	}
 
 	size_t Start = 0;
-	size_t End = Str.length() - 1;
+	size_t End = String.length() - 1;
 
-	while (Start <= End && (Str[Start] == ' ' || Str[Start] == '\t' || Str[Start] == '\r' || Str[Start] == '\n'))
+	while (Start <= End && (String[Start] == ' ' || String[Start] == '\t' || String[Start] == '\r' || String[Start] == '\n'))
 	{
 		Start++;
 	}
 
-	while (End > Start && (Str[End] == ' ' || Str[End] == '\t' || Str[End] == '\r' || Str[End] == '\n'))
+	while (End > Start && (String[End] == ' ' || String[End] == '\t' || String[End] == '\r' || String[End] == '\n'))
 	{
 		End--;
 	}
 
-	return Str.substr(Start, End - Start + 1);
+	return String.substr(Start, End - Start + 1);
 }
 
-void FObjImporter::SplitString(const FString& Str, char Delimiter, TArray<FString>& OutTokens)
+void FObjImporter::SplitString(const FString& String, char Delimiter, TArray<FString>& OutTokens)
 {
 	OutTokens.clear();
-	std::stringstream ss(Str);
+	std::stringstream StringStream(String);
 	std::string Token;
 
-	while (std::getline(ss, Token, Delimiter))
+	while (std::getline(StringStream, Token, Delimiter))
 	{
 		FString TrimmedToken = TrimString(FString(Token.c_str()));
 		if (!TrimmedToken.empty())

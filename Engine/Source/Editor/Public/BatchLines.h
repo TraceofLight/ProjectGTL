@@ -6,9 +6,13 @@
 #include "Editor/Public/BoundingBoxLines.h"
 
 struct FVertex;
+class AStaticMeshActor;
 
 class UBatchLines : UObject
 {
+	GENERATED_BODY()
+	DECLARE_CLASS(UBatchLines, UObject)
+
 public:
 	UBatchLines();
 	~UBatchLines();
@@ -28,27 +32,16 @@ public:
 		return Grid.GetCellSize();
 	}
 
-	/*void SetCellSize(const float newCellSize)
-	{
-		Grid.SetCellSize(newCellSize);
-	}*/
-
 	void DisableRenderBoundingBox()
 	{
 		UpdateBoundingBoxVertices({ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} });
 	}
 
-	//void UpdateConstant(FBoundingBox boundingBoxInfo);
-
-	//void Update();
-
 	void Render();
 
 private:
 	void SetIndices();
-
-	/*void AddWorldGridVerticesAndConstData();
-	void AddBoundingBoxVertices();*/
+	void RebuildIndicesWithStaticMeshAABBs();
 
 	bool bChangedVertices = false;
 
@@ -59,6 +52,10 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
+
+	// StaticMeshActor들의 AABB 관리
+	TArray<UBoundingBoxLines> StaticMeshAABBLines;
+	uint32 StaticMeshAABBVertexOffset;
 
 	bool bRenderBox;
 };

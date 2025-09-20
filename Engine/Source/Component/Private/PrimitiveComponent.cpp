@@ -97,8 +97,7 @@ const FMatrix& USceneComponent::GetWorldTransformMatrixInverse() const
 
 const TArray<FVertex>* UPrimitiveComponent::GetVerticesData() const
 {
-	UAssetManager& ResourceManager = UAssetManager::GetInstance();
-	return ResourceManager.GetVertexData(Type);
+	return Vertices;
 }
 
 ID3D11Buffer* UPrimitiveComponent::GetVertexBuffer() const
@@ -147,6 +146,52 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax) const
 		OutMin = WorldMin;
 		OutMax = WorldMax;
 	}
+}
+
+// 공통 렌더링 인터페이스 기본 구현
+bool UPrimitiveComponent::HasRenderData() const
+{
+	return GetVerticesData() != nullptr && !GetVerticesData()->empty();
+}
+
+ID3D11Buffer* UPrimitiveComponent::GetRenderVertexBuffer() const
+{
+	return GetVertexBuffer();
+}
+
+ID3D11Buffer* UPrimitiveComponent::GetRenderIndexBuffer() const
+{
+	// 기본 프리미티브는 인덱스 버퍼를 사용하지 않음
+	return nullptr;
+}
+
+uint32 UPrimitiveComponent::GetRenderVertexCount() const
+{
+	const TArray<FVertex>* VerticesData = GetVerticesData();
+	return VerticesData ? static_cast<uint32>(VerticesData->size()) : 0;
+}
+
+uint32 UPrimitiveComponent::GetRenderIndexCount() const
+{
+	// 기본 프리미티브는 인덱스 버퍼를 사용하지 않음
+	return 0;
+}
+
+uint32 UPrimitiveComponent::GetRenderVertexStride() const
+{
+	return sizeof(FVertex);
+}
+
+bool UPrimitiveComponent::UseIndexedRendering() const
+{
+	// 기본 프리미티브는 인덱스 렌더링을 사용하지 않음
+	return false;
+}
+
+EShaderType UPrimitiveComponent::GetShaderType() const
+{
+	// 기본 프리미티브는 기본 셰이더 사용
+	return EShaderType::Default;
 }
 
 /*

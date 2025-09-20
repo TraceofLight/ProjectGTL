@@ -8,6 +8,7 @@
 #include "Component/Public/LineComponent.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/PrimitiveComponent.h"
+#include "Component/Public/StaticMeshComponent.h"
 
 // 정적 인스턴스
 static TObjectPtr<TComponentFactory<UCubeComponent>> GCubeComponentFactory;
@@ -17,6 +18,7 @@ static TObjectPtr<TComponentFactory<USquareComponent>> GSquareComponentFactory;
 static TObjectPtr<TComponentFactory<ULineComponent>> GLineComponentFactory;
 static TObjectPtr<TComponentFactory<USceneComponent>> GSceneComponentFactory;
 static TObjectPtr<TComponentFactory<UPrimitiveComponent>> GPrimitiveComponentFactory;
+static TObjectPtr<TComponentFactory<UStaticMeshComponent>> GStaticMeshComponentFactory;
 
 // 생성자에서 정적 인스턴스에 대한 Register 함수 호출
 struct FComponentFactoryRegistrar
@@ -30,6 +32,7 @@ struct FComponentFactoryRegistrar
 		UFactory::RegisterFactory(GLineComponentFactory);
 		UFactory::RegisterFactory(GSceneComponentFactory);
 		UFactory::RegisterFactory(GPrimitiveComponentFactory);
+		UFactory::RegisterFactory(GStaticMeshComponentFactory);
 
 		UE_LOG_SUCCESS("ComponentFactories: 모든 Component Factory 클래스 등록이 완료되었습니다");
 	}

@@ -23,5 +23,5 @@ USquareActorFactory::USquareActorFactory()
 TObjectPtr<AActor> USquareActorFactory::CreateNewActor()
 {
 	UE_LOG_SUCCESS("SquareActorFactory: Creating new SquareActor instance");
-	return TObjectPtr<AActor>(new ASquareActor);
+	return TObjectPtr<AActor>(NewObject<ASquareActor>());
 }

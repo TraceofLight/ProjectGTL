@@ -98,7 +98,8 @@ DECLARE_UINT8_ENUM_REFLECTION(ELogType)
 enum class EShaderType : uint8
 {
 	Default = 0,
-	BatchLine
+	BatchLine,
+	StaticMesh
 };
 
 /**
@@ -131,13 +132,15 @@ enum class EPrimitiveType : uint8
 	Cube,
 	Triangle,
 	Square,
+	StaticMesh,
 	Torus,
+	Cylinder,
+	Cone,
 	Arrow,
 	CubeArrow,
 	Ring,
 	Line,
 	BillBoard,
-	StaticMesh,
 
 	End = 0xFF
 };

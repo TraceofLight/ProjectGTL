@@ -15,9 +15,9 @@ void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
 
 	if (StaticMesh && StaticMesh->IsValidMesh())
 	{
-		UpdateRenderData();
+		//UpdateRenderData();
 		InitializeMeshRenderData();
-		UpdateMeshBounds();
+		//UpdateMeshBounds();
 	}
 }
 
@@ -54,20 +54,6 @@ void UStaticMeshComponent::InitializeMeshRenderData()
 	// 정점 데이터 포인터 업데이트
 	Vertices = &StaticMesh->GetVertices();
 	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
-
-	// TODO: GPU 렌더링을 위한 정점 버퍼 생성
-	// 렌더링 시스템과 통합 시 구현될 예정
-}
-
-void UStaticMeshComponent::UpdateMeshBounds()
-{
-	if (!HasValidMeshData())
-	{
-		return;
-	}
-
-	// TODO: 정점 데이터로부터 바운딩 박스 계산
-	// 물리/컬링 시스템과 통합 시 구현될 예정
 }
 
 void UStaticMeshComponent::UpdateRenderData()
@@ -80,6 +66,53 @@ void UStaticMeshComponent::UpdateRenderData()
 	}
 
 	// 기본 렌더 데이터 업데이트
-	Vertices = &StaticMesh->GetVertices();
-	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
+	//Vertices = &StaticMesh->GetVertices();
+	//NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
+}
+
+// 공통 렌더링 인터페이스 구현
+bool UStaticMeshComponent::HasRenderData() const
+{
+	return HasValidMeshData();
+}
+
+ID3D11Buffer* UStaticMeshComponent::GetRenderVertexBuffer() const
+{
+	return StaticMesh ? StaticMesh->GetVertexBuffer() : nullptr;
+}
+
+ID3D11Buffer* UStaticMeshComponent::GetRenderIndexBuffer() const
+{
+	return StaticMesh ? StaticMesh->GetIndexBuffer() : nullptr;
+}
+
+uint32 UStaticMeshComponent::GetRenderVertexCount() const
+{
+	return GetNumVertices();
+}
+
+uint32 UStaticMeshComponent::GetRenderIndexCount() const
+{
+	if (StaticMesh)
+	{
+		return static_cast<uint32>(StaticMesh->GetIndices().size());
+	}
+	return 0;
+}
+
+uint32 UStaticMeshComponent::GetRenderVertexStride() const
+{
+	return sizeof(FVertex);
+}
+
+bool UStaticMeshComponent::UseIndexedRendering() const
+{
+	// StaticMesh는 인덱스 렌더링 사용
+	return HasRenderData() && GetRenderIndexCount() > 0;
+}
+
+EShaderType UStaticMeshComponent::GetShaderType() const
+{
+	// StaticMesh는 전용 셰이더 사용
+	return EShaderType::StaticMesh;
 }

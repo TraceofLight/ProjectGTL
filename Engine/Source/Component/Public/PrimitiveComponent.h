@@ -30,6 +30,16 @@ public:
 
 	EPrimitiveType GetPrimitiveType() const { return Type; }
 
+	// 공통 렌더링 인터페이스
+	virtual bool HasRenderData() const;
+	virtual ID3D11Buffer* GetRenderVertexBuffer() const;
+	virtual ID3D11Buffer* GetRenderIndexBuffer() const;
+	virtual uint32 GetRenderVertexCount() const;
+	virtual uint32 GetRenderIndexCount() const;
+	virtual uint32 GetRenderVertexStride() const;
+	virtual bool UseIndexedRendering() const;
+	virtual EShaderType GetShaderType() const;
+
 protected:
 	const TArray<FVertex>* Vertices = nullptr;
 	FVector4 Color = FVector4{ 0.f,0.f,0.f,0.f };

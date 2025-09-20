@@ -8,6 +8,7 @@
 #include "Editor/Public/ObjectPicker.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/Level/Public/LevelManager.h"
+#include "Actor/Public/StaticMeshActor.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
 #include "Component/Public/PrimitiveComponent.h"
