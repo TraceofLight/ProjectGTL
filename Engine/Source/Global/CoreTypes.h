@@ -80,3 +80,25 @@ struct FTransform
 	{
 	}
 };
+
+/**
+ * @brief 2D 정수 좌표
+ */
+struct FPoint
+{
+	LONG X, Y;
+
+	FPoint() = default;
+	constexpr FPoint(LONG InX, LONG InY) : X(InX), Y(InY) {}
+};
+
+/**
+ * @brief 2D 정수 사각형
+ */
+struct FRect
+{
+	LONG X, Y, W, H;
+
+	FRect() = default;
+	constexpr FRect(LONG InX, LONG InY, LONG InW, LONG InH) : X(InX), Y(InY), W(InW), H(InH) {}
+};

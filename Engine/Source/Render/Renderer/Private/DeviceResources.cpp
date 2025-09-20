@@ -37,7 +37,7 @@ void UDeviceResources::Release()
 void UDeviceResources::CreateDeviceAndSwapChain(HWND InWindowHandle)
 {
 	// 지원하는 Direct3D 기능 레벨을 정의
-	D3D_FEATURE_LEVEL featurelevels[] = {D3D_FEATURE_LEVEL_11_0};
+	D3D_FEATURE_LEVEL featurelevels[] = { D3D_FEATURE_LEVEL_11_0 };
 
 	// 스왑 체인 설정 구조체 초기화
 	DXGI_SWAP_CHAIN_DESC SwapChainDescription = {};
@@ -53,9 +53,9 @@ void UDeviceResources::CreateDeviceAndSwapChain(HWND InWindowHandle)
 
 	// Direct3D 장치와 스왑 체인을 생성
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-	                                           D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG,
-	                                           featurelevels, ARRAYSIZE(featurelevels), D3D11_SDK_VERSION,
-	                                           &SwapChainDescription, &SwapChain, &Device, nullptr, &DeviceContext);
+		D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG,
+		featurelevels, ARRAYSIZE(featurelevels), D3D11_SDK_VERSION,
+		&SwapChainDescription, &SwapChain, &Device, nullptr, &DeviceContext);
 
 	if (FAILED(hr))
 	{

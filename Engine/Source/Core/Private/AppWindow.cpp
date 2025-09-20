@@ -6,6 +6,8 @@
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Window/Public/Window.h"
 
 FAppWindow::FAppWindow(FClientApp* InOwner)
 	: Owner(InOwner), InstanceHandle(nullptr), MainWindowHandle(nullptr)
@@ -39,10 +41,10 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 	RegisterClassW(&wndclass);
 
 	MainWindowHandle = CreateWindowExW(0, WindowClass, L"",
-	                                   WS_POPUP | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
-	                                   CW_USEDEFAULT, CW_USEDEFAULT,
-	                                   Render::INIT_SCREEN_WIDTH, Render::INIT_SCREEN_HEIGHT,
-	                                   nullptr, nullptr, InInstance, nullptr);
+		WS_POPUP | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		Render::INIT_SCREEN_WIDTH, Render::INIT_SCREEN_HEIGHT,
+		nullptr, nullptr, InInstance, nullptr);
 
 	if (!MainWindowHandle)
 	{
@@ -105,7 +107,7 @@ FAppWindow* FAppWindow::GetWindowInstance(HWND InWindowHandle, uint32 InMessage,
 }
 
 LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPARAM InWParam,
-                                     LPARAM InLParam)
+	LPARAM InLParam)
 {
 	if (UUIManager::WndProcHandler(InWindowHandle, InMessage, InWParam, InLParam))
 	{
@@ -130,6 +132,11 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 		URenderer::GetInstance().SetIsResizing(false);
 		URenderer::GetInstance().OnResize();
 		UUIManager::GetInstance().RepositionImGuiWindows();
+		if (auto* Root = UViewportManager::GetInstance().GetRoot())
+		{
+			RECT rc{}; GetClientRect(InWindowHandle, &rc);
+			Root->OnResize({ 0,0, (int32)(rc.right - rc.left), (int32)(rc.bottom - rc.top) });
+		}
 		break;
 	case WM_SIZE:
 		if (InWParam != SIZE_MINIMIZED)
@@ -138,6 +145,10 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 			{ // 드래그 X 일때 추가 처리 (최대화 버튼, ...)
 				URenderer::GetInstance().OnResize(LOWORD(InLParam), HIWORD(InLParam));
 				UUIManager::GetInstance().RepositionImGuiWindows();
+				if (auto* Root = UViewportManager::GetInstance().GetRoot())
+				{
+					Root->OnResize({ 0,0, (int32)LOWORD(InLParam), (int32)HIWORD(InLParam) });
+				}
 			}
 		}
 		else // SIZE_MINIMIZED
