@@ -185,6 +185,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 						continue;
 					}
 
+
 					Window->SetWindowState(EUIWindowState::Hidden);
 				}
 

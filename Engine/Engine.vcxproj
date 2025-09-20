@@ -276,6 +276,8 @@
     <ClInclude Include="Source\Window\Public\Splitter.h" />
     <ClInclude Include="Source\Window\Public\SplitterH.h" />
     <ClInclude Include="Source\Window\Public\SplitterV.h" />
+    <ClInclude Include="Source\Window\Public\Viewport.h" />
+    <ClInclude Include="Source\Window\Public\ViewportClient.h" />
     <ClInclude Include="Source\Window\Public\Window.h" />
     <ClInclude Include="Source\Window\Public\WindowSystem.h" />
   </ItemGroup>
@@ -389,6 +391,8 @@
     <ClCompile Include="Source\Window\Private\Splitter.cpp" />
     <ClCompile Include="Source\Window\Private\SplitterH.cpp" />
     <ClCompile Include="Source\Window\Private\SplitterV.cpp" />
+    <ClCompile Include="Source\Window\Private\Viewport.cpp" />
+    <ClCompile Include="Source\Window\Private\ViewportClient.cpp" />
     <ClCompile Include="Source\Window\Private\Window.cpp" />
     <ClCompile Include="Source\Window\Private\WindowSystem.cpp" />
   </ItemGroup>
@@ -416,6 +420,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Asset\Shader\ShaderFont.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Asset\Shader\StaticMeshShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
