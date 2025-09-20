@@ -9,7 +9,7 @@ PROJECT_NUMBER         =
 PROJECT_BRIEF          =
 PROJECT_LOGO           = Engine/Asset/Icon/project_gtl.ico
 PROJECT_ICON           =
-OUTPUT_DIRECTORY       = Documents/
+OUTPUT_DIRECTORY       = docs
 CREATE_SUBDIRS         = NO
 CREATE_SUBDIRS_LEVEL   = 8
 ALLOW_UNICODE_NAMES    = NO
@@ -129,7 +129,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = .
+INPUT                  = ./Engine
 INPUT_ENCODING         = UTF-8
 INPUT_FILE_ENCODING    =
 FILE_PATTERNS          = *.c \
