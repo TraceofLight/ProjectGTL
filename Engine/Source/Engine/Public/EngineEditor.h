@@ -42,6 +42,9 @@ private:
 	void RegisterDefaultEditorSubsystems();
 };
 
+// 전역 에디터 인스턴스
+extern UEngineEditor* GEditor;
+
 #pragma region EngineEditor template functions
 
 /**
@@ -66,25 +69,3 @@ void UEngineEditor::RegisterEditorSubsystem()
 }
 
 #pragma endregion EngineEditor template functions
-
-#pragma region EngineEditor globals
-
-// 전역 에디터 인스턴스
-extern UEngineEditor* GEditor;
-
-/**
- * @brief 에디터 서브시스템을 편리하게 가져오기 위한 전역 함수
- */
-template <typename T>
-T* GetEditorSubsystem()
-{
-	static_assert(std::is_base_of_v<UEditorSubsystem, T>, "T는 반드시 UEditorSubsystem를 상속 받아야 한다");
-	if (GEditor)
-	{
-		return GEditor->GetEditorSubsystem<T>();
-	}
-
-	return nullptr;
-}
-
-#pragma endregion EngineEditor globals

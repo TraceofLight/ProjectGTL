@@ -57,25 +57,7 @@ void UEngine::RegisterEngineSubsystem()
 	EngineSubsystemCollection.RegisterSubsystemClass<T>();
 }
 
-#pragma endregion Engine template functions
-
-#pragma region Engine globals
-
 // 전역 엔진 인스턴스
 extern UEngine* GEngine;
 
-/**
- * @brief 엔진 서브시스템을 편리하게 가져오기 위한 전역 함수
- */
-template <typename T>
-T* GetEngineSubsystem()
-{
-	static_assert(std::is_base_of_v<UEngineSubsystem, T>, "T는 반드시 UEngineSubsystem를 상속 받아야 한다");
-	if (GEngine)
-	{
-		return GEngine->GetEngineSubsystem<T>();
-	}
-	return nullptr;
-}
-
-#pragma endregion Engine globals
+#pragma endregion Engine template functions

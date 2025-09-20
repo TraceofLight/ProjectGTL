@@ -7,7 +7,7 @@ IMPLEMENT_SINGLETON_CLASS(ULocalPlayer, UObject)
 
 ULocalPlayer::ULocalPlayer()
 {
-	// 기본 초기화
+	LocalPlayer = this;
 }
 
 ULocalPlayer::~ULocalPlayer()
@@ -17,6 +17,8 @@ ULocalPlayer::~ULocalPlayer()
 	{
 		Shutdown();
 	}
+
+	LocalPlayer = nullptr;
 }
 
 /**

@@ -6,10 +6,7 @@
 #include "imGui/imgui_impl_win32.h"
 
 #include "Render/Renderer/Public/Renderer.h"
-
-// 테스트용 Camera
-#include "Editor/Public/Camera.h"
-#include "Manager/Path/Public/PathManager.h"
+#include "Subsystem/Public/PathSubsystem.h"
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
 
@@ -36,7 +33,8 @@ void UImGuiHelper::Initialize(HWND InWindowHandle)
 	// imgui.ini 파일 생성 비활성화
 	IO.IniFilename = nullptr;
 
-	path FontFilePath = UPathManager::GetInstance().GetFontPath() / "Pretendard-Regular.otf";
+	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
+	path FontFilePath = PathSubsystem->GetFontPath() / "Pretendard-Regular.otf";
 	IO.Fonts->AddFontFromFileTTF(FontFilePath.string().c_str(), 16.0f, nullptr, IO.Fonts->GetGlyphRangesKorean());
 
 	auto& Renderer = URenderer::GetInstance();

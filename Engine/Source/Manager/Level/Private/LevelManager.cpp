@@ -6,7 +6,8 @@
 #include "Actor/Public/SphereActor.h"
 #include "Actor/Public/TriangleActor.h"
 #include "Actor/Public/SquareActor.h"
-#include "Manager/Path/Public/PathManager.h"
+#include "Subsystem/Public/PathSubsystem.h"
+#include "Engine/Public/Engine.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Utility/Public/Metadata.h"
 #include "Editor/Public/Editor.h"
@@ -263,8 +264,8 @@ bool ULevelManager::CreateNewLevel(const FString& InLevelName)
  */
 path ULevelManager::GetLevelDirectory()
 {
-	UPathManager& PathManager = UPathManager::GetInstance();
-	return PathManager.GetWorldPath();
+	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
+	return PathSubsystem->GetWorldPath();
 }
 
 /**

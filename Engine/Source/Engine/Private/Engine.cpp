@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Engine/Public/Engine.h"
+#include "Subsystem/Public/PathSubsystem.h"
 
 UEngine* GEngine = nullptr;
 
@@ -7,7 +8,7 @@ IMPLEMENT_SINGLETON_CLASS(UEngine, UObject)
 
 UEngine::UEngine()
 {
-	// 기본 초기화
+	GEngine = this;
 }
 
 UEngine::~UEngine()
@@ -17,6 +18,8 @@ UEngine::~UEngine()
 	{
 		Shutdown();
 	}
+
+	GEngine = nullptr;
 }
 
 /**
@@ -52,5 +55,6 @@ void UEngine::Shutdown()
  */
 void UEngine::RegisterDefaultEngineSubsystems()
 {
-	// TODO(KHJ): 필요하면 기본 서브시스템 등록
+	// 기본 엔진 서브시스템 등록
+	RegisterEngineSubsystem<UPathSubsystem>();
 }

@@ -9,6 +9,7 @@ UEngineEditor::UEngineEditor()
 {
 	// 생성자에서 에디터 모드 기본 활성화
 	bIsEditorMode = true;
+	GEditor = this;
 }
 
 UEngineEditor::~UEngineEditor()
@@ -18,6 +19,8 @@ UEngineEditor::~UEngineEditor()
 	{
 		Shutdown();
 	}
+
+	GEditor = nullptr;
 }
 
 /**

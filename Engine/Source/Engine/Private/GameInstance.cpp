@@ -7,7 +7,7 @@ IMPLEMENT_SINGLETON_CLASS(UGameInstance, UObject)
 
 UGameInstance::UGameInstance()
 {
-	// 기본 초기화
+	GameInstance = this;
 }
 
 UGameInstance::~UGameInstance()
@@ -17,6 +17,8 @@ UGameInstance::~UGameInstance()
 	{
 		Shutdown();
 	}
+
+	GameInstance = nullptr;
 }
 
 /**

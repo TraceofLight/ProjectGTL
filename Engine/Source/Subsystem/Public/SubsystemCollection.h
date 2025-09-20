@@ -5,6 +5,7 @@
 #include "EditorSubsystem.h"
 #include "GameInstanceSubsystem.h"
 #include "LocalPlayerSubsystem.h"
+#include "PathSubsystem.h"
 #include "Factory/Public/NewObject.h"
 
 /**
@@ -144,8 +145,17 @@ void FSubsystemCollection<TBaseSubsystem>::CreateAndInitializeSubsystems(TObject
 		{
 			if (Iter->second)
 			{
-				TObjectPtr<TBaseSubsystem> NewSubsystem = NewObject<TBaseSubsystem>(
-					TObjectPtr<UObject>(InOuter), TObjectPtr<UClass>(Iter->second));
+				// 직접 생성자 호출로 새 인스턴스 생성
+				TObjectPtr<TBaseSubsystem> NewSubsystem = nullptr;
+				
+				// 클래스 이름을 기반으로 구체적인 타입 생성
+				FString ClassTypeName = Iter->second->GetClassTypeName().ToString();
+				if (ClassTypeName == "UPathSubsystem")
+				{
+					NewSubsystem = TObjectPtr<TBaseSubsystem>(reinterpret_cast<TBaseSubsystem*>(new UPathSubsystem()));
+				}
+				// 다른 서브시스템 타입들도 여기에 추가
+				
 				if (NewSubsystem)
 				{
 					SubsystemInstances[ClassName] = NewSubsystem;

@@ -42,6 +42,9 @@ private:
 	void RegisterDefaultGameInstanceSubsystems();
 };
 
+// 전역 게임 인스턴스
+extern UGameInstance* GameInstance;
+
 #pragma region GameInstance template functions
 
 /**
@@ -66,25 +69,3 @@ void UGameInstance::RegisterGameInstanceSubsystem()
 }
 
 #pragma endregion GameInstance template functions
-
-#pragma region GameInstance globals
-
-// 전역 게임 인스턴스
-extern UGameInstance* GameInstance;
-
-/**
- * @brief 게임 인스턴스 서브시스템을 편리하게 가져오기 위한 전역 함수
- */
-template <typename T>
-T* GetGameInstanceSubsystem()
-{
-	static_assert(std::is_base_of_v<UGameInstanceSubsystem, T>, "T는 반드시 UGameInstanceSubsystem를 상속 받아야 한다");
-	if (GameInstance)
-	{
-		return GameInstance->GetSubsystem<T>();
-	}
-
-	return nullptr;
-}
-
-#pragma endregion GameInstance globals

@@ -5,7 +5,6 @@
 #include "DirectXTK/WICTextureLoader.h"
 #include "DirectXTK/DDSTextureLoader.h"
 #include "Component/Mesh/Public/VertexDatas.h"
-#include "Physics/Public/AABB.h"
 #include "Asset/Public/ObjImporter.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Factory/Public/NewObject.h"
