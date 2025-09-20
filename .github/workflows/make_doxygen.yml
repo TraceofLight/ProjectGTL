@@ -42,7 +42,7 @@ jobs:
 
             # 생성된 파일 목록 출력
             - name: List generated files for debugging
-              run: dir docs /s
+              run: Get-ChildItem -Path docs -Recurse
 
             # 생성된 문서를 GitHub Pages 배포용 아티팩트로 업로드
             - name: Upload GitHub Pages artifact
