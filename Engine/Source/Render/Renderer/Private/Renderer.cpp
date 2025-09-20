@@ -2,13 +2,17 @@
 #include "Render/Renderer/Public/Renderer.h"
 
 #include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/UI/Public/UIManager.h"
-#include "Component/Public/PrimitiveComponent.h"
+#include "Manager/Asset/Public/AssetManager.h"
+//#include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
+#include "Actor/Public/Actor.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -28,6 +32,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateConstantBuffer();
 
 	// FontRenderer 초기화
+	// TODO: 삭제해야하고, 삭제해도 잘 돌아가도록 수정해줘야 합니다~
 	FontRenderer = new UFontRenderer();
 	if (!FontRenderer->Initialize())
 	{
@@ -94,16 +99,16 @@ void URenderer::CreateDefaultShader()
 	ID3DBlob* PixelShaderCSO;
 
 	D3DCompileFromFile(L"Asset/Shader/SampleShader.hlsl", nullptr, nullptr, "mainVS", "vs_5_0", 0, 0,
-	                   &VertexShaderCSO, nullptr);
+		&VertexShaderCSO, nullptr);
 
 	GetDevice()->CreateVertexShader(VertexShaderCSO->GetBufferPointer(),
-	                                VertexShaderCSO->GetBufferSize(), nullptr, &DefaultVertexShader);
+		VertexShaderCSO->GetBufferSize(), nullptr, &DefaultVertexShader);
 
 	D3DCompileFromFile(L"Asset/Shader/SampleShader.hlsl", nullptr, nullptr, "mainPS", "ps_5_0", 0, 0,
-	                   &PixelShaderCSO, nullptr);
+		&PixelShaderCSO, nullptr);
 
 	GetDevice()->CreatePixelShader(PixelShaderCSO->GetBufferPointer(),
-	                               PixelShaderCSO->GetBufferSize(), nullptr, &DefaultPixelShader);
+		PixelShaderCSO->GetBufferSize(), nullptr, &DefaultPixelShader);
 
 	D3D11_INPUT_ELEMENT_DESC DefaultLayout[] =
 	{
@@ -112,7 +117,7 @@ void URenderer::CreateDefaultShader()
 	};
 
 	GetDevice()->CreateInputLayout(DefaultLayout, ARRAYSIZE(DefaultLayout), VertexShaderCSO->GetBufferPointer(),
-	                               VertexShaderCSO->GetBufferSize(), &DefaultInputLayout);
+		VertexShaderCSO->GetBufferSize(), &DefaultInputLayout);
 
 	Stride = sizeof(FVertex);
 
@@ -188,15 +193,51 @@ void URenderer::Update()
 {
 	RenderBegin();
 
-	// TODO(KHJ): 여기 묶어낼 수 없을까?
-	RenderLevel();
-	ULevelManager::GetInstance().GetEditor()->RenderEditor();
+	// Multi-viewport rendering via splitter leaf rects
+    TArray<FRect> ViewRects;
+    UViewportManager::GetInstance().GetLeafRects(ViewRects);
+	if (ViewRects.empty())
+	{
+		// Fallback: single full viewport
+		RenderLevel();
+		ULevelManager::GetInstance().GetEditor()->RenderEditor();
+	}
+	else
+	{
+		ID3D11DeviceContext* ctx = GetDeviceContext();
+		const D3D11_VIEWPORT& fullVP = GetDeviceResources()->GetViewportInfo();
+		for (const FRect& r : ViewRects)
+		{
+			D3D11_VIEWPORT vp{};
+			vp.TopLeftX = (FLOAT)r.X; vp.TopLeftY = (FLOAT)r.Y;
+			vp.Width = (FLOAT)max(0L, r.W); vp.Height = (FLOAT)max(0L, r.H);
 
-	// 폰트 렌더링
-	//RenderFont();
+			// Skip degenerate rects
+			if (vp.Width <= 0.0f || vp.Height <= 0.0f) continue;
+
+			vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
+			ctx->RSSetViewports(1, &vp);
+			D3D11_RECT sc{};
+			sc.left = r.X; sc.top = r.Y; sc.right = r.X + r.W; sc.bottom = r.Y + r.H;
+			ctx->RSSetScissorRects(1, &sc);
+
+			RenderLevel();
+			ULevelManager::GetInstance().GetEditor()->RenderEditor();
+		}
+		// Restore full viewport/scissor for UI
+		ctx->RSSetViewports(1, &fullVP);
+		D3D11_RECT scFull{};
+		scFull.left = (LONG)fullVP.TopLeftX; scFull.top = (LONG)fullVP.TopLeftY;
+		scFull.right = (LONG)(fullVP.TopLeftX + fullVP.Width);
+		scFull.bottom = (LONG)(fullVP.TopLeftY + fullVP.Height);
+		ctx->RSSetScissorRects(1, &scFull);
+	}
+
+    // 폰트 렌더링
+    //RenderFont();
 
 	// ImGui 자체 Render 처리가 진행되어야 하므로 따로 처리
-	UUIManager::GetInstance().Render();
+    UUIManager::GetInstance().Render();
 
 	RenderEnd();
 }
@@ -213,7 +254,7 @@ void URenderer::RenderBegin() const
 
 	GetDeviceContext()->RSSetViewports(1, &DeviceResources->GetViewportInfo());
 
-	ID3D11RenderTargetView* rtvs[] = {RenderTargetView}; // 배열 생성
+	ID3D11RenderTargetView* rtvs[] = { RenderTargetView }; // 배열 생성
 
 	GetDeviceContext()->OMSetRenderTargets(1, rtvs, DeviceResources->GetDepthStencilView());
 	DeviceResources->UpdateViewport();
@@ -230,72 +271,162 @@ void URenderer::RenderLevel()
 		return;
 	}
 
-	TObjectPtr<UBillBoardComponent> BillBoard = nullptr;
-	// Render Primitive
-	for (auto& PrimitiveComponent : ULevelManager::GetInstance().GetCurrentLevel()->GetLevelPrimitiveComponents())
+	const auto& LevelActors = ULevelManager::GetInstance().GetCurrentLevel()->GetLevelActors();
+
+	// Actor들을 순회하면서 각 Actor의 PrimitiveComponent들을 렌더링
+	for (const auto& Actor : LevelActors)
 	{
-		// TODO(KHJ) Visible 여기서 Control 하고 있긴 한데 맞는지 Actor 단위 렌더링 할 때도 이렇게 써야할지 고민 필요
-		if (!PrimitiveComponent || !PrimitiveComponent->IsVisible())
+		if (Actor)
 		{
-			continue;
-		}
-
-		if (PrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
-		{
-			BillBoard = Cast<UBillBoardComponent>(PrimitiveComponent);
-		}
-		else
-		{
-			FRenderState RenderState = PrimitiveComponent->GetRenderState();
-
-			// Get view mode from editor
-			const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
-			if (ViewMode == EViewModeIndex::VMI_Wireframe)
+			// Actor의 모든 PrimitiveComponent들을 가져옴
+			TArray<UPrimitiveComponent*> PrimitiveComponents = Actor->GetPrimitiveComponents();
+			for (auto* PrimitiveComponent : PrimitiveComponents)
 			{
-				RenderState.CullMode = ECullMode::None;
-				RenderState.FillMode = EFillMode::WireFrame;
+				if (PrimitiveComponent && PrimitiveComponent->IsVisible() && PrimitiveComponent->HasRenderData())
+				{
+					RenderPrimitiveComponent(PrimitiveComponent);
+				}
 			}
-			ID3D11RasterizerState* LoadedRasterizerState = GetRasterizerState(RenderState);
-
-			// Update pipeline info
-			FPipelineInfo PipelineInfo = {
-				DefaultInputLayout,
-				DefaultVertexShader,
-				LoadedRasterizerState,
-				DefaultDepthStencilState,
-				DefaultPixelShader,
-				nullptr,
-			};
-			Pipeline->UpdatePipeline(PipelineInfo);
-
-			// Update pipeline buffers
-			Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
-			UpdateConstant(
-				PrimitiveComponent->GetRelativeLocation(),
-				PrimitiveComponent->GetRelativeRotation(),
-				PrimitiveComponent->GetRelativeScale3D());
-
-			Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
-			UpdateConstant(PrimitiveComponent->GetColor());
-
-			Pipeline->SetVertexBuffer(PrimitiveComponent->GetVertexBuffer(), Stride);
-			Pipeline->Draw(static_cast<uint32>(PrimitiveComponent->GetVerticesData()->size()), 0);
 		}
 	}
+}
 
-	if (BillBoard)
+/**
+ * @brief PrimitiveComponent를 렌더링하는 통합 함수
+ * @param InPrimitiveComponent 렌더링할 프리미티브 컴포넌트
+ */
+void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveComponent)
+{
+	if (!InPrimitiveComponent || !InPrimitiveComponent->HasRenderData())
 	{
-		//BillBoard->UpdateRotationMatrix();
-
-		FString UUIDString = "UID: " + std::to_string(BillBoard->GetUUID());
-
-		FMatrix RT = BillBoard->GetRTMatrix();
-		//RT = FMatrix::Identity();
-
-		const FViewProjConstants& viewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-		//const FMatrix viewProjM = viewProjConstData.View * viewProjConstData.Projection;
-		FontRenderer->RenderText(UUIDString.c_str(), RT, viewProjConstData);
+		return;
 	}
+
+	// BillBoard 컴포넌트의 경우 특별 처리
+	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
+	{
+		UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
+		if (BillBoardComponent)
+		{
+			// 매 프레임마다 카메라를 향하도록 RT 매트릭스 업데이트
+			BillBoardComponent->UpdateRotationMatrix();
+
+			// 직접 BillBoard 렌더링
+			RenderBillBoardDirect(BillBoardComponent);
+		}
+		return;
+	}
+
+	// 일반 프리미티브의 경우 기존 렌더링 방식 사용
+	// 공통 파이프라인 설정
+	SetupRenderPipeline(InPrimitiveComponent);
+
+	// 렌더링 방식 자동 선택
+	if (InPrimitiveComponent->UseIndexedRendering())
+	{
+		RenderIndexed(InPrimitiveComponent);
+	}
+	else
+	{
+		RenderDirect(InPrimitiveComponent);
+	}
+}
+
+/**
+ * @brief 렌더링 파이프라인 설정
+ * @param InPrimitiveComponent 설정할 프리미티브 컴포넌트
+ */
+void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
+{
+	FRenderState RenderState = InPrimitiveComponent->GetRenderState();
+
+	// 에디터 뷰 모드에 따른 렌더 상태 조정
+	const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
+	if (ViewMode == EViewModeIndex::VMI_Wireframe)
+	{
+		RenderState.CullMode = ECullMode::None;
+		RenderState.FillMode = EFillMode::WireFrame;
+	}
+
+	// 셰이더 선택 (StaticMesh면 전용 셰이더, 아니면 기본 셰이더)
+	ID3D11VertexShader* VertexShader = DefaultVertexShader;
+	ID3D11PixelShader* PixelShader = DefaultPixelShader;
+	ID3D11InputLayout* InputLayout = DefaultInputLayout;
+
+	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMesh)
+	{
+		auto& AssetManager = UAssetManager::GetInstance();
+		ID3D11VertexShader* StaticMeshVS = AssetManager.GetVertexShader(EShaderType::StaticMesh);
+		ID3D11PixelShader* StaticMeshPS = AssetManager.GetPixelShader(EShaderType::StaticMesh);
+		ID3D11InputLayout* StaticMeshLayout = AssetManager.GetInputLayout(EShaderType::StaticMesh);
+
+		if (StaticMeshVS) VertexShader = StaticMeshVS;
+		if (StaticMeshPS) PixelShader = StaticMeshPS;
+		if (StaticMeshLayout) InputLayout = StaticMeshLayout;
+	}
+
+	ID3D11RasterizerState* RasterizerState = GetRasterizerState(RenderState);
+
+	// 파이프라인 정보 설정
+	FPipelineInfo PipelineInfo = {
+		InputLayout,
+		VertexShader,
+		RasterizerState,
+		DefaultDepthStencilState,
+		PixelShader,
+		nullptr,
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+	};
+	Pipeline->UpdatePipeline(PipelineInfo);
+
+	// 상수 버퍼 업데이트
+	Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
+	UpdateConstant(
+		InPrimitiveComponent->GetRelativeLocation(),
+		InPrimitiveComponent->GetRelativeRotation(),
+		InPrimitiveComponent->GetRelativeScale3D());
+
+	const FViewProjConstants& ViewProjConstants = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
+	UpdateConstant(ViewProjConstants);
+
+	Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+	UpdateConstant(InPrimitiveComponent->GetColor());
+}
+
+/**
+ * @brief 인덱스 버퍼를 사용한 렌더링
+ * @param InPrimitiveComponent 렌더링할 프리미티브 컴포넌트
+ */
+void URenderer::RenderIndexed(UPrimitiveComponent* InPrimitiveComponent)
+{
+	ID3D11Buffer* VertexBuffer = InPrimitiveComponent->GetRenderVertexBuffer();
+	ID3D11Buffer* IndexBuffer = InPrimitiveComponent->GetRenderIndexBuffer();
+
+	if (!VertexBuffer || !IndexBuffer)
+	{
+		return;
+	}
+
+	Pipeline->SetVertexBuffer(VertexBuffer, InPrimitiveComponent->GetRenderVertexStride());
+	Pipeline->SetIndexBuffer(IndexBuffer, sizeof(uint32));
+	Pipeline->DrawIndexed(InPrimitiveComponent->GetRenderIndexCount(), 0, 0);
+}
+
+/**
+ * @brief 직접 정점 배열을 사용한 렌더링
+ * @param InPrimitiveComponent 렌더링할 프리미티브 컴포넌트
+ */
+void URenderer::RenderDirect(UPrimitiveComponent* InPrimitiveComponent)
+{
+	ID3D11Buffer* VertexBuffer = InPrimitiveComponent->GetRenderVertexBuffer();
+
+	if (!VertexBuffer)
+	{
+		return;
+	}
+
+	Pipeline->SetVertexBuffer(VertexBuffer, InPrimitiveComponent->GetRenderVertexStride());
+	Pipeline->Draw(InPrimitiveComponent->GetRenderVertexCount(), 0);
 }
 
 /**
@@ -345,7 +476,7 @@ void URenderer::RenderPrimitive(const FEditorPrimitive& InPrimitive, const FRend
  * @param InIndexBufferStride 인덱스 버퍼 스트라이드
  */
 void URenderer::RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState,
-                                       bool bInUseBaseConstantBuffer, uint32 InStride, uint32 InIndexBufferStride)
+	bool bInUseBaseConstantBuffer, uint32 InStride, uint32 InIndexBufferStride)
 {
 	// Always visible 옵션에 따라 Depth 테스트 여부 결정
 	ID3D11DepthStencilState* DepthStencilState =
@@ -388,6 +519,32 @@ void URenderer::RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, cons
 }
 
 /**
+ * @brief BillBoard 직접 렌더링
+ * @param InBillBoardComponent BillBoard 컴포넌트
+ */
+void URenderer::RenderBillBoardDirect(UBillBoardComponent* InBillBoardComponent)
+{
+	if (!InBillBoardComponent || !FontRenderer)
+	{
+		return;
+	}
+
+	// BillBoard의 RT 매트릭스와 텍스트 가져오기
+	const FMatrix& RTMatrix = InBillBoardComponent->GetRTMatrix();
+
+	// Actor의 UUID를 표시 텍스트로 설정
+	FString DisplayText = "Unknown";
+	if (InBillBoardComponent->GetOwner())
+	{
+		DisplayText = "UUID:" + std::to_string(InBillBoardComponent->GetOwner()->GetUUID());
+	}
+
+	// FontRenderer를 통한 텍스트 렌더링
+	const FViewProjConstants& ViewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
+	FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, ViewProjConstData);
+}
+
+/**
  * @brief 스왑 체인의 백 버퍼와 프론트 버퍼를 교체하여 화면에 출력
  */
 void URenderer::RenderEnd() const
@@ -408,7 +565,7 @@ ID3D11Buffer* URenderer::CreateVertexBuffer(FVertex* InVertices, uint32 InByteWi
 	VertexBufferDescription.Usage = D3D11_USAGE_IMMUTABLE; // 변경되지 않는 정적 데이터
 	VertexBufferDescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-	D3D11_SUBRESOURCE_DATA VertexBufferInitData = {InVertices};
+	D3D11_SUBRESOURCE_DATA VertexBufferInitData = { InVertices };
 
 	ID3D11Buffer* VertexBuffer = nullptr;
 	GetDevice()->CreateBuffer(&VertexBufferDescription, &VertexBufferInitData, &VertexBuffer);
@@ -438,7 +595,7 @@ ID3D11Buffer* URenderer::CreateVertexBuffer(FVector* InVertices, uint32 InByteWi
 		VertexBufferDescription.MiscFlags = 0;
 	}
 
-	D3D11_SUBRESOURCE_DATA VertexBufferInitData = {InVertices};
+	D3D11_SUBRESOURCE_DATA VertexBufferInitData = { InVertices };
 
 	ID3D11Buffer* VertexBuffer = nullptr;
 	GetDevice()->CreateBuffer(&VertexBufferDescription, &VertexBufferInitData, &VertexBuffer);
@@ -500,7 +657,7 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 
 	// 새로운 렌더 타겟 바인딩
 	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
-	ID3D11RenderTargetView* RenderTargetViews[] = {RenderTargetView};
+	ID3D11RenderTargetView* RenderTargetViews[] = { RenderTargetView };
 	GetDeviceContext()->OMSetRenderTargets(1, RenderTargetViews, DeviceResources->GetDepthStencilView());
 }
 
@@ -524,17 +681,17 @@ void URenderer::ReleaseVertexBuffer(ID3D11Buffer* InVertexBuffer)
  * @param OutInputLayout 출력될 Input Layout 포인터
  */
 void URenderer::CreateVertexShaderAndInputLayout(const wstring& InFilePath,
-                                                 const TArray<D3D11_INPUT_ELEMENT_DESC>& InInputLayoutDescs,
-                                                 ID3D11VertexShader** OutVertexShader,
-                                                 ID3D11InputLayout** OutInputLayout)
+	const TArray<D3D11_INPUT_ELEMENT_DESC>& InInputLayoutDescs,
+	ID3D11VertexShader** OutVertexShader,
+	ID3D11InputLayout** OutInputLayout)
 {
 	ID3DBlob* VertexShaderBlob = nullptr;
 	ID3DBlob* ErrorBlob = nullptr;
 
 	// Vertex Shader 컴파일
 	HRESULT Result = D3DCompileFromFile(InFilePath.data(), nullptr, nullptr, "mainVS", "vs_5_0",
-	                                    D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0,
-	                                    &VertexShaderBlob, &ErrorBlob);
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0,
+		&VertexShaderBlob, &ErrorBlob);
 
 	// 컴파일 실패 시 에러 처리
 	if (FAILED(Result))
@@ -549,12 +706,12 @@ void URenderer::CreateVertexShaderAndInputLayout(const wstring& InFilePath,
 
 	// Vertex Shader 객체 생성
 	GetDevice()->CreateVertexShader(VertexShaderBlob->GetBufferPointer(),
-	                                VertexShaderBlob->GetBufferSize(), nullptr, OutVertexShader);
+		VertexShaderBlob->GetBufferSize(), nullptr, OutVertexShader);
 
 	// Input Layout 생성
 	GetDevice()->CreateInputLayout(InInputLayoutDescs.data(), static_cast<uint32>(InInputLayoutDescs.size()),
-	                               VertexShaderBlob->GetBufferPointer(),
-	                               VertexShaderBlob->GetBufferSize(), OutInputLayout);
+		VertexShaderBlob->GetBufferPointer(),
+		VertexShaderBlob->GetBufferSize(), OutInputLayout);
 
 	// TODO(KHJ): 이 값이 여기에 있는 게 맞나? 검토 필요
 	Stride = sizeof(FVertex);
@@ -574,8 +731,8 @@ void URenderer::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader**
 
 	// Pixel Shader 컴파일
 	HRESULT Result = D3DCompileFromFile(InFilePath.data(), nullptr, nullptr, "mainPS", "ps_5_0",
-	                                    D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0,
-	                                    &PixelShaderBlob, &ErrorBlob);
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0,
+		&PixelShaderBlob, &ErrorBlob);
 
 	// 컴파일 실패 시 에러 처리
 	if (FAILED(Result))
@@ -590,7 +747,7 @@ void URenderer::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader**
 
 	// Pixel Shader 객체 생성
 	GetDevice()->CreatePixelShader(PixelShaderBlob->GetBufferPointer(),
-	                               PixelShaderBlob->GetBufferSize(), nullptr, OutPixelShader);
+		PixelShaderBlob->GetBufferSize(), nullptr, OutPixelShader);
 
 	PixelShaderBlob->Release();
 }
@@ -669,8 +826,8 @@ void URenderer::UpdateConstant(const UPrimitiveComponent* InPrimitive) const
 		FMatrix* Constants = static_cast<FMatrix*>(constantbufferMSR.pData);
 		{
 			*Constants = FMatrix::GetModelMatrix(InPrimitive->GetRelativeLocation(),
-			                                     FVector::GetDegreeToRadian(InPrimitive->GetRelativeRotation()),
-			                                     InPrimitive->GetRelativeScale3D());
+				FVector::GetDegreeToRadian(InPrimitive->GetRelativeRotation()),
+				InPrimitive->GetRelativeScale3D());
 		}
 		GetDeviceContext()->Unmap(ConstantBufferModels, 0);
 	}
@@ -786,7 +943,7 @@ ID3D11RasterizerState* URenderer::GetRasterizerState(const FRenderState& InRende
 	D3D11_FILL_MODE FillMode = ToD3D11(InRenderState.FillMode);
 	D3D11_CULL_MODE CullMode = ToD3D11(InRenderState.CullMode);
 
-	const FRasterKey Key{FillMode, CullMode};
+	const FRasterKey Key{ FillMode, CullMode };
 	if (auto Iter = RasterCache.find(Key); Iter != RasterCache.end())
 	{
 		return Iter->second;
@@ -797,6 +954,7 @@ ID3D11RasterizerState* URenderer::GetRasterizerState(const FRenderState& InRende
 	RasterizerDesc.FillMode = FillMode;
 	RasterizerDesc.CullMode = CullMode;
 	RasterizerDesc.DepthClipEnable = TRUE; // ✅ 근/원거리 평면 클리핑 활성화 (핵심)
+	RasterizerDesc.ScissorEnable = TRUE;
 
 	HRESULT ResultHandle = GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
 
@@ -840,35 +998,35 @@ D3D11_FILL_MODE URenderer::ToD3D11(EFillMode InFill)
 /**
  * @brief 폰트 렌더링 함수 - FontRenderer를 사용하여 텍스트 렌더링
  */
-//void URenderer::RenderFont()
-//{
-//	if (!FontRenderer)
-//	{
-//		return;
-//	}
-//
-//	// 단순한 직교 투영을 사용하여 테스트 (-100~100 좌표계)
-//	FMatrix WorldMatrix = FMatrix::Identity();
-//
-//	// 직교 투영 행렬 생성 (2D 화면에 맞게)
-//	float left = -100.0f, right = 100.0f;
-//	float bottom = -100.0f, top = 100.0f;
-//	float nearPlane = -1.0f, farPlane = 1.0f;
-//
-//	FMatrix OrthoMatrix;
-//	OrthoMatrix.Data[0][0] = 2.0f / (right - left);
-//	OrthoMatrix.Data[1][1] = 2.0f / (top - bottom);
-//	OrthoMatrix.Data[2][2] = -2.0f / (farPlane - nearPlane);
-//	OrthoMatrix.Data[3][0] = -(right + left) / (right - left);
-//	OrthoMatrix.Data[3][1] = -(top + bottom) / (top - bottom);
-//	OrthoMatrix.Data[3][2] = -(farPlane + nearPlane) / (farPlane - nearPlane);
-//	OrthoMatrix.Data[0][1] = OrthoMatrix.Data[0][2] = OrthoMatrix.Data[0][3] = 0.0f;
-//	OrthoMatrix.Data[1][0] = OrthoMatrix.Data[1][2] = OrthoMatrix.Data[1][3] = 0.0f;
-//	OrthoMatrix.Data[2][0] = OrthoMatrix.Data[2][1] = OrthoMatrix.Data[2][3] = 0.0f;
-//	OrthoMatrix.Data[3][3] = 1.0f;
-//
-//	FMatrix ViewProjMatrix = OrthoMatrix; // 단순히 직교 투영만 사용
-//
-//	// FontRenderer를 사용하여 "Hello, World!" 텍스트 렌더링
-//	FontRenderer->RenderHelloWorld(WorldMatrix, ViewProjMatrix);
-//}
+ //void URenderer::RenderFont()
+ //{
+ //	if (!FontRenderer)
+ //	{
+ //		return;
+ //	}
+ //
+ //	// 단순한 직교 투영을 사용하여 테스트 (-100~100 좌표계)
+ //	FMatrix WorldMatrix = FMatrix::Identity();
+ //
+ //	// 직교 투영 행렬 생성 (2D 화면에 맞게)
+ //	float left = -100.0f, right = 100.0f;
+ //	float bottom = -100.0f, top = 100.0f;
+ //	float nearPlane = -1.0f, farPlane = 1.0f;
+ //
+ //	FMatrix OrthoMatrix;
+ //	OrthoMatrix.Data[0][0] = 2.0f / (right - left);
+ //	OrthoMatrix.Data[1][1] = 2.0f / (top - bottom);
+ //	OrthoMatrix.Data[2][2] = -2.0f / (farPlane - nearPlane);
+ //	OrthoMatrix.Data[3][0] = -(right + left) / (right - left);
+ //	OrthoMatrix.Data[3][1] = -(top + bottom) / (top - bottom);
+ //	OrthoMatrix.Data[3][2] = -(farPlane + nearPlane) / (farPlane - nearPlane);
+ //	OrthoMatrix.Data[0][1] = OrthoMatrix.Data[0][2] = OrthoMatrix.Data[0][3] = 0.0f;
+ //	OrthoMatrix.Data[1][0] = OrthoMatrix.Data[1][2] = OrthoMatrix.Data[1][3] = 0.0f;
+ //	OrthoMatrix.Data[2][0] = OrthoMatrix.Data[2][1] = OrthoMatrix.Data[2][3] = 0.0f;
+ //	OrthoMatrix.Data[3][3] = 1.0f;
+ //
+ //	FMatrix ViewProjMatrix = OrthoMatrix; // 단순히 직교 투영만 사용
+ //
+ //	// FontRenderer를 사용하여 "Hello, World!" 텍스트 렌더링
+ //	FontRenderer->RenderHelloWorld(WorldMatrix, ViewProjMatrix);
+ //}

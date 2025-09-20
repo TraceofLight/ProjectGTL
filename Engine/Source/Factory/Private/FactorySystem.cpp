@@ -6,6 +6,7 @@
 #include "Factory/Actor/Public/SphereActorFactory.h"
 #include "Factory/Actor/Public/TriangleActorFactory.h"
 #include "Factory/Actor/Public/SquareActorFactory.h"
+#include "Factory/Actor/Public/StaticMeshActorFactory.h"
 
 bool FFactorySystem::bIsInitialized = false;
 
@@ -28,6 +29,7 @@ void FFactorySystem::Initialize()
 	static USphereActorFactory SphereFactory;
 	static UTriangleActorFactory TriangleFactory;
 	static USquareActorFactory SquareFactory;
+	static UStaticMeshActorFactory StaticMeshFactory;
 
 	bIsInitialized = true;
 

@@ -2,14 +2,13 @@
 #include "Actor/Public/Actor.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/PrimitiveComponent.h"
 
 IMPLEMENT_CLASS(AActor, UObject)
 
 AActor::AActor()
 {
-	// to do: primitive factory로 빌보드 생성
-	BillBoardComponent = new UBillBoardComponent(this, 5.0f);
-	OwnedComponents.push_back(TObjectPtr<UBillBoardComponent>(BillBoardComponent));
+	BillBoardComponent = CreateDefaultSubobject<UBillBoardComponent>("BillBoardComponent");
 }
 
 AActor::AActor(UObject* InOuter)
@@ -103,4 +102,24 @@ void AActor::BeginPlay()
 
 void AActor::EndPlay()
 {
+}
+
+TArray<UPrimitiveComponent*> AActor::GetPrimitiveComponents() const
+{
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+
+	for (const auto& Component : OwnedComponents)
+	{
+		if (Component)
+		{
+			// PrimitiveComponent인지 확인
+			UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>(Component.Get());
+			if (PrimitiveComp)
+			{
+				PrimitiveComponents.push_back(PrimitiveComp);
+			}
+		}
+	}
+
+	return PrimitiveComponents;
 }

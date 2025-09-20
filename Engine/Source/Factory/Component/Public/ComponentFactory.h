@@ -7,7 +7,8 @@ class UActorComponent;
  * @brief ComponentFactory Base Class
  */
 UCLASS()
-class UComponentFactory : public UFactory
+class UComponentFactory :
+	public UFactory
 {
 	GENERATED_BODY()
 	DECLARE_CLASS(UComponentFactory, UFactory)
@@ -27,7 +28,8 @@ protected:
  * 각 컴포넌트 타입별로 특화된 팩토리를 쉽게 만들 수 있도록 구현
  */
 template <typename T>
-class TComponentFactory : public UComponentFactory
+class TComponentFactory :
+	public UComponentFactory
 {
 public:
 	TComponentFactory()

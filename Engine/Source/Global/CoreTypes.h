@@ -27,6 +27,25 @@ struct FVertex
 {
 	FVector Position;
 	FVector4 Color;
+	FVector Normal;
+	FVector2 TextureCoord;
+
+	FVertex() = default;
+
+	FVertex(const FVector& InPosition, const FVector4& InColor, const FVector& InNormal, const FVector2& InTextureCoord)
+		: Position(InPosition), Color(InColor), Normal(InNormal), TextureCoord(InTextureCoord)
+	{
+	}
+
+	FVertex(const FVector& InPosition, const FVector4& InColor)
+		: Position(InPosition), Color(InColor), Normal(FVector(0.0f, 0.0f, 1.0f)), TextureCoord(FVector2(0.0f, 0.0f))
+	{
+	}
+
+	FVertex(const FVector& InPosition)
+		: Position(InPosition), Color(FVector4(1.0f, 1.0f, 1.0f, 1.0f)), Normal(FVector(0.0f, 0.0f, 1.0f)), TextureCoord(FVector2(0.0f, 0.0f))
+	{
+	}
 };
 
 struct FRay
@@ -60,4 +79,26 @@ struct FTransform
 		: Location(InLocation), Rotation(InRotation), Scale(InScale)
 	{
 	}
+};
+
+/**
+ * @brief 2D 정수 좌표
+ */
+struct FPoint
+{
+	LONG X, Y;
+
+	FPoint() = default;
+	constexpr FPoint(LONG InX, LONG InY) : X(InX), Y(InY) {}
+};
+
+/**
+ * @brief 2D 정수 사각형
+ */
+struct FRect
+{
+	LONG X, Y, W, H;
+
+	FRect() = default;
+	constexpr FRect(LONG InX, LONG InY, LONG InW, LONG InH) : X(InX), Y(InY), W(InW), H(InH) {}
 };

@@ -1,7 +1,5 @@
 #pragma once
 
-struct FAABB;
-
 /**
  * @brief 전역의 On-Memory Asset을 관리하는 매니저 클래스
  */
@@ -16,7 +14,7 @@ public:
 	void Initialize();
 	void Release();
 
-	// Vertex 관련 함수들
+	// Vertex 관련 함수들 (TODO: 얘네 싹다 삭제해야함)
 	TArray<FVertex>* GetVertexData(EPrimitiveType InType);
 	ID3D11Buffer* GetVertexbuffer(EPrimitiveType InType);
 	uint32 GetNumVertices(EPrimitiveType InType);
@@ -24,7 +22,7 @@ public:
 	// Shader 관련 함수들
 	ID3D11VertexShader* GetVertexShader(EShaderType Type);
 	ID3D11PixelShader* GetPixelShader(EShaderType Type);
-	ID3D11InputLayout* GetIputLayout(EShaderType Type);
+	ID3D11InputLayout* GetInputLayout(EShaderType Type);
 
 	// Texture 관련 함수들
 	ComPtr<ID3D11ShaderResourceView> LoadTexture(const FString& InFilePath, const FName& InName = FName::None);
@@ -36,8 +34,16 @@ public:
 	static ID3D11ShaderResourceView* CreateTextureFromFile(const path& InFilePath);
 	static ID3D11ShaderResourceView* CreateTextureFromMemory(const void* InData, size_t InDataSize);
 
-	// Bounding Box
-	const FAABB& GetAABB(EPrimitiveType InType);
+
+	// StaticMesh 관련 함수들
+	class UStaticMesh* LoadStaticMesh(const FString& InFilePath);
+	class UStaticMesh* GetStaticMesh(const FString& InFilePath);
+	void ReleaseStaticMesh(const FString& InFilePath);
+	bool HasStaticMesh(const FString& InFilePath) const;
+
+	// Primitive StaticMesh 관련 함수들
+	class UStaticMesh* GetPrimitiveStaticMesh(EPrimitiveType InPrimitiveType);
+	void LoadAllPrimitiveStaticMeshes();
 
 private:
 	// Vertex Resource
@@ -53,9 +59,16 @@ private:
 	// Texture Resource
 	TMap<FString, ID3D11ShaderResourceView*> TextureCache;
 
+	// StaticMesh Resource
+	TMap<FString, class UStaticMesh*> StaticMeshAssets;
+
+	// Primitive StaticMesh Resource (EPrimitiveType별로 미리 로드된 StaticMesh)
+	TMap<EPrimitiveType, class UStaticMesh*> PrimitiveStaticMeshes;
+
 	// Release Functions
 	void ReleaseAllTextures();
 
-	// AABB Resource
-	TMap<EPrimitiveType, FAABB> AABBs; // 각 타입별 AABB 저장
+	// Initialize Functions
+	void InitializeBasicPrimitives();	// 기본 도형 버퍼 생성 (Cube, Sphere, Plane, ...)
+	void LoadStaticMeshShaders();
 };

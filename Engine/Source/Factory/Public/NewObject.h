@@ -7,6 +7,8 @@ using std::is_base_of_v;
 
 /**
  * @brief 클래스를 지정하여 새 객체를 생성하는 함수
+ * @warning Actor/Component 생성자 내에서는 CreateDefaultSubobject()를 사용할 것
+ *			NewObject()를 Factory 내에서 호출할 경우, 순환참조가 발생할 수 있음
  * @tparam T 생성할 객체의 타입
  * @param InOuter 생성될 객체의 부모
  * @param InClass 생성할 클래스 (nullptr이면 T::StaticClass() 사용)
@@ -16,7 +18,7 @@ using std::is_base_of_v;
  */
 template <typename T>
 TObjectPtr<T> NewObject(TObjectPtr<UObject> InOuter = nullptr, TObjectPtr<UClass> InClass = nullptr,
-             const FName& InName = FName::None, uint32 InFlags = 0)
+                        const FName& InName = FName::None, uint32 InFlags = 0)
 {
 	static_assert(is_base_of_v<UObject, T>, "생성할 클래스는 UObject를 반드시 상속 받아야 합니다");
 
@@ -62,7 +64,8 @@ TObjectPtr<T> NewObject(TObjectPtr<UObject> InOuter = nullptr, TObjectPtr<UClass
  * @return 생성된 Actor
  */
 template <typename T>
-TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransform = FTransform(), const FName& InName = FName::None)
+TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransform = FTransform(),
+                         const FName& InName = FName::None)
 {
 	static_assert(is_base_of_v<AActor, T>, "생성할 클래스는 AActor를 반드시 상속 받아야 합니다");
 
@@ -80,7 +83,7 @@ TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransfo
 
 	// Factory가 없으면 기존 방식으로 폴백
 	UE_LOG_WARNING("NewObject: %s를 생성할 Factory를 찾지 못해, new를 통한 폴백 생성으로 처리합니다",
-	       T::StaticClass()->GetClassTypeName().ToString().data());
+	               T::StaticClass()->GetClassTypeName().ToString().data());
 
 	return NewObject<T>(InLevel, nullptr, InName);
 }

@@ -12,6 +12,8 @@ float GDeltaTime = 0.0f;
 #include "Manager/UI/Public/UIManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 
+#include "Render/UI/Window/Public/ConsoleWindow.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
 #include "Subsystem/Public/SubsystemManager.h"
 
 FEngineLoop::FEngineLoop()
@@ -97,6 +99,7 @@ void FEngineLoop::Init() const
 	// Create Default Level
 	// TODO(KHJ): 나중에 Init에서 처리하도록 하는 게 맞을 듯
 	ULevelManager::GetInstance().CreateDefaultLevel();
+	UViewportManager::GetInstance().Initialize(Window);
 
 	SubsystemManager.Initialize();
 }
@@ -147,10 +150,12 @@ void FEngineLoop::Tick()
 	auto& UIManager = UUIManager::GetInstance();
 	auto& Renderer = URenderer::GetInstance();
 	auto& LevelManager = ULevelManager::GetInstance();
+	auto& ViewportManager = UViewportManager::GetInstance();
 
 	LevelManager.Update();
 	InputManager.Update(Window);
 	UIManager.Update();
+	ViewportManager.Update();
 	Renderer.Update();
 }
 

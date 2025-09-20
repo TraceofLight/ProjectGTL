@@ -15,5 +15,5 @@ UTriangleComponent::UTriangleComponent()
 	NumVertices = ResourceManager.GetNumVertices(Type);
 	RenderState.CullMode = ECullMode::None;
 	RenderState.FillMode = EFillMode::Solid;
-	BoundingBox = &ResourceManager.GetAABB(Type);
+	BoundingVolume = nullptr;
 }
