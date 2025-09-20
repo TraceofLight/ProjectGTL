@@ -10,7 +10,7 @@
 #include "Window/Public/Viewport.h"
 #include "Window/Public/ViewportClient.h"
 #include "Editor/Public/Camera.h"
-#include "Manager/Time/Public/TimeManager.h"
+//#include "Manager/Time/Public/TimeManager.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UViewportManager)
 
@@ -37,7 +37,7 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	// 싱글 모드용 Viewport/Client 1쌍
 	CreateViewportsAndClients(1);
 
-	LastTime = UTimeManager::GetInstance().GetGameTime(); // 있다면
+	//LastTime = UTimeManager::GetInstance().GetGameTime(); // 있다면
 }
 
 void UViewportManager::SetRoot(SWindow* InRoot)
@@ -252,9 +252,9 @@ void UViewportManager::Update()
     if (!Root) return;
 
     // Δt
-    const double Now = UTimeManager::GetInstance().GetGameTime(); // 있으면
-    const float  DeltaTime = (float)max(0.0, Now - LastTime);
-    LastTime = Now;
+    //const double Now = UTimeManager::GetInstance().GetGameTime(); // 있으면
+    //const float  DeltaTime = (float)max(0.0, Now - LastTime);
+	// LastTime = Now;
 
     // 0) 스플리터 등 윈도우 트리 입력 처리 (캡처/드래그 우선)
     TickInput();
@@ -273,7 +273,7 @@ void UViewportManager::Update()
     UpdateActiveRmbViewportIndex();
 
     // 3) 카메라 업데이트 (공유 오쏘 1회, 퍼스펙티브는 각자)
-    TickCameras(DeltaTime);
+    TickCameras(DT);
 
 	// 4) 드로우(3D) — 실제 렌더러 루프에서 Viewport 적용 후 호출해도 됨
 	//    여기서는 뷰/클라 페어 순회만 보여줌. (RS 바인딩은 네 렌더러 Update에서 수행 중)
