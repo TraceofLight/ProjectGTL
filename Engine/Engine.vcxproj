@@ -152,11 +152,7 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Actor\Public\Actor.h" />
-    <ClInclude Include="Source\Actor\Public\CubeActor.h" />
-    <ClInclude Include="Source\Actor\Public\SphereActor.h" />
-    <ClInclude Include="Source\Actor\Public\SquareActor.h" />
     <ClInclude Include="Source\Actor\Public\StaticMeshActor.h" />
-    <ClInclude Include="Source\Actor\Public\TriangleActor.h" />
     <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
     <ClInclude Include="Source\Asset\Public\StaticMesh.h" />
     <ClInclude Include="Source\Asset\Public\StaticMeshData.h" />
@@ -166,10 +162,6 @@
     <ClInclude Include="Source\Component\Public\MeshComponent.h" />
     <ClInclude Include="Source\Component\Public\PrimitiveComponent.h" />
     <ClInclude Include="Source\Component\Public\SceneComponent.h" />
-    <ClInclude Include="Source\Component\Mesh\Public\CubeComponent.h" />
-    <ClInclude Include="Source\Component\Mesh\Public\SphereComponent.h" />
-    <ClInclude Include="Source\Component\Mesh\Public\SquareComponent.h" />
-    <ClInclude Include="Source\Component\Mesh\Public\TriangleComponent.h" />
     <ClInclude Include="Source\Component\Mesh\Public\VertexDatas.h" />
     <ClInclude Include="Source\Component\Mesh\Sample\Rectangle.h" />
     <ClInclude Include="Source\Component\Mesh\Sample\Sphere.h" />
@@ -201,10 +193,6 @@
     <ClInclude Include="Source\Editor\Public\Grid.h" />
     <ClInclude Include="Source\Editor\Public\ObjectPicker.h" />
     <ClInclude Include="Source\Factory\Actor\Public\ActorFactory.h" />
-    <ClInclude Include="Source\Factory\Actor\Public\CubeActorFactory.h" />
-    <ClInclude Include="Source\Factory\Actor\Public\SphereActorFactory.h" />
-    <ClInclude Include="Source\Factory\Actor\Public\SquareActorFactory.h" />
-    <ClInclude Include="Source\Factory\Actor\Public\TriangleActorFactory.h" />
     <ClInclude Include="Source\Factory\Component\Public\ComponentFactory.h" />
     <ClInclude Include="Source\Factory\Public\Factory.h" />
     <ClInclude Include="Source\Factory\Public\FactorySystem.h" />
@@ -281,11 +269,7 @@
     </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Actor\Private\Actor.cpp" />
-    <ClCompile Include="Source\Actor\Private\CubeActor.cpp" />
-    <ClCompile Include="Source\Actor\Private\SphereActor.cpp" />
-    <ClCompile Include="Source\Actor\Private\SquareActor.cpp" />
     <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp" />
-    <ClCompile Include="Source\Actor\Private\TriangleActor.cpp" />
     <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />
     <ClCompile Include="Source\Asset\Private\StaticMesh.cpp" />
     <ClCompile Include="Source\Component\Private\ActorComponent.cpp" />
@@ -294,10 +278,6 @@
     <ClCompile Include="Source\Component\Private\MeshComponent.cpp" />
     <ClCompile Include="Source\Component\Private\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Component\Private\SceneComponent.cpp" />
-    <ClCompile Include="Source\Component\Mesh\Private\CubeComponent.cpp" />
-    <ClCompile Include="Source\Component\Mesh\Private\SphereComponent.cpp" />
-    <ClCompile Include="Source\Component\Mesh\Private\SquareComponent.cpp" />
-    <ClCompile Include="Source\Component\Mesh\Private\TriangleComponent.cpp" />
     <ClCompile Include="Source\Component\Mesh\Private\VertexDatas.cpp" />
     <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Factory\Actor\Private\StaticMeshActorFactory.cpp" />
@@ -319,10 +299,6 @@
     <ClCompile Include="Source\Editor\Private\Grid.cpp" />
     <ClCompile Include="Source\Editor\Private\ObjectPicker.cpp" />
     <ClCompile Include="Source\Factory\Actor\Private\ActorFactory.cpp" />
-    <ClCompile Include="Source\Factory\Actor\Private\CubeActorFactory.cpp" />
-    <ClCompile Include="Source\Factory\Actor\Private\SphereActorFactory.cpp" />
-    <ClCompile Include="Source\Factory\Actor\Private\SquareActorFactory.cpp" />
-    <ClCompile Include="Source\Factory\Actor\Private\TriangleActorFactory.cpp" />
     <ClCompile Include="Source\Factory\Component\Private\ComponentFactories.cpp" />
     <ClCompile Include="Source\Factory\Component\Private\ComponentFactory.cpp" />
     <ClCompile Include="Source\Factory\Private\Factory.cpp" />

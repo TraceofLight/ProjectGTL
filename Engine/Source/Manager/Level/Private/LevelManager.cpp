@@ -2,10 +2,6 @@
 #include "Manager/Level/Public/LevelManager.h"
 
 #include "Level/Public/Level.h"
-#include "Actor/Public/CubeActor.h"
-#include "Actor/Public/SphereActor.h"
-#include "Actor/Public/TriangleActor.h"
-#include "Actor/Public/SquareActor.h"
 #include "Manager/Path/Public/PathManager.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Utility/Public/Metadata.h"
@@ -307,28 +303,28 @@ FLevelMetadata ULevelManager::ConvertLevelToMetadata(TObjectPtr<ULevel> InLevel)
 		PrimitiveMeta.Scale = Actor->GetActorScale3D();
 
 		// Actor 타입에 따라 EPrimitiveType 설정
-		if (dynamic_cast<ACubeActor*>(Actor))
-		{
-			PrimitiveMeta.Type = EPrimitiveType::Cube;
-		}
-		else if (dynamic_cast<ASphereActor*>(Actor))
-		{
-			PrimitiveMeta.Type = EPrimitiveType::Sphere;
-		}
-		else if (dynamic_cast<ATriangleActor*>(Actor))
-		{
-			PrimitiveMeta.Type = EPrimitiveType::Triangle;
-		}
-		else if (dynamic_cast<ASquareActor*>(Actor))
-		{
-			PrimitiveMeta.Type = EPrimitiveType::Square;
-		}
-		else
-		{
-			UE_LOG("LevelManager: Unknown Actor Type, Skipping...");
-			assert(!"고려하지 않은 Actor 타입");
-			continue;
-		}
+		//if (dynamic_cast<ACubeActor*>(Actor))
+		//{
+		//	PrimitiveMeta.Type = EPrimitiveType::Cube;
+		//}
+		//else if (dynamic_cast<ASphereActor*>(Actor))
+		//{
+		//	PrimitiveMeta.Type = EPrimitiveType::Sphere;
+		//}
+		//else if (dynamic_cast<ATriangleActor*>(Actor))
+		//{
+		//	PrimitiveMeta.Type = EPrimitiveType::Triangle;
+		//}
+		//else if (dynamic_cast<ASquareActor*>(Actor))
+		//{
+		//	PrimitiveMeta.Type = EPrimitiveType::Square;
+		//}
+		//else
+		//{
+		//	UE_LOG("LevelManager: Unknown Actor Type, Skipping...");
+		//	assert(!"고려하지 않은 Actor 타입");
+		//	continue;
+		//}
 
 		Metadata.Primitives[PrimitiveMeta.ID] = PrimitiveMeta;
 	}
@@ -361,16 +357,16 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 		switch (PrimitiveMeta.Type)
 		{
 		case EPrimitiveType::Cube:
-			NewActor = InLevel->SpawnActor<ACubeActor>();
+			//NewActor = InLevel->SpawnActor<ACubeActor>();
 			break;
 		case EPrimitiveType::Sphere:
-			NewActor = InLevel->SpawnActor<ASphereActor>();
+			//NewActor = InLevel->SpawnActor<ASphereActor>();
 			break;
 		case EPrimitiveType::Triangle:
-			NewActor = InLevel->SpawnActor<ATriangleActor>();
+			//NewActor = InLevel->SpawnActor<ATriangleActor>();
 			break;
 		case EPrimitiveType::Square:
-			NewActor = InLevel->SpawnActor<ASquareActor>();
+			//NewActor = InLevel->SpawnActor<ASquareActor>();
 			break;
 		default:
 			UE_LOG("LevelManager: Unknown Primitive Type: %d", static_cast<int32>(PrimitiveMeta.Type));

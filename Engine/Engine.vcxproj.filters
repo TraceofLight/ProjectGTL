@@ -36,9 +36,6 @@
     <ClCompile Include="Source\Manager\Path\Private\PathManager.cpp">
       <Filter>Source\Manager\Path\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Manager\Time\Private\TimeManager.cpp">
-      <Filter>Source\Manager\Time\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp">
       <Filter>Source\Manager\UI\Private</Filter>
     </ClCompile>
@@ -69,37 +66,13 @@
     <ClCompile Include="Source\Component\Private\StaticMeshComponent.cpp">
       <Filter>Source\Component\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Component\Mesh\Private\CubeComponent.cpp">
-      <Filter>Source\Component\Mesh\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\Mesh\Private\SphereComponent.cpp">
-      <Filter>Source\Component\Mesh\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\Mesh\Private\SquareComponent.cpp">
-      <Filter>Source\Component\Mesh\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\Mesh\Private\TriangleComponent.cpp">
-      <Filter>Source\Component\Mesh\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Component\Mesh\Private\VertexDatas.cpp">
       <Filter>Source\Component\Mesh\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Actor\Private\Actor.cpp">
       <Filter>Source\Actor\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Actor\Private\CubeActor.cpp">
-      <Filter>Source\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Actor\Private\SphereActor.cpp">
-      <Filter>Source\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Actor\Private\SquareActor.cpp">
-      <Filter>Source\Actor\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp">
-      <Filter>Source\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Actor\Private\TriangleActor.cpp">
       <Filter>Source\Actor\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Global\Quaternion.cpp">
@@ -124,9 +97,6 @@
       <Filter>Source\Core\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Core\Private\Class.cpp">
-      <Filter>Source\Core\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Core\Private\ClientApp.cpp">
       <Filter>Source\Core\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Core\Private\Name.cpp">
@@ -163,18 +133,6 @@
       <Filter>Source\Factory\Actor\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Factory\Actor\Private\ActorFactory.cpp">
-      <Filter>Source\Factory\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Factory\Actor\Private\CubeActorFactory.cpp">
-      <Filter>Source\Factory\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Factory\Actor\Private\SphereActorFactory.cpp">
-      <Filter>Source\Factory\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Factory\Actor\Private\SquareActorFactory.cpp">
-      <Filter>Source\Factory\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Factory\Actor\Private\TriangleActorFactory.cpp">
       <Filter>Source\Factory\Actor\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Factory\Component\Private\ComponentFactories.cpp">
@@ -219,13 +177,7 @@
     <ClCompile Include="Source\Render\Renderer\Private\Pipeline.cpp">
       <Filter>Source\Render\Renderer\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Render\Renderer\Private\PrimitiveSceneProxy.cpp">
-      <Filter>Source\Render\Renderer\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Render\Renderer\Private\Renderer.cpp">
-      <Filter>Source\Render\Renderer\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Render\Renderer\Private\StaticMeshSceneProxy.cpp">
       <Filter>Source\Render\Renderer\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Render\FontRenderer\Private\FontRenderer.cpp">
@@ -303,6 +255,8 @@
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp">
       <Filter>Source\Utility\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Core\Private\EngineLoop.cpp" />
+    <ClCompile Include="Source\Subsystem\Private\SubsystemManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -343,9 +297,6 @@
     <ClInclude Include="Source\Manager\Path\Public\PathManager.h">
       <Filter>Source\Manager\Path\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Manager\Time\Public\TimeManager.h">
-      <Filter>Source\Manager\Time\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Manager\UI\Public\UIManager.h">
       <Filter>Source\Manager\UI\Public</Filter>
     </ClInclude>
@@ -379,18 +330,6 @@
     <ClInclude Include="Source\Component\Public\StaticMeshComponent.h">
       <Filter>Source\Component\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Component\Mesh\Public\CubeComponent.h">
-      <Filter>Source\Component\Mesh\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Component\Mesh\Public\SphereComponent.h">
-      <Filter>Source\Component\Mesh\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Component\Mesh\Public\SquareComponent.h">
-      <Filter>Source\Component\Mesh\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Component\Mesh\Public\TriangleComponent.h">
-      <Filter>Source\Component\Mesh\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Component\Mesh\Public\VertexDatas.h">
       <Filter>Source\Component\Mesh\Public</Filter>
     </ClInclude>
@@ -406,19 +345,7 @@
     <ClInclude Include="Source\Actor\Public\Actor.h">
       <Filter>Source\Actor\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Actor\Public\CubeActor.h">
-      <Filter>Source\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Actor\Public\SphereActor.h">
-      <Filter>Source\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Actor\Public\SquareActor.h">
-      <Filter>Source\Actor\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Actor\Public\StaticMeshActor.h">
-      <Filter>Source\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Actor\Public\TriangleActor.h">
       <Filter>Source\Actor\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Global\Quaternion.h">
@@ -472,9 +399,6 @@
     <ClInclude Include="Source\Core\Public\Class.h">
       <Filter>Source\Core\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Core\Public\ClientApp.h">
-      <Filter>Source\Core\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Public\EngineStatics.h">
       <Filter>Source\Core\Public</Filter>
     </ClInclude>
@@ -523,18 +447,6 @@
     <ClInclude Include="Source\Factory\Actor\Public\ActorFactory.h">
       <Filter>Source\Factory\Actor\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Factory\Actor\Public\CubeActorFactory.h">
-      <Filter>Source\Factory\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Factory\Actor\Public\SphereActorFactory.h">
-      <Filter>Source\Factory\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Factory\Actor\Public\SquareActorFactory.h">
-      <Filter>Source\Factory\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Factory\Actor\Public\TriangleActorFactory.h">
-      <Filter>Source\Factory\Actor\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Factory\Component\Public\ComponentFactory.h">
       <Filter>Source\Factory\Component\Public</Filter>
     </ClInclude>
@@ -580,13 +492,7 @@
     <ClInclude Include="Source\Render\Renderer\Public\Pipeline.h">
       <Filter>Source\Render\Renderer\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Render\Renderer\Public\PrimitiveSceneProxy.h">
-      <Filter>Source\Render\Renderer\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Render\Renderer\Public\Renderer.h">
-      <Filter>Source\Render\Renderer\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Render\Renderer\Public\StaticMeshSceneProxy.h">
       <Filter>Source\Render\Renderer\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h">
@@ -667,6 +573,13 @@
     <ClInclude Include="Source\Utility\Public\UELogParser.h">
       <Filter>Source\Utility\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Core\Public\EngineLoop.h" />
+    <ClInclude Include="Source\Subsystem\Public\EditorSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\GameInstanceSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\LocalPlayerSubsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\Subsystem.h" />
+    <ClInclude Include="Source\Subsystem\Public\SubsystemManager.h" />
+    <ClInclude Include="Source\Subsystem\Public\EngineSubsystem.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Asset\Shader\SampleShader.hlsl">
