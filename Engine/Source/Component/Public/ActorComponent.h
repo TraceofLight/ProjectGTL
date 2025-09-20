@@ -27,8 +27,10 @@ public:
 	AActor* GetOwner() const {return Owner;}
 
 	EComponentType GetComponentType() const { return ComponentType; }
+
 protected:
 	EComponentType ComponentType;
+
 private:
 	AActor* Owner;
 };

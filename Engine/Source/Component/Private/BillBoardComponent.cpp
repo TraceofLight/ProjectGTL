@@ -7,24 +7,21 @@
  * @brief Level에서 각 Actor마다 가지고 있는 UUID를 출력해주기 위한 빌보드 클래스
  * Actor has a UBillBoardComponent
  */
-UBillBoardComponent::UBillBoardComponent(AActor* InOwnerActor, float InYOffset)
-	: POwnerActor(InOwnerActor)
-	, ZOffset(InYOffset)
+UBillBoardComponent::UBillBoardComponent()
 {
 	Type = EPrimitiveType::BillBoard;
 }
 
 UBillBoardComponent::~UBillBoardComponent()
 {
-	POwnerActor = nullptr;
 }
 
 void UBillBoardComponent::UpdateRotationMatrix()
 {
 	const FVector& CameraLocation = ULevelManager::GetInstance().GetEditor()->GetCameraLocation();
-	const FVector& OwnerActorLocation = POwnerActor->GetActorLocation();
+    const FVector& OwnerActorLocation = GetOwner()->GetActorLocation();
 
-	FVector ToCamera = CameraLocation - OwnerActorLocation;
+	FVector ToCamera = CameraLocation;
 	ToCamera.Normalize();
 
 	const FVector4 worldUp4 = FVector4(0, 0, 1, 1);
@@ -36,19 +33,17 @@ void UBillBoardComponent::UpdateRotationMatrix()
 
 	RTMatrix = FMatrix(FVector4(0, 1, 0, 1), worldUp4, FVector4(1,0,0,1));
 	RTMatrix = FMatrix(ToCamera, Right, Up);
-	//RTMatrix = FMatrix::Identity();
-	//UE_LOG("%.2f, %.2f, %.2f", ToCamera.X, ToCamera.Y, ToCamera.Z);
 
-	const FVector Translation = OwnerActorLocation + FVector(0.0f, 0.0f, ZOffset);
-	//UE_LOG("%.2f, %.2f, %.2f", Translation.X, Translation.Y, Translation.Z);
+	const FVector Translation = OwnerActorLocation + FVector(0.0f, 0.0f, 5.0f);
 	RTMatrix *= FMatrix::TranslationMatrix(Translation);
 }
+
 
 // 공통 렌더링 인터페이스 구현
 bool UBillBoardComponent::HasRenderData() const
 {
 	// BillBoard는 항상 텍스트를 렌더링할 데이터가 있음
-	return POwnerActor != nullptr;
+	return GetOwner() != nullptr;
 }
 
 bool UBillBoardComponent::UseIndexedRendering() const

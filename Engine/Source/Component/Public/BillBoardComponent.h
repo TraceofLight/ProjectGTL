@@ -7,7 +7,7 @@ class AActor;
 class UBillBoardComponent : public UPrimitiveComponent
 {
 public:
-	UBillBoardComponent(AActor* InOwnerActor, float InYOffset);
+	UBillBoardComponent();
 	~UBillBoardComponent();
 
 	void UpdateRotationMatrix();
@@ -20,6 +20,4 @@ public:
 	virtual EShaderType GetShaderType() const override;
 private:
 	FMatrix RTMatrix;
-	AActor* POwnerActor;
-	float ZOffset;
 };

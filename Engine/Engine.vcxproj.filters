@@ -219,7 +219,13 @@
     <ClCompile Include="Source\Render\Renderer\Private\Pipeline.cpp">
       <Filter>Source\Render\Renderer\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Render\Renderer\Private\PrimitiveSceneProxy.cpp">
+      <Filter>Source\Render\Renderer\Private</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Render\Renderer\Private\Renderer.cpp">
+      <Filter>Source\Render\Renderer\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Render\Renderer\Private\StaticMeshSceneProxy.cpp">
       <Filter>Source\Render\Renderer\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Render\FontRenderer\Private\FontRenderer.cpp">
@@ -574,7 +580,13 @@
     <ClInclude Include="Source\Render\Renderer\Public\Pipeline.h">
       <Filter>Source\Render\Renderer\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Render\Renderer\Public\PrimitiveSceneProxy.h">
+      <Filter>Source\Render\Renderer\Public</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Render\Renderer\Public\Renderer.h">
+      <Filter>Source\Render\Renderer\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\Renderer\Public\StaticMeshSceneProxy.h">
       <Filter>Source\Render\Renderer\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h">
