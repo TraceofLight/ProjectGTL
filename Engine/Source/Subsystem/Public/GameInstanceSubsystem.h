@@ -13,6 +13,10 @@ class UGameInstanceSubsystem :
 	DECLARE_CLASS(UGameInstanceSubsystem, USubsystem)
 
 public:
+	// USubsystem interface
+	void Initialize() override;
+	void Deinitialize() override;
+
 	// Game instance life cycle functions
 	virtual void OnGameStart()
 	{
@@ -26,4 +30,8 @@ public:
 	virtual void OnLevelLoaded(const FName& InLevelName)
 	{
 	}
+
+	// Special member function
+	UGameInstanceSubsystem();
+	~UGameInstanceSubsystem() override;
 };

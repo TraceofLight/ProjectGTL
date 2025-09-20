@@ -1,10 +1,24 @@
 #include "pch.h"
 #include "Engine/Public/EngineEditor.h"
-#include "Subsystem/Public/EngineEditorSubsystem.h"
 
 UEngineEditor* GEditor = nullptr;
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UEngineEditor)
+IMPLEMENT_SINGLETON_CLASS(UEngineEditor, UObject)
+
+UEngineEditor::UEngineEditor()
+{
+	// 생성자에서 에디터 모드 기본 활성화
+	bIsEditorMode = true;
+}
+
+UEngineEditor::~UEngineEditor()
+{
+	// 소멸자에서 정리 작업
+	if (bIsInitialized)
+	{
+		Shutdown();
+	}
+}
 
 /**
  * @brief 엔진 에디터 초기화 함수
@@ -23,7 +37,7 @@ void UEngineEditor::Initialize()
 
 		RegisterDefaultEditorSubsystems();
 
-		EditorSubsystemCollection.Initialize(this);
+		EditorSubsystemCollection.Initialize(TObjectPtr(this));
 		bIsInitialized = true;
 	}
 }
@@ -64,5 +78,5 @@ void UEngineEditor::EditorUpdate()
  */
 void UEngineEditor::RegisterDefaultEditorSubsystems()
 {
-	RegisterEditorSubsystem<UEngineEditorSubsystem>();
+	// TODO(KHJ): 필요하면 기본 서브시스템 등록
 }

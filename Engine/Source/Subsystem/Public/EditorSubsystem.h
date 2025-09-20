@@ -12,6 +12,7 @@ class UEditorSubsystem :
 	GENERATED_BODY()
 	DECLARE_CLASS(UEditorSubsystem, USubsystem)
 
+public:
 	// Editor의 Tick 함수
 	// 기즈모, 에디터 카메라, 오브젝트 피킹 등을 여기서 처리
 	virtual void EditorUpdate()

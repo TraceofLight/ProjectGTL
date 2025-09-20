@@ -1,10 +1,23 @@
 #include "pch.h"
 #include "Engine/Public/Engine.h"
-#include "Subsystem/Public/EngineEditorSubsystem.h"
 
 UEngine* GEngine = nullptr;
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UEngine)
+IMPLEMENT_SINGLETON_CLASS(UEngine, UObject)
+
+UEngine::UEngine()
+{
+	// 기본 초기화
+}
+
+UEngine::~UEngine()
+{
+	// 소멸자에서 정리 작업
+	if (bIsInitialized)
+	{
+		Shutdown();
+	}
+}
 
 /**
  * @brief 엔진 초기화 함수
@@ -16,7 +29,7 @@ void UEngine::Initialize()
 	{
 		RegisterDefaultEngineSubsystems();
 
-		EngineSubsystemCollection.Initialize(this);
+		EngineSubsystemCollection.Initialize(TObjectPtr(this));
 		bIsInitialized = true;
 	}
 }

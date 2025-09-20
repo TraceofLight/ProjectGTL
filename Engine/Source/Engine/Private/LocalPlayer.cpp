@@ -3,7 +3,21 @@
 
 ULocalPlayer* LocalPlayer = nullptr;
 
-IMPLEMENT_CLASS(ULocalPlayer, UObject)
+IMPLEMENT_SINGLETON_CLASS(ULocalPlayer, UObject)
+
+ULocalPlayer::ULocalPlayer()
+{
+	// 기본 초기화
+}
+
+ULocalPlayer::~ULocalPlayer()
+{
+	// 소멸자에서 정리 작업
+	if (bIsInitialized)
+	{
+		Shutdown();
+	}
+}
 
 /**
  * @brief 로컬 플레이어 초기화 함수
@@ -15,7 +29,7 @@ void ULocalPlayer::Initialize()
 	{
 		RegisterDefaultLocalPlayerSubsystems();
 
-		LocalPlayerSubsystemCollection.Initialize(this);
+		LocalPlayerSubsystemCollection.Initialize(TObjectPtr(this));
 		bIsInitialized = true;
 		bIsPlayerActive = true;
 	}

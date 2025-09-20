@@ -3,7 +3,21 @@
 
 UGameInstance* GameInstance = nullptr;
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UGameInstance)
+IMPLEMENT_SINGLETON_CLASS(UGameInstance, UObject)
+
+UGameInstance::UGameInstance()
+{
+	// 기본 초기화
+}
+
+UGameInstance::~UGameInstance()
+{
+	// 소멸자에서 정리 작업
+	if (bIsInitialized)
+	{
+		Shutdown();
+	}
+}
 
 /**
  * @brief 게임 인스턴스 초기화 함수
@@ -19,7 +33,7 @@ void UGameInstance::Initialize()
 		}
 
 		RegisterDefaultGameInstanceSubsystems();
-		GameInstanceSubsystemCollection.Initialize(this);
+		GameInstanceSubsystemCollection.Initialize(TObjectPtr(this));
 
 		bIsInitialized = true;
 	}

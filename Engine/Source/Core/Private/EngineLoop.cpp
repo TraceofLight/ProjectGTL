@@ -1,20 +1,26 @@
 #include "pch.h"
 #include "Core/Public/EngineLoop.h"
 
-// 전역 DeltaTime 변수 정의
-float GDeltaTime = 0.0f;
-
 #include "Core/Public/AppWindow.h"
+
+#include "Engine/Public/Engine.h"
+#include "Engine/Public/EngineEditor.h"
+#include "Engine/Public/GameInstance.h"
+#include "Engine/Public/LocalPlayer.h"
+
 #include "Manager/Input/Public/InputManager.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/Asset/Public/AssetManager.h"
-
 #include "Manager/UI/Public/UIManager.h"
-#include "Render/Renderer/Public/Renderer.h"
-
-#include "Render/UI/Window/Public/ConsoleWindow.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
-#include "Subsystem/Public/SubsystemManager.h"
+
+#include "Render/Renderer/Public/Renderer.h"
+#include "Render/UI/Window/Public/ConsoleWindow.h"
+
+#define EDITOR_MODE 1
+
+// 전역 DeltaTime 변수 정의
+float GDeltaTime = 0.0f;
 
 FEngineLoop::FEngineLoop()
 {
@@ -81,7 +87,20 @@ void FEngineLoop::PreInit(HINSTANCE InInstanceHandle, int InCmdShow)
  */
 void FEngineLoop::Init() const
 {
-	auto& SubsystemManager = USubsystemManager::GetInstance();
+	// Initialize Core Subsystem
+	auto& CoreEngine = UEngine::GetInstance();
+	CoreEngine.Initialize();
+
+#ifdef EDITOR_MODE
+	auto& CoreEditor = UEngineEditor::GetInstance();
+	CoreEditor.Initialize();
+#endif
+
+	auto& CoreGameInstance = UGameInstance::GetInstance();
+	CoreGameInstance.Initialize();
+
+	auto& CoreLocalPlayer = ULocalPlayer::GetInstance();
+	CoreLocalPlayer.Initialize();
 
 	// Initialize By Get Instance
 	UInputManager::GetInstance();
@@ -100,8 +119,6 @@ void FEngineLoop::Init() const
 	// TODO(KHJ): 나중에 Init에서 처리하도록 하는 게 맞을 듯
 	ULevelManager::GetInstance().CreateDefaultLevel();
 	UViewportManager::GetInstance().Initialize(Window);
-
-	SubsystemManager.Initialize();
 }
 
 /**
@@ -144,7 +161,13 @@ void FEngineLoop::MainLoop()
 void FEngineLoop::Tick()
 {
 	UpdateDeltaTime();
-	USubsystemManager::GetInstance().Tick();
+
+	// 일단 Editor만 Tick 처리
+	// 나머지는 필요하면 추가할 것
+#ifdef EDITOR_MODE
+	auto& CoreEditor = UEngineEditor::GetInstance();
+	CoreEditor.EditorUpdate();
+#endif
 
 	auto& InputManager = UInputManager::GetInstance();
 	auto& UIManager = UUIManager::GetInstance();
@@ -165,7 +188,15 @@ void FEngineLoop::Tick()
  */
 void FEngineLoop::Exit() const
 {
-	USubsystemManager::GetInstance().Shutdown();
+	auto& CoreEngine = UEngine::GetInstance();
+	auto& CoreEditor = UEngineEditor::GetInstance();
+	auto& CoreGameInstance = UGameInstance::GetInstance();
+	auto& CoreLocalPlayer = ULocalPlayer::GetInstance();
+
+	CoreLocalPlayer.Shutdown();
+	CoreGameInstance.Shutdown();
+	CoreEditor.Shutdown();
+	CoreEngine.Shutdown();
 
 	URenderer::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();

@@ -17,7 +17,7 @@ class ULocalPlayer :
 	public UObject
 {
 	GENERATED_BODY()
-	DECLARE_CLASS(ULocalPlayer, UObject)
+	DECLARE_SINGLETON_CLASS(ULocalPlayer, UObject)
 
 public:
 	void Initialize();
