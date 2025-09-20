@@ -11,7 +11,6 @@
 //#include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
-#include "Render/Renderer/Public/BillBoardSceneProxy.h"
 #include "Actor/Public/Actor.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 
@@ -309,12 +308,11 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 		UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
 		if (BillBoardComponent)
 		{
-			FBillBoardSceneProxy* SceneProxy = BillBoardComponent->CreateSceneProxy();
-			if (SceneProxy)
-			{
-				RenderBillBoard(SceneProxy);
-				delete SceneProxy; // 임시 Scene Proxy 삭제
-			}
+			// 매 프레임마다 카메라를 향하도록 RT 매트릭스 업데이트
+			BillBoardComponent->UpdateRotationMatrix();
+
+			// 직접 BillBoard 렌더링
+			RenderBillBoardDirect(BillBoardComponent);
 		}
 		return;
 	}
@@ -521,19 +519,25 @@ void URenderer::RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, cons
 }
 
 /**
- * @brief BillBoard 렌더링
- * @param InBillBoardProxy BillBoard SceneProxy
+ * @brief BillBoard 직접 렌더링
+ * @param InBillBoardComponent BillBoard 컴포넌트
  */
-void URenderer::RenderBillBoard(FBillBoardSceneProxy* InBillBoardProxy)
+void URenderer::RenderBillBoardDirect(UBillBoardComponent* InBillBoardComponent)
 {
-	if (!InBillBoardProxy || !FontRenderer)
+	if (!InBillBoardComponent || !FontRenderer)
 	{
 		return;
 	}
 
 	// BillBoard의 RT 매트릭스와 텍스트 가져오기
-	const FMatrix& RTMatrix = InBillBoardProxy->GetRTMatrix();
-	const FString& DisplayText = InBillBoardProxy->GetDisplayText();
+	const FMatrix& RTMatrix = InBillBoardComponent->GetRTMatrix();
+
+	// Actor의 UUID를 표시 텍스트로 설정
+	FString DisplayText = "Unknown";
+	if (InBillBoardComponent->GetOwner())
+	{
+		DisplayText = "UUID:" + std::to_string(InBillBoardComponent->GetOwner()->GetUUID());
+	}
 
 	// FontRenderer를 통한 텍스트 렌더링
 	const FViewProjConstants& ViewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();

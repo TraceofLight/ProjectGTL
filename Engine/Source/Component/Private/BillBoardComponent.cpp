@@ -3,7 +3,6 @@
 #include "Manager/Level/Public/LevelManager.h"
 #include "Editor/Public/Editor.h"
 #include "Actor/Public/Actor.h"
-#include "Render/Renderer/Public/BillBoardSceneProxy.h"
 /**
  * @brief Level에서 각 Actor마다 가지고 있는 UUID를 출력해주기 위한 빌보드 클래스
  * Actor has a UBillBoardComponent
@@ -39,14 +38,6 @@ void UBillBoardComponent::UpdateRotationMatrix()
 	RTMatrix *= FMatrix::TranslationMatrix(Translation);
 }
 
-FBillBoardSceneProxy* UBillBoardComponent::CreateSceneProxy()
-{
-	// 매 프레임마다 카메라를 향하도록 RT 매트릭스 업데이트
-	UpdateRotationMatrix();
-
-	// Scene Proxy 생성 및 반환
-	return new FBillBoardSceneProxy(this);
-}
 
 // 공통 렌더링 인터페이스 구현
 bool UBillBoardComponent::HasRenderData() const

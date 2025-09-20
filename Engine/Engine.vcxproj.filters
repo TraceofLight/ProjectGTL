@@ -213,9 +213,6 @@
     <ClCompile Include="Source\Level\Private\Level.cpp">
       <Filter>Source\Level\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Render\Renderer\Private\BillBoardSceneProxy.cpp">
-      <Filter>Source\Render\Renderer\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Render\Renderer\Private\DeviceResources.cpp">
       <Filter>Source\Render\Renderer\Private</Filter>
     </ClCompile>
@@ -576,9 +573,6 @@
     </ClInclude>
     <ClInclude Include="Source\Level\Public\Level.h">
       <Filter>Source\Level\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Render\Renderer\Public\BillBoardSceneProxy.h">
-      <Filter>Source\Render\Renderer\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\Renderer\Public\DeviceResources.h">
       <Filter>Source\Render\Renderer\Public</Filter>
