@@ -10,6 +10,7 @@
 #include "Window/Public/Viewport.h"
 #include "Window/Public/ViewportClient.h"
 #include "Editor/Public/Camera.h"
+#include "Manager/Time/Public/TimeManager.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UViewportManager)
 
@@ -34,7 +35,7 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
     bFourSplitActive = false;
 
 	// 싱글 모드용 Viewport/Client 1쌍
-	CreateViewportsAndClients(/*InCount=*/1);
+	CreateViewportsAndClients(1);
 
 	LastTime = UTimeManager::GetInstance().GetGameTime(); // 있다면
 }
@@ -51,14 +52,17 @@ SWindow* UViewportManager::GetRoot()
 
 void UViewportManager::BuildSingleLayout()
 {
-	if (!Root) return;
-	const FRect Rect = Root->GetRect();
+    if (!Root) return;
+    const FRect Rect = Root->GetRect();
 
-	// 새 루트 구성
-	SWindow* Single = new SWindow();
-	Single->OnResize(Rect);
-	SetRoot(Single);
-	bFourSplitActive = false;
+    // 기존 캡처 해제 (안전)
+    Capture = nullptr;
+
+    // 새 루트 구성
+    SWindow* Single = new SWindow();
+    Single->OnResize(Rect);
+    SetRoot(Single);
+    bFourSplitActive = false;
 
 	// 뷰/클라 재구성 (1쌍)
 	CreateViewportsAndClients(1);
@@ -66,11 +70,14 @@ void UViewportManager::BuildSingleLayout()
 
 void UViewportManager::BuildFourSplitLayout()
 {
-	if (!Root) return;
-	const FRect Rect = Root->GetRect();
+    if (!Root) return;
+    const FRect Rect = Root->GetRect();
 
-	// 4-way splitter tree
-	SSplitter* RootSplit = new SSplitterV(); RootSplit->Ratio = 0.5f;
+    // 기존 캡처 해제 (안전)
+    Capture = nullptr;
+
+    // 4-way splitter tree
+    SSplitter* RootSplit = new SSplitterV(); RootSplit->Ratio = 0.5f;
 
 	static float SharedY = 0.5f;
 	SSplitter* Left = new SSplitterH(); Left->SetSharedRatio(&SharedY);  Left->Ratio = SharedY;
@@ -97,9 +104,9 @@ void UViewportManager::BuildFourSplitLayout()
 	if (Clients.size() == 4)
 	{
 		Clients[0]->SetViewType(EViewType::OrthoTop);
-		Clients[1]->SetViewType(EViewType::Perspective);
-		Clients[2]->SetViewType(EViewType::OrthoFront);
-		Clients[3]->SetViewType(EViewType::OrthoRight);
+		Clients[1]->SetViewType(EViewType::OrthoFront);
+		Clients[2]->SetViewType(EViewType::OrthoRight);
+		Clients[3]->SetViewType(EViewType::Perspective);
 	}
 }
 
@@ -147,6 +154,8 @@ void UViewportManager::CreateViewportsAndClients(int32 InCount)
 
 		// 오쏘 공유 카메라(읽기 전용) 주입
 		CL->SetSharedOrthoCamera(OrthographicCamera);
+
+		CL->SetPerspectiveCamera(new UCamera);
 
 		// 뷰 ↔ 클라 연결
 		VP->SetViewportClient(CL);
@@ -203,18 +212,25 @@ void UViewportManager::TickCameras(float DeltaSeconds)
 
 void UViewportManager::Update()
 {
-	if (!Root) return;
+    if (!Root) return;
 
-	// Δt
-	const double Now = UTimeManager::GetInstance().GetGameTime(); // 있으면
-	const float  DeltaTime = (float)max(0.0, Now - LastTime);
-	LastTime = Now;
+    // Δt
+    const double Now = UTimeManager::GetInstance().GetGameTime(); // 있으면
+    const float  DeltaTime = (float)max(0.0, Now - LastTime);
+    LastTime = Now;
 
-	// 1) 리프 Rect 변화 동기화(스플리터 드래그 등)
-	SyncRectsToViewports();
+    // 0) 스플리터 등 윈도우 트리 입력 처리 (캡처/드래그 우선)
+    TickInput();
 
-	// 2) 입력 라우팅 (각 뷰포트가 InputManager에서 읽어 로컬 좌표로 변환/전달)
-	PumpAllViewportInput();
+    // 1) 리프 Rect 변화 동기화(스플리터 드래그 등)
+    SyncRectsToViewports();
+
+    // 2) 입력 라우팅 (각 뷰포트가 InputManager에서 읽어 로컬 좌표로 변환/전달)
+    //    스플리터가 캡처 중이면 충돌 방지를 위해 뷰포트 입력은 건너뜀
+    if (Capture == nullptr)
+    {
+        PumpAllViewportInput();
+    }
 
 	// 3) 카메라 업데이트 (공유 오쏘 1회, 퍼스펙티브는 각자)
 	TickCameras(DeltaTime);
@@ -237,58 +253,49 @@ void UViewportManager::RenderOverlay()
 	Root->OnPaint();
 }
 
-//void UViewportManager::TickInput()
-//{
-//    if (!Root)
-//    {
-//        return;
-//    }
-//
-//    auto& InputManager = UInputManager::GetInstance();
-//    const FVector& MousePosition = InputManager.GetMousePosition();
-//    FPoint P{ LONG(MousePosition.X), LONG(MousePosition.Y) };
-//
-//    SWindow* Target = Capture ? static_cast<SWindow*>(Capture) : Root->HitTest(P);
-//
-//	if (!Capture)
-//	{
-//		if (auto* S = Cast(Target))
-//		{
-//			if (S->IsHandleHover(P)) {}
-//				//UE_LOG("hover splitter");
-//		}
-//	}
-//
-//    if (InputManager.IsKeyPressed(EKeyInput::MouseLeft) || (!Capture && InputManager.IsKeyDown(EKeyInput::MouseLeft)))
-//    {
-//        if (Target && Target->OnMouseDown(P, 0))
-//        {
-//			UE_LOG("OnMouseDown act");
-//            Capture = Target;
-//        }
-//    }
-//
-//    // Mouse move while captured (always forward to allow cross-drag detection)
-//    if (Capture)
-//    {
-//        Capture->OnMouseMove(P);
-//    }
-//
-//    if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
-//    {
-//        if (Capture)
-//        {
-//            Capture->OnMouseUp(P, 0);
-//            Capture = nullptr;
-//        }
-//    }
-//
-//    if (!InputManager.IsKeyDown(EKeyInput::MouseLeft) && Capture)
-//    {
-//        Capture->OnMouseUp(P, /*Button*/0);
-//        Capture = nullptr;
-//    }
-//}
+void UViewportManager::TickInput()
+{
+    if (!Root)
+    {
+        return;
+    }
+
+    auto& InputManager = UInputManager::GetInstance();
+    const FVector& MousePosition = InputManager.GetMousePosition();
+    FPoint P{ LONG(MousePosition.X), LONG(MousePosition.Y) };
+
+    SWindow* Target = Capture ? static_cast<SWindow*>(Capture) : Root->HitTest(P);
+
+    if (InputManager.IsKeyPressed(EKeyInput::MouseLeft) || (!Capture && InputManager.IsKeyDown(EKeyInput::MouseLeft)))
+    {
+        if (Target && Target->OnMouseDown(P, 0))
+        {
+            Capture = Target;
+        }
+    }
+
+    // Mouse move while captured (always forward to allow cross-drag detection)
+    const FVector& d = InputManager.GetMouseDelta();
+    if ((d.X != 0.0f || d.Y != 0.0f) && Capture)
+    {
+        Capture->OnMouseMove(P);
+    }
+
+    if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
+    {
+        if (Capture)
+        {
+            Capture->OnMouseUp(P, 0);
+            Capture = nullptr;
+        }
+    }
+
+    if (!InputManager.IsKeyDown(EKeyInput::MouseLeft) && Capture)
+    {
+        Capture->OnMouseUp(P, /*Button*/0);
+        Capture = nullptr;
+    }
+}
 
 
 

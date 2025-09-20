@@ -1,7 +1,7 @@
 #pragma once
 #include "Source/Global/CoreTypes.h"
 #include "Source/Global/Enum.h"
-
+#include "Editor/Public/Camera.h"
 
 class FViewport;
 class UCamera;
@@ -23,6 +23,7 @@ public:
 
 
 	// 퍼스펙티브 카메라
+	void     SetPerspectiveCamera(UCamera* InPerspectiveCamera) { PerspectiveCamera = InPerspectiveCamera; }
 	UCamera* GetPerspectiveCamera() { return PerspectiveCamera; }
 
 	// 오쏘 카메라
@@ -53,7 +54,8 @@ public:
 	// 현재 뷰 타입에 맞는 월드 기준 축을 카메라(Right/Up/Forward)로 세팅
 	void ApplyOrthoBasisForViewType(UCamera& OutCamera);
 
-
+	FViewProjConstants GetPerspectiveViewProjConstData() const { return PerspectiveCamera->GetFViewProjConstants(); }
+	FViewProjConstants GetOrthoGraphicViewProjConstData() const { return OrthoGraphicCameraShared->GetFViewProjConstants(); }
 private:
 
 private:

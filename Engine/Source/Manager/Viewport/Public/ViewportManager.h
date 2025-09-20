@@ -17,7 +17,10 @@ class UViewportManager : public UObject
 public:
     void Initialize(FAppWindow* InWindow);
     void Update();
-	void RenderOverlay();
+    void RenderOverlay();
+
+    // 마우스 입력을 스플리터/윈도우 트리에 라우팅 (드래그/리사이즈 처리)
+    void TickInput();
 
 	// 레이아웃
     void BuildSingleLayout();
@@ -32,6 +35,8 @@ public:
 
 	// 공유 오쏘 카메라(읽기 전용 포인터를 클라에 주입)
 	UCamera* GetOrthographicCamera() const { return OrthographicCamera; }
+
+	TArray<FViewport*>& GetViewports() { return Viewports; }
 
 private:
 	// 내부 유틸

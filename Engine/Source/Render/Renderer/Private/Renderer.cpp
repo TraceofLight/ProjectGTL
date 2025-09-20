@@ -13,6 +13,11 @@
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Actor/Public/Actor.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
+// For per-viewport view/projection constants
+#include "Window/Public/Viewport.h"
+#include "Window/Public/ViewportClient.h"
+#include "Source/Window/Public/Viewport.h"
+#include "Source/Window/Public/ViewportClient.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -206,11 +211,14 @@ void URenderer::Update()
 	{
 		ID3D11DeviceContext* ctx = GetDeviceContext();
 		const D3D11_VIEWPORT& fullVP = GetDeviceResources()->GetViewportInfo();
-		for (const FRect& r : ViewRects)
-		{
+
+		// 초기 뷰포트 값 0초기화
+		ViewportIdx = 0;
+        for (int32 i = 0;i < ViewRects.size();++i)
+        {
 			D3D11_VIEWPORT vp{};
-			vp.TopLeftX = (FLOAT)r.X; vp.TopLeftY = (FLOAT)r.Y;
-			vp.Width = (FLOAT)max(0L, r.W); vp.Height = (FLOAT)max(0L, r.H);
+			vp.TopLeftX = (FLOAT)ViewRects[i].X; vp.TopLeftY = (FLOAT)ViewRects[i].Y;
+			vp.Width = (FLOAT)max(0L, ViewRects[i].W); vp.Height = (FLOAT)max(0L, ViewRects[i].H);
 
 			// Skip degenerate rects
 			if (vp.Width <= 0.0f || vp.Height <= 0.0f) continue;
@@ -218,14 +226,60 @@ void URenderer::Update()
 			vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
 			ctx->RSSetViewports(1, &vp);
 			D3D11_RECT sc{};
-			sc.left = r.X; sc.top = r.Y; sc.right = r.X + r.W; sc.bottom = r.Y + r.H;
-			ctx->RSSetScissorRects(1, &sc);
+			sc.left = ViewRects[i].X; sc.top = ViewRects[i].Y; sc.right = ViewRects[i].X + ViewRects[i].W; sc.bottom = ViewRects[i].Y + ViewRects[i].H;
+            ctx->RSSetScissorRects(1, &sc);
 
-			RenderLevel();
-			ULevelManager::GetInstance().GetEditor()->RenderEditor();
-		}
+            // Bind per-viewport view/projection constants so overlays render correctly
+            {
+                auto& Vpm = UViewportManager::GetInstance();
+                const auto& VPs = Vpm.GetViewports();
+                if (ViewportIdx < VPs.size() && VPs[ViewportIdx])
+                {
+                    FViewport* VpObj = VPs[ViewportIdx];
+                    FViewportClient* VC = VpObj->GetViewportClient();
+                    if (VC)
+                    {
+                        if (VC->GetViewType() == EViewType::Perspective)
+                        {
+                            const FViewProjConstants& VPC = VC->GetPerspectiveViewProjConstData();
+                            UpdateConstant(VPC);
+                        }
+                        else
+                        {
+                            const FViewProjConstants& VPC = VC->GetOrthoGraphicViewProjConstData();
+                            UpdateConstant(VPC);
+                        }
+                    }
+                }
+            }
+
+            // World + editor overlays for this viewport tile
+            RenderLevel();
+            ULevelManager::GetInstance().GetEditor()->RenderEditor();
+
+            ViewportIdx++;
+        }
+
+		//for (const FRect& r : ViewRects)
+		//{
+		//	D3D11_VIEWPORT vp{};
+		//	vp.TopLeftX = (FLOAT)r.X; vp.TopLeftY = (FLOAT)r.Y;
+		//	vp.Width = (FLOAT)max(0L, r.W); vp.Height = (FLOAT)max(0L, r.H);
+		//
+		//	// Skip degenerate rects
+		//	if (vp.Width <= 0.0f || vp.Height <= 0.0f) continue;
+		//
+		//	vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
+		//	ctx->RSSetViewports(1, &vp);
+		//	D3D11_RECT sc{};
+		//	sc.left = r.X; sc.top = r.Y; sc.right = r.X + r.W; sc.bottom = r.Y + r.H;
+		//	ctx->RSSetScissorRects(1, &sc);
+		//
+		//	RenderLevel();
+		//	ULevelManager::GetInstance().GetEditor()->RenderEditor();
+		//}
 		// Restore full viewport/scissor for UI
-		ctx->RSSetViewports(1, &fullVP);
+		ctx->RSSetViewports(1, &fullVP); 
 		D3D11_RECT scFull{};
 		scFull.left = (LONG)fullVP.TopLeftX; scFull.top = (LONG)fullVP.TopLeftY;
 		scFull.right = (LONG)(fullVP.TopLeftX + fullVP.Width);
@@ -322,13 +376,21 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
  * @brief 렌더링 파이프라인 설정
  * @param InPrimitiveComponent 설정할 프리미티브 컴포넌트
  */
+
+// 이 부분에서 뷰포트의 걸로 그려야함
 void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 {
 	FRenderState RenderState = InPrimitiveComponent->GetRenderState();
 
 	// 에디터 뷰 모드에 따른 렌더 상태 조정
-	const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
-	if (ViewMode == EViewModeIndex::VMI_Wireframe)
+	//const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
+
+	FViewport* Viewport = UViewportManager::GetInstance().GetViewports()[ViewportIdx];
+	FViewportClient* ViewportClient = Viewport->GetViewportClient();
+	const EViewMode ViewMode = Viewport->GetViewportClient()->GetViewMode();
+
+
+	if (ViewMode == EViewMode::WireFrame)
 	{
 		RenderState.CullMode = ECullMode::None;
 		RenderState.FillMode = EFillMode::WireFrame;
@@ -372,11 +434,27 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 		InPrimitiveComponent->GetRelativeRotation(),
 		InPrimitiveComponent->GetRelativeScale3D());
 
-	const FViewProjConstants& ViewProjConstants = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-	UpdateConstant(ViewProjConstants);
+	//FViewProjConstants GetPerspectiveViewProjConstData() const { return PerspectiveCamera->GetFViewProjConstants(); }
+	//FViewProjConstants GetOrthoGraphicViewProjConstData() const { return OrthoGraphicCameraShared->GetFViewProjConstants(); }
 
-	Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
-	UpdateConstant(InPrimitiveComponent->GetColor());
+	if (EViewType::Perspective == ViewportClient->GetViewType())
+	{
+		const FViewProjConstants& ViewProjConstants = ViewportClient->GetPerspectiveViewProjConstData();
+		UpdateConstant(ViewProjConstants);
+
+		Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+		UpdateConstant(InPrimitiveComponent->GetColor());
+	}
+	else
+	{
+		const FViewProjConstants& ViewProjConstants = ViewportClient->GetOrthoGraphicViewProjConstData();
+		UpdateConstant(ViewProjConstants);
+
+		Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+		UpdateConstant(InPrimitiveComponent->GetColor());
+	}
+	//const FViewProjConstants& ViewProjConstants = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
+	
 }
 
 /**
