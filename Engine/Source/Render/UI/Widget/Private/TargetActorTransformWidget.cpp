@@ -11,7 +11,6 @@
 UTargetActorTransformWidget::UTargetActorTransformWidget()
 	: UWidget("Target Actor Tranform Widget")
 {
-	RefreshStaticMeshList();
 }
 
 UTargetActorTransformWidget::~UTargetActorTransformWidget() = default;
@@ -50,6 +49,8 @@ void UTargetActorTransformWidget::Update()
 		{
 			SelectedActor = nullptr;
 		}
+
+		RefreshStaticMeshList();
 	}
 }
 
@@ -188,6 +189,33 @@ void UTargetActorTransformWidget::RefreshStaticMeshList()
 			}
 
 			StaticMeshNames.push_back(MeshName);
+		}
+	}
+
+	// 현재 선택된 액터의 StaticMesh에 해당하는 인덱스 찾기
+	SelectedMeshIndex = 0; // 기본값
+	if (SelectedActor)
+	{
+		AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor);
+		if (StaticMeshActor)
+		{
+			UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
+			if (StaticMeshComponent)
+			{
+				UStaticMesh* CurrentMesh = StaticMeshComponent->GetStaticMesh();
+				if (CurrentMesh)
+				{
+					// 현재 메시와 일치하는 인덱스 찾기
+					for (int32 i = 0; i < static_cast<int32>(AvailableStaticMeshes.size()); ++i)
+					{
+						if (AvailableStaticMeshes[i] == CurrentMesh)
+						{
+							SelectedMeshIndex = i;
+							break;
+						}
+					}
+				}
+			}
 		}
 	}
 
