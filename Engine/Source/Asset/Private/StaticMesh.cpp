@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Utility/Public/Archive.h"
 
 IMPLEMENT_CLASS(UStaticMesh, UObject)
 
@@ -87,4 +88,144 @@ FAABB UStaticMesh::CalculateAABB() const
 	}
 
 	return FAABB(Min, Max);
+}
+
+/**
+ * @brief 메시 데이터를 바이너리 파일로 저장
+ */
+bool UStaticMesh::SaveToBinary(const FString& FilePath) const
+{
+	FBinaryWriter Writer(FilePath);
+	if (!Writer.IsOpen())
+	{
+		UE_LOG("UStaticMesh: Failed to open file for writing: %s", FilePath.c_str());
+		return false;
+	}
+
+	try
+	{
+		// 헤더 정보
+		FString MagicNumber = "MESH";
+		uint32 Version = 1;
+		Writer << MagicNumber;
+		Writer << Version;
+
+		// PathFileName 저장
+		FString PathFileName = StaticMeshData.PathFileName;
+		Writer << PathFileName;
+
+		// Vertices 저장
+		uint32 VertexCount = static_cast<uint32>(StaticMeshData.Vertices.size());
+		Writer << VertexCount;
+		for (FVertex Vertex : StaticMeshData.Vertices)
+		{
+			Writer << Vertex.Position;
+			Writer << Vertex.Color;
+			Writer << Vertex.Normal;
+			Writer << Vertex.TextureCoord;
+		}
+
+		// Indices 저장
+		uint32 IndexCount = static_cast<uint32>(StaticMeshData.Indices.size());
+		Writer << IndexCount;
+		for (uint32 Index : StaticMeshData.Indices)
+		{
+			Writer << Index;
+		}
+
+		Writer.Close();
+
+		UE_LOG("UStaticMesh: Successfully saved binary mesh: %s", FilePath.c_str());
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		UE_LOG("UStaticMesh: Exception during binary save: %s", e.what());
+		return false;
+	}
+}
+
+/**
+ * @brief 바이너리 파일에서 메시 데이터를 로드
+ */
+bool UStaticMesh::LoadFromBinary(const FString& FilePath)
+{
+	FBinaryReader Reader(FilePath);
+	if (!Reader.IsOpen())
+	{
+		UE_LOG("UStaticMesh: Failed to open file for reading: %s", FilePath.c_str());
+		return false;
+	}
+
+	try
+	{
+		// 헤더 정보 확인
+		FString MagicNumber;
+		uint32 Version;
+		Reader << MagicNumber;
+		Reader << Version;
+
+		if (MagicNumber != "MESH" || Version != 1)
+		{
+			UE_LOG("UStaticMesh: Invalid binary format or version: %s", FilePath.c_str());
+			return false;
+		}
+
+		// 기존 렌더 버퍼 해제
+		ReleaseRenderBuffers();
+
+		// PathFileName 로드
+		Reader << StaticMeshData.PathFileName;
+
+		// Vertices 로드
+		uint32 VertexCount;
+		Reader << VertexCount;
+		StaticMeshData.Vertices.resize(VertexCount);
+		for (uint32 i = 0; i < VertexCount; ++i)
+		{
+			Reader << StaticMeshData.Vertices[i].Position;
+			Reader << StaticMeshData.Vertices[i].Color;
+			Reader << StaticMeshData.Vertices[i].Normal;
+			Reader << StaticMeshData.Vertices[i].TextureCoord;
+		}
+
+		// Indices 로드
+		uint32 IndexCount;
+		Reader << IndexCount;
+		StaticMeshData.Indices.resize(IndexCount);
+		for (uint32 i = 0; i < IndexCount; ++i)
+		{
+			Reader << StaticMeshData.Indices[i];
+		}
+
+		Reader.Close();
+
+		// 새 렌더 버퍼 생성
+		CreateRenderBuffers();
+
+		UE_LOG("UStaticMesh: Successfully loaded binary mesh: %s (%zu vertices, %zu indices)",
+			FilePath.c_str(), StaticMeshData.Vertices.size(), StaticMeshData.Indices.size());
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		UE_LOG("UStaticMesh: Exception during binary load: %s", e.what());
+		return false;
+	}
+}
+
+/**
+ * @brief 바이너리 캐시가 유효한지 확인
+ */
+bool UStaticMesh::IsBinaryCacheValid(const FString& ObjFilePath)
+{
+	return FArchiveHelpers::IsBinaryCacheValid(ObjFilePath);
+}
+
+/**
+ * @brief OBJ 파일로부터 바이너리 파일 경로 생성
+ */
+FString UStaticMesh::GetBinaryFilePath(const FString& ObjFilePath)
+{
+	return FArchiveHelpers::GetBinaryFilePath(ObjFilePath);
 }

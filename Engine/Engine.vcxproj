@@ -258,6 +258,7 @@
     <ClInclude Include="Source\Runtime\Core\Public\GameInstance.h" />
     <ClInclude Include="Source\Runtime\Core\Public\LocalPlayer.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
+    <ClInclude Include="Source\Utility\Public\Archive.h" />
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
     <ClInclude Include="Source\Utility\Public\Metadata.h" />
     <ClInclude Include="Source\Utility\Public\UELogParser.h" />
@@ -362,6 +363,7 @@
     <ClCompile Include="Source\Runtime\Engine\Private\GameInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\LocalPlayer.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
+    <ClCompile Include="Source\Utility\Private\Archive.cpp" />
     <ClCompile Include="Source\Utility\Private\JsonSerializer.cpp" />
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp" />
     <ClCompile Include="Source\Window\Private\Splitter.cpp" />
