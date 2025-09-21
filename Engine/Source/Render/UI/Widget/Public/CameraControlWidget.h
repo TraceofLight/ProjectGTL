@@ -28,6 +28,6 @@ private:
 	UCamera* Camera = nullptr;
 	float UiFovY = 80.f;
 	float UiNearZ = 0.1f;
-	float UiFarZ = 1000.f;
+	float UiFarZ = 10000.f;
 	int   CameraModeIndex = 0;
 };
