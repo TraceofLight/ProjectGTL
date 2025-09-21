@@ -404,6 +404,9 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 		if (bLoadSuccess)
 		{
+			UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", InFilePath.c_str());
+			return NewStaticMesh;
+		}
 		else
 		{
 			UE_LOG("AssetManager: Binary cache load failed, falling back to OBJ parsing");
