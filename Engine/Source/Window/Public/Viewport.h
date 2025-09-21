@@ -49,20 +49,23 @@ public:
 	// - 화면 좌표를 로컬로 변환하여 MouseMove/CapturedMouseMove, Down/Up을 전달
 	void PumpMouseFromInputManager();
 
-	// ----- D3D11 RS 바인딩 (옵션) -----
-	void ApplyRasterizer(ID3D11DeviceContext* InDeviceContext) const
-	{
-		D3D11_VIEWPORT VP{};
-		VP.TopLeftX = (FLOAT)Rect.X;
-		VP.TopLeftY = (FLOAT)Rect.Y + (FLOAT)ToolBarLayPx; // 툴바 제외하고 그릴 때
-		VP.Width = (FLOAT)max<LONG>(0, Rect.W);
-		VP.Height = (FLOAT)max<LONG>(0, Rect.H - ToolBarLayPx);
-		VP.MinDepth = 0.0f; VP.MaxDepth = 1.0f;
-		InDeviceContext->RSSetViewports(1, &VP);
+    // ----- D3D11 RS 바인딩 (옵션) -----
+    void ApplyRasterizer(ID3D11DeviceContext* InDeviceContext) const
+    {
+        D3D11_VIEWPORT VP{};
+        VP.TopLeftX = (FLOAT)Rect.X;
+        VP.TopLeftY = (FLOAT)Rect.Y + (FLOAT)ToolBarLayPx; // 툴바 제외하고 그릴 때
+        VP.Width = (FLOAT)max<LONG>(0, Rect.W);
+        VP.Height = (FLOAT)max<LONG>(0, Rect.H - ToolBarLayPx);
+        VP.MinDepth = 0.0f; VP.MaxDepth = 1.0f;
+        InDeviceContext->RSSetViewports(1, &VP);
 
-		D3D11_RECT Sc{ Rect.X, Rect.Y + ToolBarLayPx, Rect.X + Rect.W, Rect.Y + Rect.H };
-		InDeviceContext->RSSetScissorRects(1, &Sc);
-	}
+        D3D11_RECT Sc{ Rect.X, Rect.Y + ToolBarLayPx, Rect.X + Rect.W, Rect.Y + Rect.H };
+        InDeviceContext->RSSetScissorRects(1, &Sc);
+    }
+
+    void SetToolbarHeight(int32 InPx) { ToolBarLayPx = max(0, InPx); }
+    int32 GetToolbarHeight() const { return ToolBarLayPx; }
 
 private:
     FViewportClient* ViewportClient = nullptr;

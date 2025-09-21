@@ -217,17 +217,26 @@ void URenderer::Update()
 		ViewportIdx = 0;
         for (int32 i = 0;i < ViewRects.size();++i)
         {
-			D3D11_VIEWPORT vp{};
-			vp.TopLeftX = (FLOAT)ViewRects[i].X; vp.TopLeftY = (FLOAT)ViewRects[i].Y;
-			vp.Width = (FLOAT)max(0L, ViewRects[i].W); vp.Height = (FLOAT)max(0L, ViewRects[i].H);
+            D3D11_VIEWPORT vp{};
+            int32 toolH = 0;
+            {
+                auto& Vpm = UViewportManager::GetInstance();
+                const auto& VPs = Vpm.GetViewports();
+                if (i < (int32)VPs.size() && VPs[i])
+                {
+                    toolH = VPs[i]->GetToolbarHeight();
+                }
+            }
+            vp.TopLeftX = (FLOAT)ViewRects[i].X; vp.TopLeftY = (FLOAT)(ViewRects[i].Y + toolH);
+            vp.Width = (FLOAT)max(0L, ViewRects[i].W); vp.Height = (FLOAT)max(0L, ViewRects[i].H - toolH);
 
 			// Skip degenerate rects
 			if (vp.Width <= 0.0f || vp.Height <= 0.0f) continue;
 
 			vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
 			ctx->RSSetViewports(1, &vp);
-			D3D11_RECT sc{};
-			sc.left = ViewRects[i].X; sc.top = ViewRects[i].Y; sc.right = ViewRects[i].X + ViewRects[i].W; sc.bottom = ViewRects[i].Y + ViewRects[i].H;
+            D3D11_RECT sc{};
+            sc.left = ViewRects[i].X; sc.top = ViewRects[i].Y + toolH; sc.right = ViewRects[i].X + ViewRects[i].W; sc.bottom = ViewRects[i].Y + ViewRects[i].H;
             ctx->RSSetScissorRects(1, &sc);
 
             // Bind per-viewport view/projection constants so overlays render correctly
@@ -308,12 +317,15 @@ void URenderer::RenderBegin() const
 	ID3D11DepthStencilView* DepthStencilView = DeviceResources->GetDepthStencilView();
 	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
+	// Update full-screen viewport first (apply main menu bar height), then bind it
+	float MainMenuH = UUIManager::GetInstance().GetMainMenuBarHeight();
+	//UE_LOG("%f", MainMenuH);
+	DeviceResources->UpdateViewport(MainMenuH);
 	GetDeviceContext()->RSSetViewports(1, &DeviceResources->GetViewportInfo());
 
 	ID3D11RenderTargetView* rtvs[] = { RenderTargetView }; // 배열 생성
 
 	GetDeviceContext()->OMSetRenderTargets(1, rtvs, DeviceResources->GetDepthStencilView());
-	DeviceResources->UpdateViewport();
 }
 
 /**
@@ -724,6 +736,8 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 
 	// SwapChain 버퍼 크기 재설정
 	HRESULT Result = GetSwapChain()->ResizeBuffers(2, InWidth, InHeight, DXGI_FORMAT_UNKNOWN, 0);
+	//UE_LOG("%d   %d", InWidth, InHeight);
+	//UE_LOG("OnResize Failed");
 	if (FAILED(Result))
 	{
 		UE_LOG("OnResize Failed");

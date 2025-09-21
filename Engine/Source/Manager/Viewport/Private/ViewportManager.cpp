@@ -10,6 +10,8 @@
 #include "Window/Public/Viewport.h"
 #include "Window/Public/ViewportClient.h"
 #include "Editor/Public/Camera.h"
+// Main menu height for top margin
+#include "Manager/UI/Public/UIManager.h"
 //#include "Manager/Time/Public/TimeManager.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UViewportManager)
@@ -20,15 +22,16 @@ UViewportManager::~UViewportManager() = default;
 void UViewportManager::Initialize(FAppWindow* InWindow)
 {
     int32 Width = 0, Height = 0;
-	if (InWindow)
-	{
-		InWindow->GetClientSize(Width, Height);
-	}
+    if (InWindow)
+    {
+        InWindow->GetClientSize(Width, Height);
+    }
+    AppWindow = InWindow;
 
 	OrthographicCamera = new UCamera;
 	OrthographicCamera->SetCameraType(ECameraType::ECT_Orthographic);
 
-    // Start with a single full-viewport window
+    // Start with a single window, initial rect (menu height applied on first Update)
     SWindow* Single = new SWindow();
     Single->OnResize({ 0, 0, Width, Height });
     SetRoot(Single);
@@ -53,7 +56,9 @@ SWindow* UViewportManager::GetRoot()
 void UViewportManager::BuildSingleLayout()
 {
     if (!Root) return;
-    const FRect Rect = Root->GetRect();
+    int32 w = 0, h = 0; if (AppWindow) AppWindow->GetClientSize(w, h);
+    const int menuH = (int)UUIManager::GetInstance().GetMainMenuBarHeight();
+    const FRect Rect{ 0, menuH, w, max(0, h - menuH) };
 
     // 기존 캡처 해제 (안전)
     Capture = nullptr;
@@ -71,7 +76,9 @@ void UViewportManager::BuildSingleLayout()
 void UViewportManager::BuildFourSplitLayout()
 {
     if (!Root) return;
-    const FRect Rect = Root->GetRect();
+    int32 w = 0, h = 0; if (AppWindow) AppWindow->GetClientSize(w, h);
+    const int menuH = (int)UUIManager::GetInstance().GetMainMenuBarHeight();
+    const FRect Rect{ 0, menuH, w, max(0, h - menuH) };
 
     // 기존 캡처 해제 (안전)
     Capture = nullptr;
@@ -203,16 +210,18 @@ void UViewportManager::CreateViewportsAndClients(int32 InCount)
 
 void UViewportManager::SyncRectsToViewports()
 {
-	TArray<FRect> Leaves;
-	GetLeafRects(Leaves);
+    TArray<FRect> Leaves;
+    GetLeafRects(Leaves);
 
-	// 싱글 모드: 리프가 1개, 4분할: 리프가 4개
-	const int32 N = min<int32>((int32)Leaves.size(), (int32)Viewports.size());
-	for (int32 i = 0; i < N; ++i)
-	{
-		Viewports[i]->SetRect(Leaves[i]);
-		Clients[i]->OnResize({ Leaves[i].W, Leaves[i].H });
-	}
+    // 싱글 모드: 리프가 1개, 4분할: 리프가 4개
+    const int32 N = min<int32>((int32)Leaves.size(), (int32)Viewports.size());
+    for (int32 i = 0; i < N; ++i)
+    {
+        Viewports[i]->SetRect(Leaves[i]);
+        Clients[i]->OnResize({ Leaves[i].W, Leaves[i].H });
+        // Toolbar 높이 설정 (3D 렌더 offset용)
+        Viewports[i]->SetToolbarHeight(24);
+    }
 }
 
 void UViewportManager::PumpAllViewportInput()
@@ -280,6 +289,18 @@ void UViewportManager::Update()
     //const float  DeltaTime = (float)max(0.0, Now - LastTime);
 	// LastTime = Now;
 
+    // -1) 매 프레임 루트 레이아웃을 메인 메뉴바 높이를 반영하여 갱신
+    {
+        int32 w = 0, h = 0; if (AppWindow) AppWindow->GetClientSize(w, h);
+		//UE_LOG("%d   %d", w, h);
+
+        const int menuH = (int)UUIManager::GetInstance().GetMainMenuBarHeight();
+        if (w > 0 && h > 0)
+        {
+            Root->OnResize(FRect{ 0, menuH, w, max(0, h - menuH) });
+        }
+    }
+
     // 0) 스플리터 등 윈도우 트리 입력 처리 (캡처/드래그 우선)
     TickInput();
 
@@ -310,11 +331,128 @@ void UViewportManager::Update()
 
 void UViewportManager::RenderOverlay()
 {
-	if (!Root)
+    if (!Root)
+    {
+        return;
+    }
+    Root->OnPaint();
+	
+    const int32 N = (int32)Viewports.size();
+	if (N == 0) return;
+	
+	// ViewType ViewMode 콤보 라벨 & 매핑
+	static const char* ViewModeLabels[] = {
+		"Lit", "Unlit", "WireFrame"
+	};
+	static const EViewMode IndexToViewMode[] = {
+		EViewMode::Lit,
+		EViewMode::Unlit,
+		EViewMode::WireFrame
+	};
+
+
+	static const char* ViewTypeLabels[] = {
+	    "Perspective", "OrthoTop", "OrthoBottom", "OrthoLeft", "OrthoRight", "OrthoFront", "OrthoBack"
+	};
+	static const EViewType IndexToViewType[] = {
+	    EViewType::Perspective,
+	    EViewType::OrthoTop,
+	    EViewType::OrthoBottom,
+	    EViewType::OrthoLeft,
+	    EViewType::OrthoRight,
+	    EViewType::OrthoFront,
+	    EViewType::OrthoBack
+	};
+	
+	for (int32 i = 0; i < N; ++i)
 	{
-		return;
+	    const FRect& r = Viewports[i]->GetRect();
+	    if (r.W <= 0 || r.H <= 0) continue;
+	
+	    const int ToolbarH = Viewports[i]->GetToolbarHeight();
+	    const ImVec2 a{ (float)r.X, (float)r.Y };
+	    const ImVec2 b{ (float)(r.X + r.W), (float)(r.Y + ToolbarH) };
+	
+	    // 1) 1안처럼 오버레이 배경/보더 그리기
+	    ImDrawList* dl = ImGui::GetForegroundDrawList();
+	    dl->AddRectFilled(a, b, IM_COL32(30, 30, 30, 100));
+	    dl->AddLine(ImVec2(a.x, b.y), ImVec2(b.x, b.y), IM_COL32(70, 70, 70, 120), 1.0f);
+	
+	    // 2) 같은 영역에 "배경 없는" 작은 윈도우를 띄워 콤보/버튼 UI 배치 (2안의 핵심)
+	    ImGui::PushID(i);
+	
+	    ImGui::SetNextWindowPos(ImVec2(a.x, a.y));
+	    ImGui::SetNextWindowSize(ImVec2(b.x - a.x, b.y - a.y));
+	
+	    ImGuiWindowFlags flags =
+	        ImGuiWindowFlags_NoDecoration |
+	        ImGuiWindowFlags_NoMove |
+	        ImGuiWindowFlags_NoResize |
+	        ImGuiWindowFlags_NoSavedSettings |
+	        ImGuiWindowFlags_NoScrollbar |
+	        ImGuiWindowFlags_NoBackground |  // ★ 배경 없음(우리가 drawlist로 그렸으므로)
+	        ImGuiWindowFlags_NoFocusOnAppearing;
+	
+	    // 얇은 툴바 느낌을 위한 패딩/스페이싱 축소
+	    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.f, 3.f));
+	    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,  ImVec2(6.f, 3.f));
+	    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,   ImVec2(6.f, 0.f));
+	
+	    // 윈도우 이름은 뷰포트마다 고유해야 함
+	    char winName[64];
+	    snprintf(winName, sizeof(winName), "ViewportToolbar##%d", i);
+	
+	    if (ImGui::Begin(winName, nullptr, flags))
+	    {
+			EViewMode CurrentMode = Clients[i]->GetViewMode();
+			int32 CurrentModeIndex = 0;
+			for (int k = 0; k < IM_ARRAYSIZE(IndexToViewMode); ++k)
+			{
+				if (IndexToViewMode[k] == CurrentMode) { CurrentModeIndex = k; break; }
+			}
+			ImGui::SetNextItemWidth(140.0f);
+			if (ImGui::Combo("##ViewMode", &CurrentModeIndex, ViewModeLabels, IM_ARRAYSIZE(ViewModeLabels)))
+			{
+				if (CurrentModeIndex >= 0 && CurrentModeIndex < IM_ARRAYSIZE(IndexToViewMode))
+				{
+					Clients[i]->SetViewMode(IndexToViewMode[CurrentModeIndex]);
+				}
+			}
+
+			// 같은 줄로 이동 + 약간의 간격
+			ImGui::SameLine(0.0f, 10.0f);
+			ImGui::TextDisabled("|");
+			ImGui::SameLine(0.0f, 10.0f);
+
+	        // ViewType 콤보 (2안처럼 정상 동작)
+	        // 현재 타입을 인덱스로 변환
+	        EViewType curType = Clients[i]->GetViewType();
+	        int curIdx = 0;
+	        for (int k = 0; k < IM_ARRAYSIZE(IndexToViewType); ++k)
+	        {
+	            if (IndexToViewType[k] == curType) { curIdx = k; break; }
+	        }
+	
+	        ImGui::SetNextItemWidth(140.0f);
+	        if (ImGui::Combo("##ViewType", &curIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
+	        {
+	            if (curIdx >= 0 && curIdx < IM_ARRAYSIZE(IndexToViewType))
+	            {
+	                Clients[i]->SetViewType(IndexToViewType[curIdx]);
+	            }
+	        }
+	
+	        // (옵션) 우측에 현재 뷰타입 라벨만 추가로 표시하고 싶다면:
+	        // ImGui::SameLine();
+	        // ImGui::TextDisabled(" | ");
+	        // ImGui::SameLine();
+	        // ImGui::TextUnformatted(ViewTypeLabels[curIdx]);
+	    }
+	    ImGui::End();
+	
+	    ImGui::PopStyleVar(3);
+	    ImGui::PopID();
 	}
-	Root->OnPaint();
 }
 
 void UViewportManager::TickInput()

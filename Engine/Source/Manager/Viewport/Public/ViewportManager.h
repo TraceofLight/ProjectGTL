@@ -58,6 +58,9 @@ private:
     SWindow* Capture = nullptr;
     bool bFourSplitActive = false;
 
+    // App main window for querying current client size each frame
+    FAppWindow* AppWindow = nullptr;
+
 	TArray<FViewport*>       Viewports;
 	TArray<FViewportClient*> Clients;
 
