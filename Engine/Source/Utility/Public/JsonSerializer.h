@@ -9,6 +9,7 @@ using JSON = json::JSON;
 enum class EPrimitiveType : uint8_t;
 struct FLevelMetadata;
 struct FPrimitiveMetadata;
+struct FCameraMetadata;
 
 /**
  * @brief Level 직렬화에 관여하는 클래스
@@ -23,6 +24,8 @@ public:
 	static EPrimitiveType StringToPrimitiveType(const string& InTypeString);
 	static JSON PrimitiveMetadataToJson(const FPrimitiveMetadata& InPrimitive);
 	static FPrimitiveMetadata JsonToPrimitive(const JSON& InJsonData, uint32 InID);
+	static JSON CameraMetadataToJson(const FCameraMetadata& InCamera);
+	static FCameraMetadata JsonToCameraMetadata(const JSON& InJsonData);
 	static JSON LevelToJson(const FLevelMetadata& InLevelData);
 	static FLevelMetadata JsonToLevel(JSON& InJsonData);
 	static bool SaveLevelToFile(const FLevelMetadata& InLevelData, const string& InFilePath);

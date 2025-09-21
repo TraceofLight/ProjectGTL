@@ -74,12 +74,13 @@ void UAssetManager::Release()
 	// Texture Resource 해제
 	ReleaseAllTextures();
 
+	// TODO: 주석 풀면 엔진 끌때 터짐 메모리 누수 다 잡고 주석 풀 것
 	// StaticMesh 애셋 해제 - TObjectIterator를 사용하여 모든 StaticMesh 삭제
-	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	/*for (TObjectIterator<UStaticMesh> It; It; ++It)
 	{
 		UStaticMesh* StaticMesh = *It;
 		delete StaticMesh;
-	}
+	}*/
 }
 
 TArray<FVertex>* UAssetManager::GetVertexData(EPrimitiveType InType)

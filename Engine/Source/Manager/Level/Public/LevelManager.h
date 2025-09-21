@@ -1,6 +1,5 @@
 #pragma once
 #include "Core/Public/Object.h"
-//#include "Editor/Public/Editor.h"
 
 class UEditor;
 class ULevel;
@@ -22,6 +21,9 @@ public:
 
 	// Getter
 	TObjectPtr<ULevel> GetCurrentLevel() const { return CurrentLevel; }
+
+	// Level Management
+	void ClearCurrentLevel();
 
 	// Save & Load System
 	bool SaveCurrentLevel(const FString& InFilePath) const;

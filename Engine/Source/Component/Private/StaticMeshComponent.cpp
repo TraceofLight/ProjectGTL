@@ -6,7 +6,7 @@ IMPLEMENT_CLASS(UStaticMeshComponent, UMeshComponent)
 UStaticMeshComponent::UStaticMeshComponent()
 {
 	// 프리미티브 타입을 StaticMesh로 설정
-	Type = EPrimitiveType::StaticMesh;
+	Type = EPrimitiveType::StaticMeshComp;
 }
 
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
