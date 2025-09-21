@@ -64,8 +64,8 @@ private:
 	EViewType   ViewType = EViewType::Perspective;
 	EViewMode   ViewMode = EViewMode::Lit;
 
-    UCamera* PerspectiveCamera = nullptr;
-    UCamera* OrthoGraphicCamera = nullptr;
+    TObjectPtr<UCamera> PerspectiveCamera = nullptr;
+    TObjectPtr<UCamera> OrthoGraphicCamera = nullptr;
 
 
 	// 뷰/입력 상태

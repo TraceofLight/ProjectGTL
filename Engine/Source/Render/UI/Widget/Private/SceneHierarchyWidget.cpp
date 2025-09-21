@@ -2,10 +2,13 @@
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
 #include "Manager/Level/Public/LevelManager.h"
+#include "Manager/Input/Public/InputManager.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
-#include "Editor/Public/Camera.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
+#include "Editor/Public/Camera.h"
+#include "Window/Public/ViewportClient.h"
 
 USceneHierarchyWidget::USceneHierarchyWidget()
 	: UWidget("Scene Hierarchy Widget")
@@ -24,7 +27,18 @@ void USceneHierarchyWidget::Update()
 	// 카메라 애니메이션 업데이트
 	if (bIsCameraAnimating)
 	{
-		UpdateCameraAnimation();
+		auto& ViewportManager = UViewportManager::GetInstance();
+
+		// Update orthogonal camera
+		TObjectPtr<UCamera> OrthogonalCamera = TObjectPtr(ViewportManager.GetOrthographicCamera());
+		UpdateCameraAnimation(OrthogonalCamera);
+
+		// Update perspective camera
+		for (FViewportClient* Client : ViewportManager.GetClients())
+		{
+			TObjectPtr<UCamera> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
+			UpdateCameraAnimation(PerspectiveCamera);
+		}
 	}
 }
 
@@ -91,7 +105,7 @@ void USceneHierarchyWidget::RenderWidget()
 			// 필터링된 Actor들만 표시
 			for (int32 FilteredIndex : FilteredIndices)
 			{
-				if (FilteredIndex < LevelActors.size() && LevelActors[FilteredIndex])
+				if (FilteredIndex < static_cast<int32>(LevelActors.size()) && LevelActors[FilteredIndex])
 				{
 					RenderActorInfo(LevelActors[FilteredIndex], FilteredIndex);
 				}
@@ -105,28 +119,6 @@ void USceneHierarchyWidget::RenderWidget()
 		}
 	}
 	ImGui::EndChild();
-
-	// 하단 정보
-	// AActor* SelectedActor = CurrentLevel->GetSelectedActor();
-	// if (SelectedActor)
-	// {
-	// 	ImGui::Text("Selected: %s", SelectedActor->GetName().ToString().data());
-	//
-	// 	if (bShowDetails)
-	// 	{
-	// 		const FVector& Location = SelectedActor->GetActorLocation();
-	// 		const FVector& Rotation = SelectedActor->GetActorRotation();
-	// 		const FVector& Scale = SelectedActor->GetActorScale3D();
-	//
-	// 		ImGui::Text("Location: (%.2f, %.2f, %.2f)", Location.X, Location.Y, Location.Z);
-	// 		ImGui::Text("Rotation: (%.2f, %.2f, %.2f)", Rotation.X, Rotation.Y, Rotation.Z);
-	// 		ImGui::Text("Scale: (%.2f, %.2f, %.2f)", Scale.X, Scale.Y, Scale.Z);
-	// 	}
-	// }
-	// else
-	// {
-	// 	ImGui::TextUnformatted("No Actor Selected");
-	// }
 }
 
 /**
@@ -270,10 +262,14 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 			LastClickedActor = InActor;
 		}
 
-		// 더블 클릭 감지: 카메라 이동 수행
-		if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+		auto& InputManager = UInputManager::GetInstance();
+
+		// 더블 클릭 및 F키 입력 감지: 카메라 이동 수행
+		if (ImGui::IsItemHovered() &&
+			(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) || InputManager.IsKeyDown(EKeyInput::F)))
 		{
 			SelectActor(InActor, true);
+
 			// 더블클릭 시 이름변경 모드 비활성화
 			FinishRenaming(false);
 		}
@@ -325,42 +321,100 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 	if (CurrentLevel)
 	{
 		CurrentLevel->SetSelectedActor(InActor);
-		UE_LOG("SceneHierarchy: %s를 선택했습니다", InActor->GetName().ToString().data());
 
 		// 카메라 포커싱은 더블 클릭에서만 수행
 		if (InActor && bInFocusCamera)
 		{
-			FocusOnActor(InActor);
-			UE_LOG_SUCCESS("SceneHierarchy: %s에 카메라 포커싱 완료", InActor->GetName().ToString().data());
+			auto& ViewportManager = UViewportManager::GetInstance();
+
+			// Start focus on all cameras
+			for (const auto Client : ViewportManager.GetClients())
+			{
+				// Perspective 카메라 포커싱
+				if (Client->GetViewType() == EViewType::Perspective)
+				{
+					TObjectPtr<UCamera> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
+					FocusOnActor(PerspectiveCamera, InActor);
+				}
+				// Orthographic 카메라 포커싱
+				else
+				{
+					TObjectPtr<UCamera> OrthoCamera = TObjectPtr(Client->GetOrthoCamera());
+					FocusOnActor(OrthoCamera, InActor);
+				}
+			}
+
+			UE_LOG_INFO("SceneHierarchy: %s에 모든 카메라 포커싱 시작", InActor->GetName().ToString().data());
+		}
+		else
+		{
+			UE_LOG("SceneHierarchy: %s를 선택했습니다", InActor->GetName().ToString().data());
 		}
 	}
 }
 
 /**
- * @brief 카메라를 특정 Actor에 포커스하는 함수
+ * @brief 단일 카메라를 특정 Actor에 포커스하는 함수
+ * @param InCamera 포커싱 처리할 카메라
  * @param InActor 포커스할 Actor
  */
-void USceneHierarchyWidget::FocusOnActor(TObjectPtr<AActor> InActor)
+void USceneHierarchyWidget::FocusOnActor(TObjectPtr<UCamera> InCamera, TObjectPtr<AActor> InActor)
 {
-	if (!Camera || !InActor)
+	if (!InCamera || !InActor)
 	{
 		return;
 	}
 
 	// 현재 카메라의 위치와 회전을 저장
-	CameraStartLocation = Camera->GetLocation();
-	CameraCurrentRotation = Camera->GetRotation();
+	CameraStartLocations[InCamera->GetName()] = InCamera->GetLocation();
+	CameraCurrentRotations[InCamera->GetName()] = InCamera->GetRotation();
 
-	// Actor의 월드 위치를 얻음
 	FVector ActorLocation = InActor->GetActorLocation();
+	FVector TargetLocation;
 
-	// 카메라의 정확한 Forward 벡터를 사용하여 화면 중앙 배치 보정
-	// Camera 클래스에서 이미 계산된 정확한 Forward 벡터 사용
-	FVector CameraForward = Camera->GetForward();
+	if (InCamera->GetCameraType() == ECameraType::ECT_Orthographic)
+	{
+		// 기본적으로 Actor 위치로 설정
+		FVector CurrentCameraLocation = InCamera->GetLocation();
+		FVector CameraForward = InCamera->GetForward();
+
+		// 각 축 별로 적절한 거리 유지
+		// Forward 벡터에서 가장 큰 성분을 기준으로 축 판단
+		FVector AbsForward = FVector::GetAbs(CameraForward);
+
+		// Left / Right View: X축에서 보는 뷰
+		if (AbsForward.X > AbsForward.Y && AbsForward.X > AbsForward.Z)
+		{
+			TargetLocation.X = CurrentCameraLocation.X;
+			TargetLocation.Y = ActorLocation.Y;
+			TargetLocation.Z = ActorLocation.Z;
+		}
+		// Front / Back View: Y축에서 보는 뷰
+		else if (AbsForward.Y > AbsForward.X && AbsForward.Y > AbsForward.Z)
+		{
+			TargetLocation.X = ActorLocation.X;
+			TargetLocation.Y = CurrentCameraLocation.Y;
+			TargetLocation.Z = ActorLocation.Z;
+		}
+		// Top / Bottom View: Z축에서 보는 뷰
+		else
+		{
+			TargetLocation.X = ActorLocation.X;
+			TargetLocation.Y = ActorLocation.Y;
+			TargetLocation.Z = CurrentCameraLocation.Z;
+		}
+	}
+	else
+	{
+		// 카메라의 정확한 Forward 벡터를 사용하여 화면 중앙 배치 보정
+		// Camera 클래스에서 이미 계산된 정확한 Forward 벡터 사용
+		FVector CameraForward = InCamera->GetForward();
+		TargetLocation = ActorLocation - (CameraForward * FOCUS_DISTANCE);
+	}
 
 	// Actor를 정확히 화면 중앙에 놓기 위해 Forward 방향의 반대로 거리를 둔 위치에 카메라 배치
 	// 이렇게 하면 카메라 회전 유지 상태에서 Actor가 정확히 화면 중심에 위치함
-	CameraTargetLocation = ActorLocation - (CameraForward * FOCUS_DISTANCE);
+	CameraTargetLocations[InCamera->GetName()] = TargetLocation;
 
 	// 카메라 애니메이션 시작
 	bIsCameraAnimating = true;
@@ -368,12 +422,12 @@ void USceneHierarchyWidget::FocusOnActor(TObjectPtr<AActor> InActor)
 }
 
 /**
- * @brief 카메라 애니메이션을 업데이트하는 함수
+ * @brief 단일 카메라 애니메이션을 업데이트하는 함수
  * 선형 보간을 활용한 부드러운 움직임을 구현함
  */
-void USceneHierarchyWidget::UpdateCameraAnimation()
+void USceneHierarchyWidget::UpdateCameraAnimation(TObjectPtr<UCamera> InCamera)
 {
-	if (!bIsCameraAnimating || !Camera)
+	if (!bIsCameraAnimating || !InCamera)
 	{
 		return;
 	}
@@ -404,12 +458,15 @@ void USceneHierarchyWidget::UpdateCameraAnimation()
 		SmoothProgress = 1.0f - 8.0f * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd;
 	}
 
+	FVector CameraStartLocation = CameraStartLocations[InCamera->GetName()];
+	FVector CameraTargetLocation = CameraTargetLocations[InCamera->GetName()];
+
 	// Linear interpolation으로 위치 보간
 	FVector CurrentLocation = CameraStartLocation + (CameraTargetLocation - CameraStartLocation) * SmoothProgress;
 
 	// 카메라 위치 설정
 	// 의도가 카메라의 위치만 옮겨서 화면 중앙에 오브젝트를 두는 것이었기 때문에 Rotation은 처리하지 않음
-	Camera->SetLocation(CurrentLocation);
+	InCamera->SetLocation(CurrentLocation);
 
 	if (!bIsCameraAnimating)
 	{
@@ -522,7 +579,7 @@ void USceneHierarchyWidget::StartRenaming(TObjectPtr<AActor> InActor)
 	RenamingActor = InActor;
 	FString CurrentName = InActor->GetName().ToString();
 
-	// 현재 이름을 버퍼에 복사 - Detail 패널과 동일한 방식 사용
+	// 현재 이름을 버퍼에 복사
 	strncpy_s(RenameBuffer, CurrentName.data(), sizeof(RenameBuffer) - 1);
 	RenameBuffer[sizeof(RenameBuffer) - 1] = '\0';
 

@@ -17,10 +17,7 @@ public:
 	void Update() override;
 	void RenderWidget() override;
 
-	// Camera 설정을 위한 함수
-	void SetCamera(UCamera* InCamera) { Camera = InCamera; }
-
-	// Special Member Function
+	// Special member function
 	USceneHierarchyWidget();
 	~USceneHierarchyWidget() override;
 
@@ -39,17 +36,14 @@ private:
 	char RenameBuffer[256] = "";
 	double LastClickTime = 0.0f;
 	TObjectPtr<AActor> LastClickedActor = nullptr;
-	static constexpr float RENAME_CLICK_DELAY = 0.5f; // 두 번째 클릭 간격
-
-	// 카메라 참조
-	TObjectPtr<UCamera> Camera = nullptr;
+	static constexpr float RENAME_CLICK_DELAY = 0.3f; // 두 번째 클릭 간격
 
 	// Camera focus animation
 	bool bIsCameraAnimating = false;
 	float CameraAnimationTime = 0.0f;
-	FVector CameraStartLocation;
-	FVector CameraTargetLocation;
-	FVector CameraCurrentRotation;
+	TMap<FName, FVector> CameraStartLocations;
+	TMap<FName, FVector> CameraTargetLocations;
+	TMap<FName, FVector> CameraCurrentRotations;
 
 	// Heuristic constant
 	static constexpr float CAMERA_ANIMATION_DURATION = 0.8f;
@@ -58,8 +52,8 @@ private:
 	// Camera movement
 	void RenderActorInfo(TObjectPtr<AActor> InActor, int32 InIndex);
 	void SelectActor(TObjectPtr<AActor> InActor, bool bInFocusCamera = false);
-	void FocusOnActor(TObjectPtr<AActor> InActor);
-	void UpdateCameraAnimation();
+	void FocusOnActor(TObjectPtr<UCamera> InCamera, TObjectPtr<AActor> InActor);
+	void UpdateCameraAnimation(TObjectPtr<UCamera> InCamera);
 
 	// 검색 기능
 	void RenderSearchBar();

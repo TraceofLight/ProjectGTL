@@ -34,7 +34,7 @@ public:
     void GetLeafRects(TArray<FRect>& OutRects);
 
     // 현재 마우스가 위치한 뷰포트 인덱스(-1이면 없음)
-    int32 GetViewportIndexUnderMouse() const;
+    int8 GetViewportIndexUnderMouse();
 
     // 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
     bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;
@@ -65,7 +65,7 @@ private:
 	TArray<FViewport*>       Viewports;
 	TArray<FViewportClient*> Clients;
 
-    UCamera* OrthographicCamera = nullptr;
+    TObjectPtr<UCamera> OrthographicCamera = nullptr;
 
     // 프레임 타이밍
     double LastTime = 0.0;
@@ -81,4 +81,7 @@ private:
     // Pending view type changes from toolbar (applied at start of Update before rendering)
     TArray<bool>      PendingTypeDirty;
     TArray<EViewType> PendingTypeValue;
+
+	// Memorize last focused view
+	int8 LastFocusedViewIndex = -1;
 };
