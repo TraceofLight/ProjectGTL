@@ -18,7 +18,7 @@ using std::is_base_of_v;
  */
 template <typename T>
 TObjectPtr<T> NewObject(TObjectPtr<UObject> InOuter = nullptr, TObjectPtr<UClass> InClass = nullptr,
-                        const FName& InName = FName::None, uint32 InFlags = 0)
+                        const FName& InName = FName::FName_None, uint32 InFlags = 0)
 {
 	static_assert(is_base_of_v<UObject, T>, "생성할 클래스는 UObject를 반드시 상속 받아야 합니다");
 
@@ -42,7 +42,7 @@ TObjectPtr<T> NewObject(TObjectPtr<UObject> InOuter = nullptr, TObjectPtr<UClass
 	TObjectPtr<T> NewObject = TObjectPtr<T>(new T());
 	if (NewObject)
 	{
-		if (InName != FName::None)
+		if (InName != FName::FName_None)
 		{
 			NewObject->SetName(InName);
 		}
@@ -65,7 +65,7 @@ TObjectPtr<T> NewObject(TObjectPtr<UObject> InOuter = nullptr, TObjectPtr<UClass
  */
 template <typename T>
 TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransform = FTransform(),
-                         const FName& InName = FName::None)
+                         const FName& InName = FName::FName_None)
 {
 	static_assert(is_base_of_v<AActor, T>, "생성할 클래스는 AActor를 반드시 상속 받아야 합니다");
 

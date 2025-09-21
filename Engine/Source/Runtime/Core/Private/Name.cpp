@@ -5,7 +5,7 @@ TArray<FString> FName::DisplayNames = {"None"};
 TMap<FString, uint32> FName::NameMap = {{"none", 0}};
 uint32 FName::NextIndex = 1;
 
-const FName FName::None(0);
+const FName FName::FName_None(0);
 
 /**
  * @brief FName 생성자

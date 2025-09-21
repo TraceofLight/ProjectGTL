@@ -3,7 +3,9 @@
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Manager/Asset/Public/AssetManager.h"
-//#include "Manager/Level/Public/Level.h"
+
+// TODO(KHJ): GetNextGenNumber로 처리하도록 해야 함
+static uint32 NextStaticMeshActorID = 0;
 
 IMPLEMENT_CLASS(UStaticMeshActorFactory, UActorFactory)
 
@@ -12,6 +14,13 @@ UStaticMeshActorFactory::UStaticMeshActorFactory()
 {
 	// 기본 설정
 	CurrentStaticMesh = nullptr;
+
+	// Support class setting
+	SupportedClass = AStaticMeshActor::StaticClass();
+	Description = "Static Mesh Actor Factory";
+
+	// Register self
+	RegisterFactory(TObjectPtr<UFactory>(this));
 }
 
 TObjectPtr<AStaticMeshActor> UStaticMeshActorFactory::CreateStaticMeshActor(
@@ -64,7 +73,8 @@ TObjectPtr<AStaticMeshActor> UStaticMeshActorFactory::CreateStaticMeshActorFromF
 
 	if (!StaticMesh)
 	{
-		UE_LOG_ERROR("UStaticMeshActorFactory::CreateStaticMeshActorFromFile - StaticMesh 로드 실패: %s", InObjFilePath.c_str());
+		UE_LOG_ERROR("UStaticMeshActorFactory::CreateStaticMeshActorFromFile - StaticMesh 로드 실패: %s",
+		             InObjFilePath.c_str());
 		return nullptr;
 	}
 
@@ -74,8 +84,10 @@ TObjectPtr<AStaticMeshActor> UStaticMeshActorFactory::CreateStaticMeshActorFromF
 
 TObjectPtr<AActor> UStaticMeshActorFactory::CreateNewActor()
 {
-	// StaticMeshActor 생성
-	TObjectPtr<AStaticMeshActor> NewStaticMeshActor = NewObject<AStaticMeshActor>();
+	TObjectPtr<AStaticMeshActor> NewStaticMeshActor =
+		Cast<AStaticMeshActor>(AStaticMeshActor::CreateDefaultObjectAStaticMeshActor());
+
+	NewStaticMeshActor->SetDisplayName("StaticMeshActor_" + to_string(++NextStaticMeshActorID));
 
 	if (NewStaticMeshActor && CurrentStaticMesh)
 	{
@@ -100,6 +112,6 @@ void UStaticMeshActorFactory::PostCreateActor(AActor* InActor, const FTransform&
 		StaticMeshActor->SetActorScale3D(InTransform.Scale);
 
 		UE_LOG_INFO("StaticMeshActor 초기화 완료 - 위치: (%f, %f, %f)",
-			InTransform.Location.X, InTransform.Location.Y, InTransform.Location.Z);
+		            InTransform.Location.X, InTransform.Location.Y, InTransform.Location.Z);
 	}
 }

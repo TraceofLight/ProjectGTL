@@ -57,14 +57,14 @@ private:
 template <typename T>
 TObjectPtr<T> AActor::CreateDefaultSubobject(const FName& InName)
 {
-	static_assert(std::is_base_of_v<UActorComponent, T>, "CreateDefaultSubobject can only be used with UActorComponent derivatives");
+	static_assert(std::is_base_of_v<UActorComponent, T>, "CreateDefaultSubobject는 UActorComponent를 상속 받아야 합니다");
 
 	TObjectPtr<T> NewComponent = TObjectPtr<T>(new T());
 
 	if (NewComponent)
 	{
 		// Component 기본 설정
-		if (InName != FName::None)
+		if (InName != FName::FName_None)
 		{
 			NewComponent->SetName(InName);
 		}

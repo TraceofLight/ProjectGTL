@@ -45,7 +45,7 @@ TObjectPtr<UObject> UFactory::FactoryCreateNew(TObjectPtr<UClass> InClass, TObje
 	if (NewObject)
 	{
 		// 이름 설정
-		if (InName != FName::None)
+		if (InName != FName::FName_None)
 		{
 			NewObject->SetName(InName);
 		}

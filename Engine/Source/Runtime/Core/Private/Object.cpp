@@ -9,7 +9,7 @@ TArray<TObjectPtr<UObject>> GUObjectArray;
 IMPLEMENT_CLASS_BASE(UObject)
 
 UObject::UObject()
-	: Name(FName::None), Outer(nullptr)
+	: Name(FName::FName_None), Outer(nullptr)
 {
 	UUID = UEngineStatics::GenUUID();
 	Name = FName("Object_" + to_string(UUID));
