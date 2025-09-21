@@ -21,7 +21,7 @@ void FViewportClient::Tick(float InDeltaSeconds)
         if (OrthoGraphicCamera)
         {
             ApplyOrthoBasisForViewType(*OrthoGraphicCamera);  // Top/Front/Right 등 기준 축 세팅
-            OrthoGraphicCamera->SetCameraType(ECameraType::ECT_Orthographic);
+           // OrthoGraphicCamera->SetCameraType(ECameraType::ECT_Orthographic);
             OrthoGraphicCamera->Update();                     // 내부에서 입력 처리 + View/Proj 갱신
         }
     }

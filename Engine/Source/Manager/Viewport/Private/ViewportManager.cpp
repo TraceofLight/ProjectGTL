@@ -30,6 +30,7 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 
 	OrthographicCamera = new UCamera;
 	OrthographicCamera->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthographicCamera->SetFarZ(10000.0f);
 
     // Start with a single window, initial rect (menu height applied on first Update)
     SWindow* Single = new SWindow();
@@ -123,7 +124,7 @@ void UViewportManager::BuildFourSplitLayout()
 		Clients[3]->SetViewMode(EViewMode::WireFrame);
 
         // 오쏘 3개는 공유 상태(센터/줌)에 맞춰 즉시 정렬
-        for (int idx : {0,1,2})
+        for (int idx : {1,2,3})
         {
             if (UCamera* O = Clients[idx]->GetOrthoCamera())
             {
@@ -138,6 +139,7 @@ void UViewportManager::BuildFourSplitLayout()
                 O->SetFovY(OrthoSharedFovY);
                 O->SetLocation(OrthoSharedCenter);
                 O->UpdateMatrixByOrth();
+				O->Update();
             }
         }
     }
@@ -313,7 +315,6 @@ void UViewportManager::UpdateActiveRmbViewportIndex()
 
 void UViewportManager::TickCameras(float DeltaSeconds)
 {
-	
     // 우클릭이 눌린 상태라면 해당 뷰포트의 카메라만 입력 반영(Update)
     // 그렇지 않다면(비상호작용) 카메라 이동 입력은 생략하여 타 뷰포트에 영향이 가지 않도록 함
     const int32 N = (int32)Clients.size();
@@ -342,6 +343,25 @@ void UViewportManager::TickCameras(float DeltaSeconds)
         // 우클릭이 아닐 때는 입력 기반 이동이 없어도 무방하므로, 필요한 경우에만 Tick을 호출할 수 있음
         // 여기서는 보수적으로 아무 것도 하지 않음 (Draw에서 행렬 갱신 수행)
     }
+
+
+
+	if (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < N)
+	{
+		Clients[ActiveRmbViewportIdx]->Tick(DeltaSeconds);
+
+		// If current view is orthographic, update shared center/zoom and sync others
+		if (Clients[ActiveRmbViewportIdx]->IsOrtho())
+		{
+			if (UCamera* O = Clients[ActiveRmbViewportIdx]->GetOrthoCamera())
+			{
+				OrthoSharedCenter = O->GetLocation();
+				OrthoSharedFovY = O->GetFovY();
+				bOrthoSharedInit = true;
+				SyncOrthographicSharedState(ActiveRmbViewportIdx);
+			}
+		}
+	}
 }
 
 void UViewportManager::Update()
@@ -385,6 +405,7 @@ void UViewportManager::Update()
     // 2.7) 직교투영: 마우스가 올라가 있는 뷰포트에 대해 휠로 앞/뒤 도리 이동 처리 (RMB 여부 무관)
     {
         float WheelDelta = UInputManager::GetInstance().GetMouseWheelDelta();
+
         if (WheelDelta != 0.0f)
         {
             int32 idx = GetViewportIndexUnderMouse();
@@ -402,6 +423,7 @@ void UViewportManager::Update()
                         OrthoSharedFovY = O->GetFovY();
                         bOrthoSharedInit = true;
                         SyncOrthographicSharedState(idx);
+						UInputManager::GetInstance().SetMouseWheelDelta(0.0f);
                     }
                 }
             }
@@ -529,6 +551,7 @@ void UViewportManager::RenderOverlay()
         {
             if (curIdx >= 0 && curIdx < IM_ARRAYSIZE(IndexToViewType))
             {
+				UE_LOG("%d", curIdx);
                 EViewType NewType = IndexToViewType[curIdx];
 				Clients[i]->SetViewType(NewType);
 
@@ -546,10 +569,12 @@ void UViewportManager::RenderOverlay()
                     if (UCamera* O = Clients[i]->GetOrthoCamera())
                     {
                         Clients[i]->ApplyOrthoBasisForViewType(*O);
-                        O->SetCameraType(ECameraType::ECT_Orthographic);
+                        
                         // Sync with shared ortho state (center + zoom)
+						//UE_LOG("88888888");
                         if (!bOrthoSharedInit)
                         {
+							//UE_LOG("9999999");
                             OrthoSharedCenter = O->GetLocation();
                             OrthoSharedFovY = O->GetFovY();
                             bOrthoSharedInit = true;
@@ -559,6 +584,7 @@ void UViewportManager::RenderOverlay()
                         O->UpdateMatrixByOrth();
                         // Also push to other orthographic viewports
                         SyncOrthographicSharedState(i);
+						O->Update();
                     }
                 }
             }

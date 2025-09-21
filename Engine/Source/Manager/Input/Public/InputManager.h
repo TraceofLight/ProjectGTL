@@ -36,6 +36,7 @@ public:
 
 	// Mouse Wheel
 	float GetMouseWheelDelta() const { return MouseWheelDelta; }
+	void  SetMouseWheelDelta(float InMouseWheelDelta) { MouseWheelDelta = InMouseWheelDelta; }
 
 	// Double Click Detection
 	bool IsMouseDoubleClicked(EKeyInput InMouseButton) const;
