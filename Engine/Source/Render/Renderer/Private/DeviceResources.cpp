@@ -200,4 +200,5 @@ void UDeviceResources::UpdateViewport(float InMenuBarHeight)
 
 	Width = SwapChainDescription.BufferDesc.Width;
 	Height = SwapChainDescription.BufferDesc.Height;
+	//UE_LOG("%d   %d", Width, Height);
 }

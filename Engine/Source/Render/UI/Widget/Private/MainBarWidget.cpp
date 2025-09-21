@@ -54,6 +54,8 @@ void UMainBarWidget::RenderWidget()
 		// 뷰포트 조정을 위해 메뉴바 높이 저장
 		MenuBarHeight = ImGui::GetWindowSize().y;
 
+		//UE_LOG("%f", MenuBarHeight);
+
 		// 메뉴 Listing
 		RenderFileMenu();
 		RenderViewMenu();

@@ -5,9 +5,9 @@
 
 void UCamera::Update()
 {
-	const UInputManager& Input = UInputManager::GetInstance();
+    const UInputManager& Input = UInputManager::GetInstance();
 
-	FMatrix rotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
+    FMatrix rotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
 
 	FVector4 Forward4 = FVector4(1, 0, 0, 1) * rotationMatrix;
 	Forward = FVector(Forward4.X, Forward4.Y, Forward4.Z);
@@ -20,56 +20,83 @@ void UCamera::Update()
 	Up = Right.Cross(Forward);
 	Up.Normalize();
 
-	/**
-	 * @brief 마우스 우클릭을 하고 있는 동안 카메라 제어가 가능합니다.
-	 */
-	if (Input.IsKeyDown(EKeyInput::MouseRight))
-	{
-		/**
-		 * @brief W, A, S, D 는 각각 카메라의 상, 하, 좌, 우 이동을 담당합니다.
-		 */
-		FVector Direction = { 0,0,0 };
+    /**
+     * @brief 마우스 우클릭 제어: 투영 타입별로 동작을 분기합니다.
+     */
+    if (Input.IsKeyDown(EKeyInput::MouseRight))
+    {
+        if (CameraType == ECameraType::ECT_Orthographic)
+        {
+            // Ortho: WASD 이동은 유지, 마우스 드래그는 평면 상하좌우 패닝, 휠은 앞뒤 이동(도리)
+            FVector Direction = { 0,0,0 };
+            if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right; }
+            if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right; }
+            if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward; }
+            if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward; }
+            if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up; }
+            if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up; }
+            if (Direction.LengthSquared() > 0.0f)
+            {
+                Direction.Normalize();
+                RelativeLocation += Direction * CurrentMoveSpeed * GDeltaTime;
+            }
 
-		if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right; }
-		if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right; }
-		if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward; }
-		if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward; }
-		if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up; }
-		if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up; }
-		Direction.Normalize();
-		RelativeLocation += Direction * CurrentMoveSpeed * GDeltaTime;
+            // 마우스 드래그 → 패닝 (스크린 공간 X→Right, Y→Up)
+            const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
+            if (MouseDelta.X != 0.0f || MouseDelta.Y != 0.0f)
+            {
+                // OrthoWidth/Height 기반 픽셀당 월드 단위 추정
+                float widthPx = 1.0f, heightPx = 1.0f;
+                if (URenderer::GetInstance().GetDeviceResources())
+                {
+                    widthPx = max(1.0f, URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Width);
+                    heightPx = max(1.0f, URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Height);
+                }
+                const float OrthoWidthNow = 2.0f * std::tanf(FVector::GetDegreeToRadian(FovY) * 0.5f);
+                const float OrthoHeightNow = OrthoWidthNow / max(0.0001f, Aspect);
+                const float worldPerPixelX = OrthoWidthNow / widthPx;
+                const float worldPerPixelY = OrthoHeightNow / heightPx;
+                RelativeLocation += (-Right * MouseDelta.X * worldPerPixelX) + (Up * MouseDelta.Y * worldPerPixelY);
+            }
 
-		// 오른쪽 마우스 버튼 + 마우스 휠로 카메라 이동속도 조절
-		float WheelDelta = Input.GetMouseWheelDelta();
-		if (WheelDelta != 0.0f)
-		{
-			// 휠 위로 돌리면 속도 증가, 아래로 돌리면 속도 감소
-			AdjustMoveSpeed(WheelDelta * SPEED_ADJUST_STEP);
-		}
+            // Ortho 휠 도리는 뷰포트 매니저에서 "마우스가 올라가 있는 뷰포트" 기준으로 처리함
+        }
+        else // Perspective
+        {
+            // 기존 FPS 스타일 유지 (WASD + 마우스 회전 + 휠로 속도 조절)
+            FVector Direction = { 0,0,0 };
+            if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right; }
+            if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right; }
+            if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward; }
+            if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward; }
+            if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up; }
+            if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up; }
+            Direction.Normalize();
+            RelativeLocation += Direction * CurrentMoveSpeed * GDeltaTime;
 
-		/**
-		* @brief 마우스 위치 변화량을 감지하여 카메라의 회전을 담당합니다.
-		*/
-		const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
-		RelativeRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel;
-		RelativeRotation.Y += MouseDelta.Y * KeySensitivityDegPerPixel;
-		//UE_LOG("mouse_delta: %.2f, %.2f", MouseDelta.X * KeySensitivityDegPerPixel, MouseDelta.Y * KeySensitivityDegPerPixel);
+            float WheelDelta = Input.GetMouseWheelDelta();
+            if (WheelDelta != 0.0f)
+            {
+                AdjustMoveSpeed(WheelDelta * SPEED_ADJUST_STEP);
+            }
 
-		// Yaw 래핑(값이 무한히 커지지 않도록)
-		if (RelativeRotation.Z > 180.0f) RelativeRotation.Z -= 360.0f;
-		if (RelativeRotation.Z < -180.0f) RelativeRotation.Z += 360.0f;
+            const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
+            RelativeRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel;
+            RelativeRotation.Y += MouseDelta.Y * KeySensitivityDegPerPixel;
 
-		// Pitch 클램프(짐벌 플립 방지)
-		if (RelativeRotation.Y > 89.0f)  RelativeRotation.Y = 89.0f;
-		if (RelativeRotation.Y < -89.0f) RelativeRotation.Y = -89.0f;
-	}
+            if (RelativeRotation.Z > 180.0f) RelativeRotation.Z -= 360.0f;
+            if (RelativeRotation.Z < -180.0f) RelativeRotation.Z += 360.0f;
+            if (RelativeRotation.Y > 89.0f)  RelativeRotation.Y = 89.0f;
+            if (RelativeRotation.Y < -89.0f) RelativeRotation.Y = -89.0f;
+        }
+    }
 
-	if (URenderer::GetInstance().GetDeviceResources())
-	{
-		float Width = URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Width;
-		float Height = URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Height;
-		SetAspect(Width / Height);
-	}
+    if (URenderer::GetInstance().GetDeviceResources())
+    {
+        float Width = URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Width;
+        float Height = URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Height;
+        SetAspect(Width / Height);
+    }
 
 	switch (CameraType)
 	{
