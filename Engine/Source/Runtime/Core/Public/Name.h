@@ -17,7 +17,7 @@ public:
 	int32 DisplayIndex;
 	int32 ComparisonIndex;
 
-	static const FName None;
+	static const FName FName_None;
 
 	FName(const char* InStringPtr);
 	FName(const FString& InString);

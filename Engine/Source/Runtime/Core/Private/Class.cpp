@@ -59,10 +59,11 @@ bool UClass::IsChildOf(const TObjectPtr<UClass> InClass) const
  * @brief 새로운 인스턴스 생성
  * @return 생성된 객체 포인터
  */
-TObjectPtr<UObject> UClass::CreateDefaultObject() const
+TObjectPtr<UObject> UClass::CreateDefaultObject()
 {
 	if (Constructor)
 	{
+		++NextGenNumber;
 		return Constructor();
 	}
 
@@ -138,7 +139,7 @@ void UClass::PrintAllClasses()
 /**
  * @brief 안전하게 종료 전 ClassObject에 할당한 메모리를 free하는 함수
  */
-void UClass::Shutdown()
+bool UClass::Shutdown()
 {
 	for (TObjectPtr<UClass>& ClassObject : AllClasses)
 	{
@@ -151,5 +152,5 @@ void UClass::Shutdown()
 		}
 	}
 
-	(void)AllClasses.empty();
+	return AllClasses.empty();
 }

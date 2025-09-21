@@ -24,21 +24,24 @@ public:
 	static TObjectPtr<UClass> FindClass(const FString& InClassName);
 	static void SignUpClass(TObjectPtr<UClass> InClass);
 	static void PrintAllClasses();
-	static void Shutdown();
+	static bool Shutdown();
 
 	bool IsChildOf(TObjectPtr<UClass> InClass) const;
-	TObjectPtr<UObject> CreateDefaultObject() const;
+	TObjectPtr<UObject> CreateDefaultObject();
 
 	// Getter
 	const FName& GetClassTypeName() const { return ClassName; }
 	TObjectPtr<UClass> GetSuperClass() const { return SuperClass; }
 	size_t GetClassSize() const { return ClassSize; }
+	uint32 GetNextGenNumber() const { return NextGenNumber; }
+	void IncrementGenNumber() { ++NextGenNumber; }
 
 private:
 	FName ClassName;
 	TObjectPtr<UClass> SuperClass;
 	size_t ClassSize;
 	ClassConstructorType Constructor;
+	uint32 NextGenNumber = 0;
 
 	// Class Registry
 	static TArray<TObjectPtr<UClass>> AllClasses;
@@ -66,6 +69,7 @@ public: \
     static TObjectPtr<UClass> StaticClass(); \
     virtual TObjectPtr<UClass> GetClass() const; \
     static TObjectPtr<UObject> CreateDefaultObject##ClassName(); \
+    static uint32 GetNextGenNumber(); \
 private: \
     static TObjectPtr<UClass> ClassPrivate;
 
@@ -92,7 +96,12 @@ private: \
     } \
     TObjectPtr<UObject> ClassName::CreateDefaultObject##ClassName() \
     { \
+        ClassName::StaticClass()->IncrementGenNumber(); \
         return TObjectPtr<UObject>(new ClassName()); \
+    } \
+    uint32 ClassName::GetNextGenNumber() \
+    { \
+        return ClassName::StaticClass()->GetNextGenNumber(); \
     }
 
 /**

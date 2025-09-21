@@ -33,7 +33,7 @@ TObjectPtr<AActor> UActorFactory::CreateActor(TObjectPtr<UObject> InWorld, TObje
 
 	// UFactory의 FactoryCreateNew를 사용하여 생성
 	TObjectPtr<AActor> NewActor = Cast<AActor>(
-		FactoryCreateNew(GetSupportedClass(), InLevel, FName::None, InObjectFlags));
+		FactoryCreateNew(GetSupportedClass(), InLevel, FName::FName_None, InObjectFlags));
 
 	if (NewActor)
 	{

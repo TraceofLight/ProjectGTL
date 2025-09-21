@@ -93,7 +93,7 @@ bool ULevelManager::SaveCurrentLevel(const FString& InFilePath) const
 	if (FilePath.empty())
 	{
 		// 기본 파일명은 Level 이름으로 세팅
-		FilePath = GenerateLevelFilePath(CurrentLevel->GetName() == FName::None
+		FilePath = GenerateLevelFilePath(CurrentLevel->GetName() == FName::FName_None
 			                                 ? "Untitled"
 			                                 : CurrentLevel->GetName().ToString());
 	}
