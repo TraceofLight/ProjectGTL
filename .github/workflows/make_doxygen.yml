@@ -14,17 +14,8 @@ jobs:
             - name: Checkout Code
               uses: actions/checkout@v4
 
-            # 초콜릿티 패키지 캐싱
-            - name: Cache Chocolatey packages
-              id: choco-cache
-              uses: actions/cache@v4
-              with:
-                  path: C:\ProgramData\chocolatey
-                  key: choco-cache-${{ runner.os }}
-
-            # 캐시가 없을 때만 Doxygen과 Graphviz 설치
-            - name: Install Doxygen and Graphviz if cache missed
-              if: steps.choco-cache.outputs.cache-hit != 'true'
+            # Doxygen과 Graphviz 설치
+            - name: Install Doxygen and Graphviz
               run: |
                   choco install doxygen.install -y
                   choco install graphviz -y
