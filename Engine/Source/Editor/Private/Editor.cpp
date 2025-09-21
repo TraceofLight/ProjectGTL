@@ -7,6 +7,8 @@
 #include "Editor/Public/Axis.h"
 #include "Editor/Public/ObjectPicker.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Window/Public/ViewportClient.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Manager/UI/Public/UIManager.h"
@@ -18,9 +20,8 @@
 #include "Global/Quaternion.h"
 
 UEditor::UEditor()
-	: ObjectPicker(Camera)
 {
-	ObjectPicker.SetCamera(Camera);
+    // ObjectPicker camera will be assigned per-frame from active viewport
 
 	// Set Camera to Control Panel
 	auto& UIManager = UUIManager::GetInstance();
@@ -35,7 +36,7 @@ UEditor::UEditor()
 void UEditor::Update()
 {
 	auto& Renderer = URenderer::GetInstance();
-	Camera.Update();
+    // Stop updating legacy editor camera for picking; per-viewport cameras tick via ViewportManager
 
 	AActor* SelectedActor = ULevelManager::GetInstance().GetCurrentLevel()->GetSelectedActor();
 	if (SelectedActor)
@@ -72,7 +73,7 @@ void UEditor::Update()
 
 	ProcessMouseInput(ULevelManager::GetInstance().GetCurrentLevel());
 
-	Renderer.UpdateConstant(Camera.GetFViewProjConstants());
+    // Per-viewport constants are set in renderer per tile; no legacy editor camera binding here
 
 	//BatchLines.UpdateConstant({ {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f} });
 }
@@ -84,14 +85,31 @@ void UEditor::RenderEditor()
 	Axis.Render();
 
 	AActor* SelectedActor = ULevelManager::GetInstance().GetCurrentLevel()->GetSelectedActor();
-	Gizmo.RenderGizmo(SelectedActor, Camera.GetLocation());
+    if (UCamera* ActiveCam = GetActivePickingCamera())
+    {
+        Gizmo.RenderGizmo(SelectedActor, ActiveCam->GetLocation());
+    }
+    else
+    {
+        Gizmo.RenderGizmo(SelectedActor, Camera.GetLocation());
+    }
 }
 
 void UEditor::ProcessMouseInput(ULevel* InLevel)
 {
 	FRay WorldRay;
 	const UInputManager& InputManager = UInputManager::GetInstance();
-	FVector MousePositionNdc = InputManager.GetMouseNDCPosition();
+	float NdcX = 0.0f, NdcY = 0.0f;
+
+	// Use per-viewport local NDC based on mouse position
+	auto& ViewportManager = UViewportManager::GetInstance();
+	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+
+	if (ViewportIndex < 0)
+	{
+		ViewportIndex = 0;
+	}
+	bool bHaveLocal = ViewportManager.ComputeLocalNDCForViewport(ViewportIndex, NdcX, NdcY);
 
 	static EGizmoDirection PreviousGizmoDirection = EGizmoDirection::None;
 	TObjectPtr<AActor> ActorPicked = InLevel->GetSelectedActor();
@@ -110,7 +128,15 @@ void UEditor::ProcessMouseInput(ULevel* InLevel)
 	{
 		Gizmo.EndDrag();
 	}
-	WorldRay = Camera.ConvertToWorldRay(MousePositionNdc.X, MousePositionNdc.Y);
+	// Choose active viewport camera (fallback to first)
+	UCamera* PickingCamera = GetActivePickingCamera();
+	if (!PickingCamera)
+	{
+		return;
+	}
+	WorldRay = PickingCamera->ConvertToWorldRay(bHaveLocal ? NdcX : InputManager.GetMouseNDCPosition().X,
+	                                           bHaveLocal ? NdcY : InputManager.GetMouseNDCPosition().Y);
+	ObjectPicker.SetCamera(PickingCamera);
 
 	if (Gizmo.IsDragging() && Gizmo.GetSelectedActor())
 	{
@@ -118,19 +144,19 @@ void UEditor::ProcessMouseInput(ULevel* InLevel)
 		{
 		case EGizmoMode::Translate:
 			{
-				FVector GizmoDragLocation = GetGizmoDragLocation(WorldRay);
+				FVector GizmoDragLocation = GetGizmoDragLocation(WorldRay, *PickingCamera);
 				Gizmo.SetLocation(GizmoDragLocation);
 				break;
 			}
 		case EGizmoMode::Rotate:
 			{
-				FVector GizmoDragRotation = GetGizmoDragRotation(WorldRay);
+				FVector GizmoDragRotation = GetGizmoDragRotation(WorldRay, *PickingCamera);
 				Gizmo.SetActorRotation(GizmoDragRotation);
 				break;
 			}
 		case EGizmoMode::Scale:
 			{
-				FVector GizmoDragScale = GetGizmoDragScale(WorldRay);
+				FVector GizmoDragScale = GetGizmoDragScale(WorldRay, *PickingCamera);
 				Gizmo.SetActorScale(GizmoDragScale);
 			}
 		}
@@ -207,7 +233,7 @@ TArray<UPrimitiveComponent*> UEditor::FindCandidatePrimitives(ULevel* InLevel)
 }
 
 
-FVector UEditor::GetGizmoDragLocation(FRay& WorldRay)
+FVector UEditor::GetGizmoDragLocation(FRay& OutWorldRay, UCamera& OutCamera)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{Gizmo.GetGizmoLocation()};
@@ -220,8 +246,8 @@ FVector UEditor::GetGizmoDragLocation(FRay& WorldRay)
 		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
 	}
 
-	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin,
-	                                       Camera.CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis), MouseWorld))
+	if (ObjectPicker.IsRayCollideWithPlane(OutWorldRay, PlaneOrigin,
+			OutCamera.CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis), MouseWorld))
 	{
 		FVector MouseDistance = MouseWorld - Gizmo.GetDragStartMouseLocation();
 		return Gizmo.GetDragStartActorLocation() + GizmoAxis * MouseDistance.Dot(GizmoAxis);
@@ -230,7 +256,7 @@ FVector UEditor::GetGizmoDragLocation(FRay& WorldRay)
 		return Gizmo.GetGizmoLocation();
 }
 
-FVector UEditor::GetGizmoDragRotation(FRay& WorldRay)
+FVector UEditor::GetGizmoDragRotation(FRay& WorldRay, UCamera& Camera)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{Gizmo.GetGizmoLocation()};
@@ -273,7 +299,7 @@ FVector UEditor::GetGizmoDragRotation(FRay& WorldRay)
 		return Gizmo.GetActorRotation();
 }
 
-FVector UEditor::GetGizmoDragScale(FRay& WorldRay)
+FVector UEditor::GetGizmoDragScale(FRay& WorldRay, UCamera& Camera)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin = Gizmo.GetGizmoLocation();
@@ -314,4 +340,35 @@ FVector UEditor::GetGizmoDragScale(FRay& WorldRay)
 	}
 	else
 		return Gizmo.GetActorScale();
+}
+
+UCamera* UEditor::GetActivePickingCamera()
+{
+    auto& ViewportManager = UViewportManager::GetInstance();
+    const auto& Clients = ViewportManager.GetClients();
+    int32 Index = ViewportManager.GetViewportIndexUnderMouse();
+
+	if (Index < 0)
+	{
+		Index = 0;
+	}
+
+	if (Index >= (int32)Clients.size())
+	{
+		return nullptr;
+	}
+
+    FViewportClient* ViewportClient = Clients[Index];
+	if (!ViewportClient)
+	{
+		return nullptr;
+	}
+    if (ViewportClient->GetViewType() == EViewType::Perspective)
+    {
+        return ViewportClient->GetPerspectiveCamera();
+    }
+    else
+    {
+        return ViewportClient->GetOrthoCamera();
+    }
 }

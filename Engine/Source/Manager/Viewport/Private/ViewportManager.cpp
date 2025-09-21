@@ -137,6 +137,19 @@ void UViewportManager::GetLeafRects(TArray<FRect>& OutRects)
 
 void UViewportManager::CreateViewportsAndClients(int32 InCount)
 {
+	// 0) 이전 첫 번째 카메라 상태 백업 (레이아웃 전환 시 1번 뷰 카메라를 유지하기 위함)
+	bool bHadPrev = !Clients.empty();
+	UCamera PrevPerspCopy; UCamera PrevOrthoCopy;
+	if (bHadPrev)
+	{
+		FViewportClient* PrevC = Clients[0];
+		if (PrevC)
+		{
+			if (auto* P = PrevC->GetPerspectiveCamera()) { PrevPerspCopy = *P; }
+			if (auto* O = PrevC->GetOrthoCamera())       { PrevOrthoCopy = *O; }
+		}
+	}
+
 	// 1) 기존 자원 정리 (매니저가 소유하므로 직접 delete)
 	for (FViewport* Viewport : Viewports) { delete Viewport; }
 	for (FViewportClient* ViewportClient : Clients) { delete ViewportClient; }
@@ -171,6 +184,17 @@ void UViewportManager::CreateViewportsAndClients(int32 InCount)
 
 		Viewports.emplace_back(VP);
 		Clients.emplace_back(CL);
+	}
+
+	// 2.5) 이전 1번 뷰 카메라 상태를 신규 1번에 반영 (요구사항: 단일/4분할 전환해도 1번 카메라 유지)
+	if (InCount >= 1 && bHadPrev)
+	{
+		FViewportClient* NewC = Clients[0];
+		if (NewC)
+		{
+			if (auto* NewP = NewC->GetPerspectiveCamera()) { *NewP = PrevPerspCopy; }
+			if (auto* NewO = NewC->GetOrthoCamera())       { *NewO = PrevOrthoCopy; }
+		}
 	}
 
 	// 3) 현재 리프 Rect를 뽑아 뷰포트에 반영
@@ -335,6 +359,41 @@ void UViewportManager::TickInput()
         Capture->OnMouseUp(P, /*Button*/0);
         Capture = nullptr;
     }
+}
+
+int32 UViewportManager::GetViewportIndexUnderMouse() const
+{
+    const auto& Input = UInputManager::GetInstance();
+    const FVector& MousePosition = Input.GetMousePosition();
+    const LONG MousePositionX = (LONG)MousePosition.X;
+    const LONG MousePositionY = (LONG)MousePosition.Y;
+
+    const int32 N = (int32)Viewports.size();
+    for (int32 i = 0; i < N; ++i)
+    {
+        const FRect& Rect = Viewports[i]->GetRect();
+        if (MousePositionX >= Rect.X && MousePositionX < Rect.X + Rect.W && MousePositionY >= Rect.Y && MousePositionY < Rect.Y + Rect.H)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool UViewportManager::ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const
+{
+    if (Index < 0 || Index >= (int32)Viewports.size()) return false;
+    const FRect& Rect = Viewports[Index]->GetRect();
+    if (Rect.W <= 0 || Rect.H <= 0) return false;
+
+    const FVector& MousePosition = UInputManager::GetInstance().GetMousePosition();
+    const float LocalX = (MousePosition.X - (float)Rect.X);
+    const float LocalY = (MousePosition.Y - (float)Rect.Y);
+    const float Width = (float)Rect.W;
+    const float Height = (float)Rect.H;
+    OutNdcX = (LocalX / Width) * 2.0f - 1.0f;
+    OutNdcY = 1.0f - (LocalY / Height) * 2.0f;
+    return true;
 }
 
 
