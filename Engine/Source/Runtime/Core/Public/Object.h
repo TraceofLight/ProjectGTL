@@ -30,9 +30,10 @@ public:
 	// Special Member Function
 	UObject();
 	explicit UObject(const FName& InName);
-	virtual ~UObject() = default;
+	virtual ~UObject();
 
 	uint32 GetUUID() const { return UUID; }
+	uint32 GetInternalIndex() const { return InternalIndex; }
 
 private:
 	uint32 UUID;
@@ -44,6 +45,7 @@ private:
 	uint32 AllocatedCounts = 0;
 
 	void PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta);
+	void SetInternalIndex(uint32 NewIndex) { InternalIndex = NewIndex; }
 };
 
 

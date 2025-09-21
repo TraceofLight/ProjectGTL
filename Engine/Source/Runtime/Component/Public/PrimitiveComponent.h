@@ -59,7 +59,7 @@ protected:
 	uint32 NumVertices = 0;
 	D3D11_PRIMITIVE_TOPOLOGY Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	FRenderState RenderState = {};
-	EPrimitiveType Type = EPrimitiveType::Cube;
+	EPrimitiveType Type = EPrimitiveType::End;
 	//
 
 	bool bVisible = true;

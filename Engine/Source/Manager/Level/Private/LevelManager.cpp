@@ -48,11 +48,10 @@ void ULevelManager::LoadLevel(const FName& InName)
 
 void ULevelManager::Shutdown()
 {
-	// TODO: 주석 풀면 엔진 끌때 터짐 메모리 누수 다 잡고 주석 풀 것
-	/*for (auto& Level : Levels)
+	for (auto& Level : Levels)
 	{
 		SafeDelete(Level.second);
-	}*/
+	}
 	delete Editor;
 }
 
