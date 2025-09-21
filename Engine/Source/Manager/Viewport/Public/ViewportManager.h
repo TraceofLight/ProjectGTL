@@ -52,11 +52,15 @@ private:
     void PumpAllViewportInput();                   // 각 뷰포트 → 클라 입력 전달
     void TickCameras(float InDeltaSeconds);          // 카메라 업데이트 일원화(공유 오쏘 1회)
     void UpdateActiveRmbViewportIndex();            // 우클릭 드래그 대상 뷰포트 인덱스 계산
+    void SyncOrthographicSharedState(int32 SourceIdx); // 오쏘 공유 상태를 모든 오쏘 뷰포트에 반영
 
 private:
     SWindow* Root = nullptr;
     SWindow* Capture = nullptr;
     bool bFourSplitActive = false;
+
+    // App main window for querying current client size each frame
+    FAppWindow* AppWindow = nullptr;
 
 	TArray<FViewport*>       Viewports;
 	TArray<FViewportClient*> Clients;
@@ -68,4 +72,13 @@ private:
 
     // 현재 우클릭(카메라 제어) 입력이 적용될 뷰포트 인덱스 (-1이면 없음)
     int32 ActiveRmbViewportIdx = -1;
+
+    // Shared orthographic state (center & zoom)
+    bool  bOrthoSharedInit = false;
+    FVector OrthoSharedCenter{ 0,0,0 };
+    float OrthoSharedFovY = 160.0f; // default wide view
+
+    // Pending view type changes from toolbar (applied at start of Update before rendering)
+    TArray<bool>      PendingTypeDirty;
+    TArray<EViewType> PendingTypeValue;
 };
