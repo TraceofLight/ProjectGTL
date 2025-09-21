@@ -8,7 +8,7 @@
 #include "Asset/Public/ObjImporter.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Factory/Public/NewObject.h"
-#include "Core/Public/ObjectIterator.h"
+#include "Runtime/Core/Public/ObjectIterator.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UAssetManager)
 

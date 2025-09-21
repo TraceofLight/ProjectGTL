@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Factory/Component/Public/ComponentFactory.h"
-#include "Component/Public/LineComponent.h"
-#include "Component/Public/SceneComponent.h"
-#include "Component/Public/PrimitiveComponent.h"
-#include "Component/Public/StaticMeshComponent.h"
+#include "Runtime/Component/Public/LineComponent.h"
+#include "Runtime/Component/Public/SceneComponent.h"
+#include "Runtime/Component/Public/PrimitiveComponent.h"
+#include "Runtime/Component/Public/StaticMeshComponent.h"
 
 // 정적 인스턴스
 static TObjectPtr<TComponentFactory<ULineComponent>> GLineComponentFactory;
