@@ -132,7 +132,7 @@ enum class EPrimitiveType : uint8
 	Cube,
 	Triangle,
 	Square,
-	StaticMesh,
+	StaticMeshComp,
 	Torus,
 	Cylinder,
 	Cone,

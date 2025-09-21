@@ -89,10 +89,9 @@ void UObject::PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta)
  */
 bool UObject::IsA(TObjectPtr<UClass> InClass) const
 {
-	if (!InClass)
+	if (!InClass || this == nullptr)
 	{
 		return false;
 	}
-
 	return GetClass()->IsChildOf(InClass);
 }

@@ -38,7 +38,7 @@ TObjectPtr<AStaticMeshActor> UStaticMeshActorFactory::CreateStaticMeshActor(
 
 	if (StaticMeshActor)
 	{
-		UE_LOG_SUCCESS("StaticMeshActor 생성 성공: %s", InStaticMesh->GetSourceFilePath().c_str());
+		UE_LOG_SUCCESS("StaticMeshActor 생성 성공: %s", InStaticMesh->GetAssetPathFileName().c_str());
 	}
 	else
 	{

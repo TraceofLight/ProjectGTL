@@ -2,10 +2,6 @@
 #include "Factory/Public/FactorySystem.h"
 
 #include "Factory/Public/Factory.h"
-#include "Factory/Actor/Public/CubeActorFactory.h"
-#include "Factory/Actor/Public/SphereActorFactory.h"
-#include "Factory/Actor/Public/TriangleActorFactory.h"
-#include "Factory/Actor/Public/SquareActorFactory.h"
 #include "Factory/Actor/Public/StaticMeshActorFactory.h"
 
 bool FFactorySystem::bIsInitialized = false;
@@ -25,10 +21,6 @@ void FFactorySystem::Initialize()
 	UE_LOG_SYSTEM("FactorySystem: Factory System을 초기화합니다...");
 
 	// Factory 인스턴스 생성 (생성자에서 자동 등록)
-	static UCubeActorFactory CubeFactory;
-	static USphereActorFactory SphereFactory;
-	static UTriangleActorFactory TriangleFactory;
-	static USquareActorFactory SquareFactory;
 	static UStaticMeshActorFactory StaticMeshFactory;
 
 	bIsInitialized = true;

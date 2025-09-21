@@ -1,20 +1,11 @@
 #include "pch.h"
 #include "Factory/Component/Public/ComponentFactory.h"
-
-#include "Runtime/Component/Mesh/Public/CubeComponent.h"
-#include "Runtime/Component/Mesh/Public/SphereComponent.h"
-#include "Runtime/Component/Mesh/Public/TriangleComponent.h"
-#include "Runtime/Component/Mesh/Public/SquareComponent.h"
 #include "Runtime/Component/Public/LineComponent.h"
 #include "Runtime/Component/Public/SceneComponent.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 
 // 정적 인스턴스
-static TObjectPtr<TComponentFactory<UCubeComponent>> GCubeComponentFactory;
-static TObjectPtr<TComponentFactory<USphereComponent>> GSphereComponentFactory;
-static TObjectPtr<TComponentFactory<UTriangleComponent>> GTriangleComponentFactory;
-static TObjectPtr<TComponentFactory<USquareComponent>> GSquareComponentFactory;
 static TObjectPtr<TComponentFactory<ULineComponent>> GLineComponentFactory;
 static TObjectPtr<TComponentFactory<USceneComponent>> GSceneComponentFactory;
 static TObjectPtr<TComponentFactory<UPrimitiveComponent>> GPrimitiveComponentFactory;
@@ -25,10 +16,6 @@ struct FComponentFactoryRegistrar
 {
 	FComponentFactoryRegistrar()
 	{
-		UFactory::RegisterFactory(GCubeComponentFactory);
-		UFactory::RegisterFactory(GSphereComponentFactory);
-		UFactory::RegisterFactory(GTriangleComponentFactory);
-		UFactory::RegisterFactory(GSquareComponentFactory);
 		UFactory::RegisterFactory(GLineComponentFactory);
 		UFactory::RegisterFactory(GSceneComponentFactory);
 		UFactory::RegisterFactory(GPrimitiveComponentFactory);

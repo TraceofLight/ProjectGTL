@@ -22,6 +22,9 @@ public:
 	// Getter
 	TObjectPtr<ULevel> GetCurrentLevel() const { return CurrentLevel; }
 
+	// Level Management
+	void ClearCurrentLevel();
+
 	// Save & Load System
 	bool SaveCurrentLevel(const FString& InFilePath) const;
 	bool LoadLevel(const FString& InLevelName, const FString& InFilePath);
@@ -39,4 +42,7 @@ private:
 	TObjectPtr<ULevel> CurrentLevel;
 	TMap<FName, TObjectPtr<ULevel>> Levels;
 	TObjectPtr<UEditor> Editor;
+
+	// Helper Functions
+	void RestoreCameraFromMetadata(const struct FCameraMetadata& InCameraMetadata);
 };

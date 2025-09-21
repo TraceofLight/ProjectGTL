@@ -8,6 +8,7 @@
 #include "Asset/Public/ObjImporter.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Factory/Public/NewObject.h"
+#include "Runtime/Core/Public/ObjectIterator.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UAssetManager)
 
@@ -55,10 +56,7 @@ void UAssetManager::Initialize()
 	LoadStaticMeshShaders();
 
 	// 모든 프리미티브 StaticMesh 로드
-	LoadAllPrimitiveStaticMeshes();
-
-	// test.obj 로드 (하위 호환성을 위해 유지)
-	//LoadStaticMesh("Data/Cylinder.obj");
+	InitializeBasicPrimitives();
 }
 
 void UAssetManager::Release()
@@ -75,12 +73,13 @@ void UAssetManager::Release()
 	// Texture Resource 해제
 	ReleaseAllTextures();
 
-	// StaticMesh 애셋 해제
-	for (auto& Pair : StaticMeshAssets)
+	// TODO: 주석 풀면 엔진 끌때 터짐 메모리 누수 다 잡고 주석 풀 것
+	// StaticMesh 애셋 해제 - TObjectIterator를 사용하여 모든 StaticMesh 삭제
+	/*for (TObjectIterator<UStaticMesh> It; It; ++It)
 	{
-		delete Pair.second;
-	}
-	StaticMeshAssets.clear();
+		UStaticMesh* StaticMesh = *It;
+		delete StaticMesh;
+	}*/
 }
 
 TArray<FVertex>* UAssetManager::GetVertexData(EPrimitiveType InType)
@@ -376,10 +375,13 @@ ID3D11ShaderResourceView* UAssetManager::CreateTextureFromMemory(const void* InD
 UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 {
 	// 이미 로드된 StaticMesh인지 확인
-	auto It = StaticMeshAssets.find(InFilePath);
-	if (It != StaticMeshAssets.end())
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
 	{
-		return It->second;
+		UStaticMesh* StaticMesh = *It;
+		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		{
+			return StaticMesh;
+		}
 	}
 
 	// 새 StaticMesh 로드
@@ -397,9 +399,6 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 	{
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
 
-		// 캐시에 저장
-		StaticMeshAssets[InFilePath] = NewStaticMesh;
-
 		UE_LOG_SUCCESS("StaticMesh 로드 성공: %s", InFilePath.c_str());
 		return NewStaticMesh;
 	}
@@ -413,23 +412,44 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 UStaticMesh* UAssetManager::GetStaticMesh(const FString& InFilePath)
 {
-	auto It = StaticMeshAssets.find(InFilePath);
-	return It != StaticMeshAssets.end() ? It->second : nullptr;
+	// TObjectIterator를 사용하여 로드된 StaticMesh 검색
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	{
+		UStaticMesh* StaticMesh = *It;
+		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		{
+			return StaticMesh;
+		}
+	}
+	return nullptr;
 }
 
 void UAssetManager::ReleaseStaticMesh(const FString& InFilePath)
 {
-	auto It = StaticMeshAssets.find(InFilePath);
-	if (It != StaticMeshAssets.end())
+	// TObjectIterator를 사용하여 해당 StaticMesh 찾아서 삭제
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
 	{
-		delete It->second;
-		StaticMeshAssets.erase(It);
+		UStaticMesh* StaticMesh = *It;
+		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		{
+			delete StaticMesh;
+			break;
+		}
 	}
 }
 
 bool UAssetManager::HasStaticMesh(const FString& InFilePath) const
 {
-	return StaticMeshAssets.find(InFilePath) != StaticMeshAssets.end();
+	// TObjectIterator를 사용하여 해당 StaticMesh가 존재하는지 확인
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	{
+		UStaticMesh* StaticMesh = *It;
+		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void UAssetManager::LoadStaticMeshShaders()
@@ -479,7 +499,7 @@ void UAssetManager::LoadStaticMeshShaders()
 /**
  * @brief 모든 프리미티브 타입의 StaticMesh를 미리 로드하는 함수
  */
-void UAssetManager::LoadAllPrimitiveStaticMeshes()
+void UAssetManager::InitializeBasicPrimitives()
 {
 	// 각 프리미티브 타입별 OBJ 파일 경로 매핑
 	TMap<EPrimitiveType, FString> PrimitiveFilePaths = {
