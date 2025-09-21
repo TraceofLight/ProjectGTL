@@ -9,6 +9,7 @@
 #include "Asset/Public/StaticMesh.h"
 #include "Factory/Public/NewObject.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
+#include "Utility/Public/Archive.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UAssetManager)
 
@@ -390,15 +391,46 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 		return nullptr;
 	}
 
-	// OBJ 파일에서 StaticMesh 데이터 로드
-	FStaticMesh StaticMeshData;
-	bool bImportSuccess = FObjImporter::ImportStaticMesh(InFilePath, StaticMeshData);
+	bool bLoadSuccess = false;
 
-	if (bImportSuccess)
+	// 바이너리 캐시가 유효한지 확인
+	if (UStaticMesh::IsBinaryCacheValid(InFilePath))
+	{
+		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
+		UE_LOG("AssetManager: Loading from binary cache: %s", BinaryPath.c_str());
+
+		// 바이너리에서 로드 시도
+		bLoadSuccess = NewStaticMesh->LoadFromBinary(BinaryPath);
+
+		if (bLoadSuccess)
+		{
+		else
+		{
+			UE_LOG("AssetManager: Binary cache load failed, falling back to OBJ parsing");
+		}
+	}
+
+	// 바이너리 캐시가 없거나 실패한 경우 OBJ 파싱
+	UE_LOG("AssetManager: Parsing OBJ file: %s", InFilePath.c_str());
+	FStaticMesh StaticMeshData;
+	bLoadSuccess = FObjImporter::ImportStaticMesh(InFilePath, StaticMeshData);
+
+	if (bLoadSuccess)
 	{
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
 
-		UE_LOG_SUCCESS("StaticMesh 로드 성공: %s", InFilePath.c_str());
+		// OBJ 파싱 성공 시 바이너리 캐시로 저장
+		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
+		if (NewStaticMesh->SaveToBinary(BinaryPath))
+		{
+			UE_LOG("AssetManager: Successfully saved binary cache: %s", BinaryPath.c_str());
+		}
+		else
+		{
+			UE_LOG("AssetManager: Failed to save binary cache: %s", BinaryPath.c_str());
+		}
+
+		UE_LOG_SUCCESS("StaticMesh OBJ 파싱 로드 성공: %s", InFilePath.c_str());
 		return NewStaticMesh;
 	}
 	else
@@ -496,10 +528,43 @@ void UAssetManager::LoadStaticMeshShaders()
 }
 
 /**
- * @brief 모든 프리미티브 타입의 StaticMesh를 미리 로드하는 함수
+ * @brief Data 폴더의 모든 바이너리 캐시된 StaticMesh들을 자동으로 로드하는 함수
+ * .mesh 파일이 있는 모든 OBJ 파일들을 찾아서 로드
  */
 void UAssetManager::InitializeBasicPrimitives()
 {
+	// Data 폴더에서 모든 .mesh 바이너리 캐시 파일들을 찾아서 로드
+	TArray<FString> CachedMeshFiles;
+
+	try
+	{
+		std::filesystem::path dataPath("Data");
+		if (std::filesystem::exists(dataPath) && std::filesystem::is_directory(dataPath))
+		{
+			for (const auto& entry : std::filesystem::directory_iterator(dataPath))
+			{
+				if (entry.is_regular_file() && entry.path().extension() == ".mesh")
+				{
+					// .mesh 파일에서 원본 .obj 파일 경로 유추
+					std::filesystem::path objPath = entry.path();
+					objPath.replace_extension(".obj");
+
+					// .obj 파일이 존재하는지 확인
+					if (std::filesystem::exists(objPath))
+					{
+						CachedMeshFiles.push_back(objPath.string());
+						UE_LOG("AssetManager: Found cached mesh: %s", objPath.string().c_str());
+					}
+				}
+			}
+		}
+	}
+	catch (const std::filesystem::filesystem_error& e)
+	{
+		UE_LOG("AssetManager: Error scanning Data directory: %s", e.what());
+	}
+
+	// 기본 프리미티브들도 포함 (캐시에 없는 경우를 위해, 기본 프리미티브들은 무조건 불러와야함.)
 	TArray<FString> DefaultPrimitiveFilePaths =
 	{
 		"Data\\Sphere.obj",
@@ -511,11 +576,40 @@ void UAssetManager::InitializeBasicPrimitives()
 		"Data\\Cone.obj",
 	};
 
-	// 각 프리미티브 타입별로 StaticMesh 로드
-	for (const auto& Path : DefaultPrimitiveFilePaths)
+	// 기본 프리미티브를 CachedMeshFiles에 추가 (중복 제거)
+	for (const FString& DefaultPath : DefaultPrimitiveFilePaths)
 	{
-		const FString& FilePath = Path;
+		bool bAlreadyExists = false;
+		for (const FString& CachedPath : CachedMeshFiles)
+		{
+			if (CachedPath == DefaultPath)
+			{
+				bAlreadyExists = true;
+				break;
+			}
+		}
 
-		UStaticMesh* LoadedMesh = LoadStaticMesh(FilePath);
+		if (!bAlreadyExists)
+		{
+			CachedMeshFiles.push_back(DefaultPath);
+		}
 	}
+
+	// 모든 메시 파일들을 로드
+	UE_LOG("AssetManager: Loading %d mesh files...", static_cast<int>(CachedMeshFiles.size()));
+
+	for (const FString& FilePath : CachedMeshFiles)
+	{
+		UStaticMesh* LoadedMesh = LoadStaticMesh(FilePath);
+		if (LoadedMesh)
+		{
+			UE_LOG("AssetManager: Successfully loaded: %s", FilePath.c_str());
+		}
+		else
+		{
+			UE_LOG("AssetManager: Failed to load: %s", FilePath.c_str());
+		}
+	}
+
+	UE_LOG("AssetManager: Initialization complete. Loaded meshes available through ObjectIterator.");
 }
