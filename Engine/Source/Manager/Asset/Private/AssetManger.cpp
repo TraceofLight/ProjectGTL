@@ -73,13 +73,12 @@ void UAssetManager::Release()
 	// Texture Resource 해제
 	ReleaseAllTextures();
 
-	// TODO: 주석 풀면 엔진 끌때 터짐 메모리 누수 다 잡고 주석 풀 것
 	// StaticMesh 애셋 해제 - TObjectIterator를 사용하여 모든 StaticMesh 삭제
-	/*for (TObjectIterator<UStaticMesh> It; It; ++It)
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
 	{
 		UStaticMesh* StaticMesh = *It;
 		delete StaticMesh;
-	}*/
+	}
 }
 
 TArray<FVertex>* UAssetManager::GetVertexData(EPrimitiveType InType)
@@ -501,49 +500,22 @@ void UAssetManager::LoadStaticMeshShaders()
  */
 void UAssetManager::InitializeBasicPrimitives()
 {
-	// 각 프리미티브 타입별 OBJ 파일 경로 매핑
-	TMap<EPrimitiveType, FString> PrimitiveFilePaths = {
-		{EPrimitiveType::Sphere, "Data/Sphere.obj"},
-		{EPrimitiveType::Cube, "Data/Cube.obj"},
-		{EPrimitiveType::Triangle, "Data/Triangle.obj"},
-		{EPrimitiveType::Square, "Data/Square.obj"},
-		{EPrimitiveType::Torus, "Data/Torus.obj"},
-		{EPrimitiveType::Cylinder, "Data/Cylinder.obj"},
-		{EPrimitiveType::Cone, "Data/Cone.obj"},
+	TArray<FString> DefaultPrimitiveFilePaths =
+	{
+		"Data\\Sphere.obj",
+		"Data\\Cube.obj",
+		"Data\\Triangle.obj",
+		"Data\\Square.obj",
+		"Data\\Torus.obj",
+		"Data\\Cylinder.obj",
+		"Data\\Cone.obj",
 	};
 
 	// 각 프리미티브 타입별로 StaticMesh 로드
-	for (const auto& Pair : PrimitiveFilePaths)
+	for (const auto& Path : DefaultPrimitiveFilePaths)
 	{
-		EPrimitiveType PrimitiveType = Pair.first;
-		const FString& FilePath = Pair.second;
+		const FString& FilePath = Path;
 
 		UStaticMesh* LoadedMesh = LoadStaticMesh(FilePath);
-		if (LoadedMesh)
-		{
-			PrimitiveStaticMeshes[PrimitiveType] = LoadedMesh;
-			UE_LOG_SUCCESS("프리미티브 StaticMesh 로드 성공: %s", EnumToString(PrimitiveType));
-		}
-		else
-		{
-			UE_LOG_ERROR("프리미티브 StaticMesh 로드 실패: %s (경로: %s)",
-				EnumToString(PrimitiveType), FilePath.c_str());
-		}
 	}
 }
-
-/**
- * @brief 특정 프리미티브 타입의 StaticMesh를 가져오는 함수
- * @param InPrimitiveType 가져올 프리미티브 타입
- * @return 해당 타입의 StaticMesh 포인터 (없으면 nullptr)
- */
-UStaticMesh* UAssetManager::GetPrimitiveStaticMesh(EPrimitiveType InPrimitiveType)
-{
-	auto It = PrimitiveStaticMeshes.find(InPrimitiveType);
-	if (It != PrimitiveStaticMeshes.end())
-	{
-		return It->second;
-	}
-	return nullptr;
-}
-

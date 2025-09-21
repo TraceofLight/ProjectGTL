@@ -40,10 +40,6 @@ public:
 	void ReleaseStaticMesh(const FString& InFilePath);
 	bool HasStaticMesh(const FString& InFilePath) const;
 
-	// Primitive StaticMesh 관련 함수들
-	class UStaticMesh* GetPrimitiveStaticMesh(EPrimitiveType InPrimitiveType);
-	
-
 private:
 	// Vertex Resource
 	TMap<EPrimitiveType, ID3D11Buffer*> Vertexbuffers;
@@ -57,9 +53,6 @@ private:
 
 	// Texture Resource
 	TMap<FString, ID3D11ShaderResourceView*> TextureCache;
-
-	// Default Primitive StaticMesh Resource
-	TMap<EPrimitiveType, class UStaticMesh*> PrimitiveStaticMeshes;
 
 	// Release Functions
 	void ReleaseAllTextures();
