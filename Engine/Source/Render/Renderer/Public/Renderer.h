@@ -1,7 +1,7 @@
 #pragma once
 #include "DeviceResources.h"
-#include "Core/Public/Object.h"
-#include "Component/Public/PrimitiveComponent.h"
+#include "Runtime/Core/Public/Object.h"
+#include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Editor/Public/EditorPrimitive.h"
 
 class UPipeline;
@@ -131,6 +131,8 @@ private:
 	ID3D11PixelShader* DefaultPixelShader = nullptr;
 	ID3D11InputLayout* DefaultInputLayout = nullptr;
 	uint32 Stride = 0;
+
+	uint32 ViewportIdx = 0;
 
 	struct FRasterKey
 	{

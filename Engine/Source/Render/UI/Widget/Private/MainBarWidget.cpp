@@ -5,11 +5,11 @@
 
 #include <shobjidl.h>
 
-#include "Level/Public/Level.h"
+#include "Runtime/Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
+
 // For viewport split toggling
 #include "Manager/Viewport/Public/ViewportManager.h"
-
 
 class ULevelManager;
 IMPLEMENT_CLASS(UMainBarWidget, UWidget)
@@ -184,6 +184,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 					{
 						continue;
 					}
+
 
 					Window->SetWindowState(EUIWindowState::Hidden);
 				}

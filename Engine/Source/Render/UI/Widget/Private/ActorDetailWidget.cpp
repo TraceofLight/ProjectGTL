@@ -2,11 +2,11 @@
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
 
 #include "Manager/Level/Public/LevelManager.h"
-#include "Level/Public/Level.h"
-#include "Actor/Public/Actor.h"
-#include "Component/Public/ActorComponent.h"
-#include "Component/Public/PrimitiveComponent.h"
-#include "Component/Public/SceneComponent.h"
+#include "Runtime/Level/Public/Level.h"
+#include "Runtime/Actor/Public/Actor.h"
+#include "Runtime/Component/Public/ActorComponent.h"
+#include "Runtime/Component/Public/PrimitiveComponent.h"
+#include "Runtime/Component/Public/SceneComponent.h"
 
 UActorDetailWidget::UActorDetailWidget()
 	: UWidget("Actor Detail Widget")

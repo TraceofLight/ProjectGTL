@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/PrimitiveSpawnWidget.h"
 
-#include "Level/Public/Level.h"
+IMPLEMENT_CLASS(UPrimitiveSpawnWidget, UWidget)
+
+#include "Runtime/Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
-#include "Actor/Public/StaticMeshActor.h"
+#include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Asset/Public/StaticMesh.h"
 

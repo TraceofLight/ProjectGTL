@@ -1,12 +1,12 @@
 #pragma once
-#include "Core/Public/Object.h"
+#include "Runtime/Core/Public/Object.h"
 #include "Physics/Public/AABB.h"
 
 class UBoundingBoxLines : UObject
 {
 public:
 	UBoundingBoxLines();
-	~UBoundingBoxLines() = default;
+	~UBoundingBoxLines() override = default;
 
 	void MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartIndex);
 	void UpdateVertices(FAABB boundingBoxInfo);

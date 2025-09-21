@@ -249,8 +249,8 @@ bool ULevelManager::CreateNewLevel(const FString& InLevelName)
  */
 path ULevelManager::GetLevelDirectory()
 {
-	UPathManager& PathManager = UPathManager::GetInstance();
-	return PathManager.GetWorldPath();
+	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
+	return PathSubsystem->GetWorldPath();
 }
 
 /**

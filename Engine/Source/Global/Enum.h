@@ -165,3 +165,25 @@ enum class EFillMode : uint8_t
 
 	End = 0xFF
 };
+
+
+
+enum class EViewMode : uint8
+{
+	Lit,
+	Unlit,
+	WireFrame
+};
+
+// View types
+// Viewport Type 이라는 명칭은 언리얼 찾아보니까 다른 기능이 있어서 안씀
+enum class EViewType : uint8
+{
+	Perspective,
+	OrthoTop,   
+	OrthoBottom, 
+	OrthoLeft,
+	OrthoRight,
+	OrthoFront,
+	OrthoBack
+};

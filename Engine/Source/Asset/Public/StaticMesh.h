@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Core/Public/Object.h"
+#include "Runtime/Core/Public/Object.h"
 #include "Asset/Public/StaticMeshData.h"
 #include "Physics/Public/AABB.h"
 

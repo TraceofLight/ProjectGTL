@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Public/Object.h"
+#include "Runtime/Core/Public/Object.h"
 
 /**
  * @brief ImGui 초기화/렌더링/해제를 담당하는 Helper 클래스

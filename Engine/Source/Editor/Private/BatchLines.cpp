@@ -3,14 +3,14 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Manager/Asset/Public/AssetManager.h"
-#include "Actor/Public/StaticMeshActor.h"
+#include "Runtime/Actor/Public/StaticMeshActor.h"
 
 IMPLEMENT_CLASS(UBatchLines, UObject)
 
 UBatchLines::UBatchLines()
 	: Grid()
-	, BoundingBoxLines()
-	, StaticMeshAABBVertexOffset(0)
+	  , BoundingBoxLines()
+	  , StaticMeshAABBVertexOffset(0)
 {
 	StaticMeshAABBVertexOffset = Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices();
 
