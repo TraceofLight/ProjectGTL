@@ -42,4 +42,7 @@ private:
 	TObjectPtr<ULevel> CurrentLevel;
 	TMap<FName, TObjectPtr<ULevel>> Levels;
 	TObjectPtr<UEditor> Editor;
+
+	// Helper Functions
+	void RestoreCameraFromMetadata(const struct FCameraMetadata& InCameraMetadata);
 };

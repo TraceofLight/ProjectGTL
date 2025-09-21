@@ -70,9 +70,9 @@ struct FCameraMetadata
 	float FarClip;
 
 	FCameraMetadata()
-		: Location(0.0f, 2.0f, -5.0f)
-		, Rotation(0.1f, 0.0f, 0.0f)
-		, FOV(60.0f)
+		: Location(-15.0f, 0.0f, 10.0f)
+		, Rotation(0.0f, 0.0f, 0.0f)
+		, FOV(90.0f)
 		, NearClip(0.1f)
 		, FarClip(1000.0f)
 	{

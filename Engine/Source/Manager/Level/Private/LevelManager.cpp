@@ -8,6 +8,8 @@
 #include "Actor/Public/StaticMeshActor.h"
 #include "Component/Public/StaticMeshComponent.h"
 #include "Asset/Public/StaticMesh.h"
+#include "Manager/Asset/Public/AssetManager.h"
+#include "Editor/Public/Camera.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(ULevelManager)
 
@@ -133,7 +135,7 @@ bool ULevelManager::SaveCurrentLevel(const FString& InFilePath) const
 }
 
 /**
- * @brief 지정된 파일로부터 Level Load & Register
+ * @brief 지정된 파일로부터 Level Load & Register (2번 이상 LOAD하면 delete OldLevel;에서 터짐.)
  */
 bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFilePath)
 {
@@ -144,12 +146,11 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 
 	// Make New Level
 	TObjectPtr<ULevel> NewLevel = TObjectPtr<ULevel>(new ULevel(InLevelName));
+	FLevelMetadata Metadata;
 
 	// 직접 LevelSerializer를 사용하여 로드
 	try
 	{
-		FLevelMetadata Metadata;
-
 		bool bLoadSuccess = FJsonSerializer::LoadLevelFromFile(Metadata, InFilePath);
 		if (!bLoadSuccess)
 		{
@@ -189,24 +190,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 
 	if (bSuccess)
 	{
-		// 기존 레벨이 있다면 정리
-		ULevel* OldLevel;
-
 		FName LevelName(InLevelName);
-		if (Levels.find(LevelName) != Levels.end())
-		{
-			OldLevel = Levels[LevelName];
-
-			// CurrentLevel이 삭제될 레벨과 같다면 미리 nullptr로 설정
-			if (CurrentLevel == OldLevel)
-			{
-				CurrentLevel->Cleanup();
-				CurrentLevel = nullptr;
-			}
-
-			delete OldLevel;
-			Levels.erase(LevelName);
-		}
 
 		// 새 레벨 등록 및 활성화
 		RegisterLevel(LevelName, NewLevel);
@@ -219,6 +203,9 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 
 		CurrentLevel = NewLevel;
 		CurrentLevel->Init();
+
+		// 카메라 정보 복원
+		RestoreCameraFromMetadata(Metadata.PerspectiveCamera);
 
 		UE_LOG("LevelManager: Level이 성공적으로 로드되어 Level '%s' (으)로 레벨을 교체 완료했습니다", InLevelName.c_str());
 	}
@@ -365,6 +352,27 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 
 		if (NewActor)
 		{
+			// StaticMeshActor의 경우 OBJ 파일 로드
+			if (PrimitiveMeta.Type == EPrimitiveType::StaticMeshComp)
+			{
+				if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(NewActor))
+				{
+					UAssetManager& AssetManager = UAssetManager::GetInstance();
+					UStaticMesh* PrimitiveMesh = AssetManager.LoadStaticMesh(PrimitiveMeta.ObjStaticMeshAsset);
+
+					if (PrimitiveMesh)
+					{
+						StaticMeshActor->SetStaticMesh(PrimitiveMesh);
+					}
+					else
+					{
+						UE_LOG("LevelManager: Failed To Load StaticMesh From: %s",
+							PrimitiveMeta.ObjStaticMeshAsset.c_str());
+						InLevel->DestroyActor(StaticMeshActor);
+					}
+				}
+			}
+
 			// Transform 정보 적용
 			NewActor->SetActorLocation(PrimitiveMeta.Location);
 			NewActor->SetActorRotation(PrimitiveMeta.Rotation);
@@ -391,5 +399,37 @@ void ULevelManager::ClearCurrentLevel()
 		delete CurrentLevel;
 		CurrentLevel = nullptr;
 		UE_LOG("LevelManager: Current level cleared successfully");
+	}
+}
+
+
+/**
+ * @brief 메타데이터에서 카메라 정보를 복원
+ */
+void ULevelManager::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMetadata)
+{
+	if (Editor)
+	{
+		UCamera* Camera = Editor->GetCamera();
+		if (Camera)
+		{
+			Camera->SetLocation(InCameraMetadata.Location);
+			Camera->SetRotation(InCameraMetadata.Rotation);
+			Camera->SetFovY(InCameraMetadata.FOV);
+			Camera->SetNearZ(InCameraMetadata.NearClip);
+			Camera->SetFarZ(InCameraMetadata.FarClip);
+
+			UE_LOG("LevelManager: Camera restored - Location: (%.2f, %.2f, %.2f), FOV: %.1f",
+			       InCameraMetadata.Location.X, InCameraMetadata.Location.Y, InCameraMetadata.Location.Z,
+			       InCameraMetadata.FOV);
+		}
+		else
+		{
+			UE_LOG("LevelManager: Camera not found in Editor");
+		}
+	}
+	else
+	{
+		UE_LOG("LevelManager: Editor not available for camera restoration");
 	}
 }
