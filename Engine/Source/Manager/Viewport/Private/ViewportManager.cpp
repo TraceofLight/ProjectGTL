@@ -176,9 +176,9 @@ void UViewportManager::CreateViewportsAndClients(int32 InCount)
         {
             UCamera* OrthoCam = new UCamera();
             OrthoCam->SetCameraType(ECameraType::ECT_Orthographic);
-            // Orthographic 초기 가시성 개선: 넓은 보기와 원점 근처 위치
-            OrthoCam->SetFovY(140.0f);           // OrthoWidth ~= 2 * tan(70°) ≈ 5.5 유닛
-            OrthoCam->SetLocation(FVector(0,0,0));
+            // Orthographic 초기 가시성 개선: 넓은 보기와 원점에서 물러난 위치
+            OrthoCam->SetFovY(160.0f);           // OrthoWidth ~= 2 * tan(80°) ≈ 11.4 유닛
+            OrthoCam->SetLocation(FVector(0, 0, 50));
             CL->SetOrthoCamera(OrthoCam);
 
             UCamera* PerspCam = new UCamera();
@@ -262,6 +262,7 @@ void UViewportManager::UpdateActiveRmbViewportIndex()
 
 void UViewportManager::TickCameras(float DeltaSeconds)
 {
+	
     // 우클릭이 눌린 상태라면 해당 뷰포트의 카메라만 입력 반영(Update)
     // 그렇지 않다면(비상호작용) 카메라 이동 입력은 생략하여 타 뷰포트에 영향이 가지 않도록 함
     const int32 N = (int32)Clients.size();
@@ -434,19 +435,42 @@ void UViewportManager::RenderOverlay()
 	        }
 	
 	        ImGui::SetNextItemWidth(140.0f);
-	        if (ImGui::Combo("##ViewType", &curIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
-	        {
-	            if (curIdx >= 0 && curIdx < IM_ARRAYSIZE(IndexToViewType))
-	            {
-	                Clients[i]->SetViewType(IndexToViewType[curIdx]);
-	            }
-	        }
-	
-	        // (옵션) 우측에 현재 뷰타입 라벨만 추가로 표시하고 싶다면:
-	        // ImGui::SameLine();
-	        // ImGui::TextDisabled(" | ");
-	        // ImGui::SameLine();
-	        // ImGui::TextUnformatted(ViewTypeLabels[curIdx]);
+        if (ImGui::Combo("##ViewType", &curIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
+        {
+            if (curIdx >= 0 && curIdx < IM_ARRAYSIZE(IndexToViewType))
+            {
+                EViewType NewType = IndexToViewType[curIdx];
+                Clients[i]->SetViewType(NewType);
+
+                // Apply camera basis + refresh immediately so toolbar change takes effect without RMB
+                if (NewType == EViewType::Perspective)
+                {
+                    if (UCamera* P = Clients[i]->GetPerspectiveCamera())
+                    {
+                        P->SetCameraType(ECameraType::ECT_Perspective);
+                        P->Update();
+                    }
+                }
+                else
+                {
+                    if (UCamera* O = Clients[i]->GetOrthoCamera())
+                    {
+                        Clients[i]->ApplyOrthoBasisForViewType(*O);
+                        O->SetCameraType(ECameraType::ECT_Orthographic);
+                        // First update to refresh basis vectors
+                        O->Update();
+                        // Move camera back along its forward vector so the origin is visible
+                        const FVector Fwd = O->GetForward();
+                        const float DefaultDist = 50.0f; // tune as needed
+                        O->SetLocation(FVector(0,0,0) - Fwd * DefaultDist);
+                        // Increase ortho width a bit for better coverage
+                        O->SetFovY(160.0f); // OrthoWidth = 2*tan(80deg) ~ 11.4
+                        // Recompute matrices with new location/width
+                        O->UpdateMatrixByOrth();
+                    }
+                }
+            }
+        }
 	    }
 	    ImGui::End();
 	
