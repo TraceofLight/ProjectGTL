@@ -65,7 +65,7 @@ private:
 	TArray<FViewport*>       Viewports;
 	TArray<FViewportClient*> Clients;
 
-    UCamera* OrthographicCamera = nullptr;
+    TObjectPtr<UCamera> OrthographicCamera = nullptr;
 
     // 프레임 타이밍
     double LastTime = 0.0;

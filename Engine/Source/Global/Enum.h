@@ -13,6 +13,9 @@ enum class EKeyInput : uint8
 	Q,
 	E,
 
+	// 포커싱 키
+	F,
+
 	// 화살표 키
 	Up,
 	Down,
@@ -173,8 +176,8 @@ enum class EViewMode : uint8
 enum class EViewType : uint8
 {
 	Perspective,
-	OrthoTop,   
-	OrthoBottom, 
+	OrthoTop,
+	OrthoBottom,
 	OrthoLeft,
 	OrthoRight,
 	OrthoFront,

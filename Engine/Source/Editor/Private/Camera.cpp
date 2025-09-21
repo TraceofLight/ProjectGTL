@@ -3,6 +3,8 @@
 #include "Manager/Input/Public/InputManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 
+IMPLEMENT_CLASS(UCamera, UObject)
+
 void UCamera::Update()
 {
     const UInputManager& Input = UInputManager::GetInstance();

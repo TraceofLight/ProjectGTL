@@ -19,19 +19,7 @@
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 #include "Global/Quaternion.h"
 
-UEditor::UEditor()
-{
-    // ObjectPicker camera will be assigned per-frame from active viewport
-
-	// Set Camera to Control Panel
-	auto& UIManager = UUIManager::GetInstance();
-	auto CameraControlWidget = Cast<UCameraControlWidget>(UIManager.FindWidget("Camera Control Widget"));
-	CameraControlWidget->SetCamera(&Camera);
-
-	// Set Camera to Scene Hierarchy Widget
-	auto SceneHierarchyWidget = Cast<USceneHierarchyWidget>(UIManager.FindWidget("Scene Hierarchy Widget"));
-	SceneHierarchyWidget->SetCamera(&Camera);
-};
+UEditor::UEditor() = default;
 
 void UEditor::Update()
 {

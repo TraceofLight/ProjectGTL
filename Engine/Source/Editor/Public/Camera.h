@@ -8,8 +8,13 @@ enum class ECameraType
 	ECT_Perspective
 };
 
-class UCamera : public UObject
+UCLASS()
+class UCamera :
+	public UObject
 {
+	GENERATED_BODY()
+	DECLARE_CLASS(UCamera, UObject)
+
 public:
 	// Camera Speed Constants
 	static constexpr float MIN_SPEED = 10.0f;
@@ -25,6 +30,7 @@ public:
 	{
 		CurrentMoveSpeed = UConfigManager::GetInstance().GetCameraSensitivity();
 	}
+
 	~UCamera() override
 	{
 		UConfigManager::GetInstance().SetCameraSensitivity(CurrentMoveSpeed);
@@ -68,11 +74,13 @@ public:
 
 	// Camera Movement Speed Control
 	float GetMoveSpeed() const { return CurrentMoveSpeed; }
+
 	void SetMoveSpeed(float InSpeed)
 	{
 		CurrentMoveSpeed = clamp(InSpeed, MIN_SPEED, MAX_SPEED);
 		// CurrentMoveSpeed = min(InSpeed, MAX_SPEED);
 	}
+
 	void AdjustMoveSpeed(float InDelta) { SetMoveSpeed(CurrentMoveSpeed + InDelta); }
 
 	/* *
@@ -93,9 +101,9 @@ private:
 	FViewProjConstants ViewProjConstants = {};
 	FVector RelativeLocation = {};
 	FVector RelativeRotation = {};
-	FVector Forward = { 1,0,0 };
-	FVector Up = {0,0,1};
-	FVector Right = {0,1,0};
+	FVector Forward = {1, 0, 0};
+	FVector Up = {0, 0, 1};
+	FVector Right = {0, 1, 0};
 	float FovY = {};
 	float Aspect = {};
 	float NearZ = {};

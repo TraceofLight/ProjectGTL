@@ -202,14 +202,16 @@ void UViewportManager::CreateViewportsAndClients(int32 InCount)
 
         // 각 클라이언트별 카메라 구성 (오쏘/퍼스 각각 전용)
         {
-            UCamera* OrthoCam = new UCamera();
+            TObjectPtr<UCamera> OrthoCam =  NewObject<UCamera>();
+        	OrthoCam->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
             OrthoCam->SetCameraType(ECameraType::ECT_Orthographic);
             // Initialize with shared defaults; will be synced below
             OrthoCam->SetFovY(OrthoSharedFovY);
             OrthoCam->SetLocation(OrthoSharedCenter);
             CL->SetOrthoCamera(OrthoCam);
 
-            UCamera* PerspCam = new UCamera();
+            TObjectPtr<UCamera> PerspCam = NewObject<UCamera>();
+        	PerspCam->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
             PerspCam->SetCameraType(ECameraType::ECT_Perspective);
             CL->SetPerspectiveCamera(PerspCam);
         }
@@ -449,10 +451,10 @@ void UViewportManager::RenderOverlay()
         return;
     }
     Root->OnPaint();
-	
+
     const int32 N = (int32)Viewports.size();
 	if (N == 0) return;
-	
+
 	// ViewType ViewMode 콤보 라벨 & 매핑
 	static const char* ViewModeLabels[] = {
 		"Lit", "Unlit", "WireFrame"
@@ -476,27 +478,27 @@ void UViewportManager::RenderOverlay()
 	    EViewType::OrthoFront,
 	    EViewType::OrthoBack
 	};
-	
+
 	for (int32 i = 0; i < N; ++i)
 	{
 	    const FRect& r = Viewports[i]->GetRect();
 	    if (r.W <= 0 || r.H <= 0) continue;
-	
+
 	    const int ToolbarH = Viewports[i]->GetToolbarHeight();
 	    const ImVec2 a{ (float)r.X, (float)r.Y };
 	    const ImVec2 b{ (float)(r.X + r.W), (float)(r.Y + ToolbarH) };
-	
+
 	    // 1) 1안처럼 오버레이 배경/보더 그리기
 	    ImDrawList* dl = ImGui::GetForegroundDrawList();
 	    dl->AddRectFilled(a, b, IM_COL32(30, 30, 30, 100));
 	    dl->AddLine(ImVec2(a.x, b.y), ImVec2(b.x, b.y), IM_COL32(70, 70, 70, 120), 1.0f);
-	
+
 	    // 2) 같은 영역에 "배경 없는" 작은 윈도우를 띄워 콤보/버튼 UI 배치 (2안의 핵심)
 	    ImGui::PushID(i);
-	
+
 	    ImGui::SetNextWindowPos(ImVec2(a.x, a.y));
 	    ImGui::SetNextWindowSize(ImVec2(b.x - a.x, b.y - a.y));
-	
+
 	    ImGuiWindowFlags flags =
 	        ImGuiWindowFlags_NoDecoration |
 	        ImGuiWindowFlags_NoMove |
@@ -505,16 +507,16 @@ void UViewportManager::RenderOverlay()
 	        ImGuiWindowFlags_NoScrollbar |
 	        ImGuiWindowFlags_NoBackground |  // ★ 배경 없음(우리가 drawlist로 그렸으므로)
 	        ImGuiWindowFlags_NoFocusOnAppearing;
-	
+
 	    // 얇은 툴바 느낌을 위한 패딩/스페이싱 축소
 	    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.f, 3.f));
 	    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,  ImVec2(6.f, 3.f));
 	    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,   ImVec2(6.f, 0.f));
-	
+
 	    // 윈도우 이름은 뷰포트마다 고유해야 함
 	    char winName[64];
 	    snprintf(winName, sizeof(winName), "ViewportToolbar##%d", i);
-	
+
 	    if (ImGui::Begin(winName, nullptr, flags))
 	    {
 			EViewMode CurrentMode = Clients[i]->GetViewMode();
@@ -545,7 +547,7 @@ void UViewportManager::RenderOverlay()
 	        {
 	            if (IndexToViewType[k] == curType) { curIdx = k; break; }
 	        }
-	
+
 	        ImGui::SetNextItemWidth(140.0f);
         if (ImGui::Combo("##ViewType", &curIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
         {
@@ -569,7 +571,7 @@ void UViewportManager::RenderOverlay()
                     if (UCamera* O = Clients[i]->GetOrthoCamera())
                     {
                         Clients[i]->ApplyOrthoBasisForViewType(*O);
-                        
+
                         // Sync with shared ortho state (center + zoom)
 						//UE_LOG("88888888");
                         if (!bOrthoSharedInit)
@@ -591,7 +593,7 @@ void UViewportManager::RenderOverlay()
         }
 	    }
 	    ImGui::End();
-	
+
 	    ImGui::PopStyleVar(3);
 	    ImGui::PopID();
 	}

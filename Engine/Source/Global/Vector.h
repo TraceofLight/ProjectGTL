@@ -111,18 +111,28 @@ struct FVector
 	 * @brief 각도를 라디안으로 변환한 값을 반환하는 함수
 	 */
 	static float GetDegreeToRadian(const float InDegree) { return (InDegree * PI) / 180.f; }
+
 	static FVector GetDegreeToRadian(const FVector& InRotation)
 	{
 		return FVector{(InRotation.X * PI) / 180.f, (InRotation.Y * PI) / 180.f, (InRotation.Z * PI) / 180.f};
 	}
 
 	/**
+	 * @brief 벡터의 절대값을 반환하는 함수
+	 */
+	static FVector GetAbs(const FVector& InVector)
+	{
+		return {abs(InVector.X), abs(InVector.Y), abs(InVector.Z)};
+	}
+
+	/**
 	 * @brief 라디안를 각도로 변환한 값을 반환하는 함수
 	 */
 	static float GetRadianToDegree(const float Radian) { return (Radian * 180.f) / PI; }
+
 	static FVector GetRadianToDegree(const FVector& Rad)
 	{
-		return FVector{ Rad.X * (180.0f / PI), Rad.Y * (180.0f / PI), Rad.Z * (180.0f / PI) };
+		return FVector{Rad.X * (180.0f / PI), Rad.Y * (180.0f / PI), Rad.Z * (180.0f / PI)};
 	}
 
 	// Constant Vector (definition from UE5)
