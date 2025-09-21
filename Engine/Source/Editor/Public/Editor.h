@@ -38,11 +38,14 @@ private:
 	void ProcessMouseInput(ULevel* InLevel);
 	TArray<UPrimitiveComponent*> FindCandidatePrimitives(ULevel* InLevel);
 
-	FVector GetGizmoDragLocation(FRay& WorldRay);
-	FVector GetGizmoDragRotation(FRay& WorldRay);
-	FVector GetGizmoDragScale(FRay& WorldRay);
+	FVector GetGizmoDragLocation(FRay& WorldRay, UCamera& Camera);
+	FVector GetGizmoDragRotation(FRay& WorldRay, UCamera& Camera);
+	FVector GetGizmoDragScale(FRay& WorldRay, UCamera& Camera);
 
-	UCamera Camera;
+	// 현재 마우스가 위치한 뷰포트(없으면 0)의 카메라를 반환
+	UCamera* GetActivePickingCamera();
+
+	UCamera Camera; // legacy editor camera (not used for picking)
 	UObjectPicker ObjectPicker;
 
 	const float MinScale = 0.01f;

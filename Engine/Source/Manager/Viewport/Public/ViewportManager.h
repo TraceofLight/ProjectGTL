@@ -31,7 +31,13 @@ public:
     SWindow* GetRoot();
 
 	// 리프 Rect 수집
-	void GetLeafRects(TArray<FRect>& OutRects);
+    void GetLeafRects(TArray<FRect>& OutRects);
+
+    // 현재 마우스가 위치한 뷰포트 인덱스(-1이면 없음)
+    int32 GetViewportIndexUnderMouse() const;
+
+    // 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
+    bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;
 
 	// 공유 오쏘 카메라(읽기 전용 포인터를 클라에 주입)
     UCamera* GetOrthographicCamera() const { return OrthographicCamera; }

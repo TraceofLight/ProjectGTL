@@ -4,15 +4,6 @@
 #include "Editor/Public/Gizmo.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 
-UObjectPicker::UObjectPicker(UCamera& InCamera)
-	:Camera( InCamera)
-{}
-
-void UObjectPicker::SetCamera(UCamera& Camera)
-{
-	this->Camera = Camera;
-}
-
 FRay UObjectPicker::GetModelRay(const FRay& Ray, UPrimitiveComponent* Primitive)
 {
 	FMatrix ModelInverse = Primitive->GetWorldTransformMatrixInverse();
@@ -55,6 +46,11 @@ UPrimitiveComponent* UObjectPicker::PickPrimitive(const FRay& WorldRay, TArray<U
 
 void UObjectPicker::PickGizmo( const FRay& WorldRay, UGizmo& Gizmo, FVector& CollisionPoint)
 {
+    if (!Camera)
+    {
+        Gizmo.SetGizmoDirection(EGizmoDirection::None);
+        return;
+    }
 	//Forward, Right, Up순으로 테스트할거임.
 	//원기둥 위의 한 점 P, 축 위의 임의의 점 A에(기즈모 포지션) 대해, AP벡터와 축 벡터 V와 피타고라스 정리를 적용해서 점 P의 축부터의 거리 r을 구할 수 있음.
 	//r이 원기둥의 반지름과 같다고 방정식을 세운 후 근의공식을 적용해서 충돌여부 파악하고 distance를 구할 수 있음.
@@ -202,9 +198,10 @@ bool UObjectPicker::IsRayPrimitiveCollided(const FRay& ModelRay, UPrimitiveCompo
 bool UObjectPicker::IsRayTriangleCollided(const FRay& Ray, const FVector& Vertex1, const FVector& Vertex2, const FVector& Vertex3,
                            const FMatrix& ModelMatrix, float* Distance)
 {
-	FVector CameraForward = Camera.GetForward(); //카메라 정보 필요
-	float NearZ = Camera.GetNearZ();
-	float FarZ = Camera.GetFarZ();
+	if (!Camera) { return false; }
+	FVector CameraForward = Camera->GetForward(); //카메라 정보 필요
+	float NearZ = Camera->GetNearZ();
+	float FarZ = Camera->GetFarZ();
 	FMatrix ModelTransform; //Primitive로부터 얻어내야함.(카메라가 처리하는게 나을듯)
 
 
