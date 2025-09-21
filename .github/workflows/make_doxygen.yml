@@ -1,10 +1,11 @@
 name: Build and Deploy Doxygen Documentation
 
 on:
-    push:
-        branches: [ develop ]
-    pull_request:
-        branches: [ develop ]
+    # 매일 00:00에 1회 실행
+    schedule:
+        - cron: '0 0 * * *'
+    # 수동 workflow 실행
+    workflow_dispatch:
 
 jobs:
     # 프로젝트를 빌드하고 문서를 생성하는 역할
