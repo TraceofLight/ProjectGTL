@@ -9,7 +9,7 @@ class UCameraControlWidget
 {
 	GENERATED_BODY()
 	DECLARE_CLASS(UCameraControlWidget, UWidget)
-	
+
 public:
 	void Initialize() override;
 	void Update() override;
@@ -17,15 +17,12 @@ public:
 	void SyncFromCamera();
 	void PushToCamera();
 
-	// Setter
-	void SetCamera(UCamera* InCamera) { Camera = InCamera; }
-
 	// Special Member Function
 	UCameraControlWidget();
 	~UCameraControlWidget() override;
 
 private:
-	UCamera* Camera = nullptr;
+	TObjectPtr<UCamera> Camera = nullptr;
 	float UiFovY = 80.f;
 	float UiNearZ = 0.1f;
 	float UiFarZ = 10000.f;

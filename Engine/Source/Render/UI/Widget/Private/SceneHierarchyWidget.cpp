@@ -321,7 +321,6 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 	if (CurrentLevel)
 	{
 		CurrentLevel->SetSelectedActor(InActor);
-		UE_LOG("SceneHierarchy: %s를 선택했습니다", InActor->GetName().ToString().data());
 
 		// 카메라 포커싱은 더블 클릭에서만 수행
 		if (InActor && bInFocusCamera)
@@ -346,6 +345,10 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 			}
 
 			UE_LOG_INFO("SceneHierarchy: %s에 모든 카메라 포커싱 시작", InActor->GetName().ToString().data());
+		}
+		else
+		{
+			UE_LOG("SceneHierarchy: %s를 선택했습니다", InActor->GetName().ToString().data());
 		}
 	}
 }

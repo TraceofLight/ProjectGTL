@@ -7,7 +7,7 @@ IMPLEMENT_CLASS(UCamera, UObject)
 
 void UCamera::Update()
 {
-    const UInputManager& Input = UInputManager::GetInstance();
+	UInputManager& Input = UInputManager::GetInstance();
 
     FMatrix rotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
 
@@ -80,6 +80,7 @@ void UCamera::Update()
             if (WheelDelta != 0.0f)
             {
                 AdjustMoveSpeed(WheelDelta * SPEED_ADJUST_STEP);
+                Input.SetMouseWheelDelta(0.0f);
             }
 
             const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();

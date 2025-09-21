@@ -1,5 +1,9 @@
 #include "pch.h"
+
+#include "Manager/Viewport/Public/ViewportManager.h"
 #include "Render/UI/Widget/Public/CameraControlWidget.h"
+#include "Window/Public/Viewport.h"
+#include "Window/Public/ViewportClient.h"
 
 IMPLEMENT_CLASS(UCameraControlWidget, UWidget)
 
@@ -22,8 +26,33 @@ void UCameraControlWidget::Initialize()
 {
 }
 
+/**
+ * @brief 카메라 정보 업데이트 함수
+ * Viewport Manager로부터 현재 사용하는 카메라가 있는지 확인하고, 있다면 해당 정보를 세팅
+ */
 void UCameraControlWidget::Update()
 {
+	auto& ViewportManager = UViewportManager::GetInstance();
+	int8 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+
+	if (ViewportIndex == -1)
+	{
+		Camera = nullptr;
+	}
+	else
+	{
+		auto Client = ViewportManager.GetViewports()[ViewportIndex]->GetViewportClient();
+		if (Client->IsOrtho())
+		{
+			Camera = Client->GetOrthoCamera();
+		}
+		else
+		{
+			Camera = Client->GetPerspectiveCamera();
+		}
+	}
+
+	SyncFromCamera();
 }
 
 void UCameraControlWidget::RenderWidget()
@@ -34,14 +63,6 @@ void UCameraControlWidget::RenderWidget()
 		ImGui::Separator();
 		ImGui::TextUnformatted("Call SetCamera(camera*) after creating this window.");
 		return;
-	}
-
-	// 최초 1회 동기화
-	static bool bSyncedOnce = false;
-	if (bSyncedOnce == false)
-	{
-		SyncFromCamera();
-		bSyncedOnce = true;
 	}
 
 	ImGui::TextUnformatted("Camera Transform");
@@ -123,7 +144,10 @@ void UCameraControlWidget::RenderWidget()
 
 void UCameraControlWidget::SyncFromCamera()
 {
-	if (!Camera) { return; }
+	if (!Camera)
+	{
+		return;
+	}
 
 	CameraModeIndex = (Camera->GetCameraType() == ECameraType::ECT_Perspective) ? 0 : 1;
 	UiFovY = Camera->GetFovY();
