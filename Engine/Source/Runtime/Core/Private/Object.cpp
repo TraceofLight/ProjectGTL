@@ -28,6 +28,34 @@ UObject::UObject(const FName& InName)
 	InternalIndex = static_cast<uint32>(GUObjectArray.size()) - 1;
 }
 
+UObject::~UObject()
+{
+	// GUObjectArray에서 이 오브젝트 제거
+	if (InternalIndex < GUObjectArray.size() && GUObjectArray[InternalIndex].Get() == this)
+	{
+		// 현재 위치의 포인터를 nullptr로 설정 (배열 크기는 유지)
+		GUObjectArray[InternalIndex] = nullptr;
+	}
+	else
+	{
+		// InternalIndex가 유효하지 않은 경우, 전체 배열에서 검색하여 제거
+		for (size_t i = 0; i < GUObjectArray.size(); ++i)
+		{
+			if (GUObjectArray[i].Get() == this)
+			{
+				GUObjectArray[i] = nullptr;
+				break;
+			}
+		}
+	}
+
+	// Outer에서 메모리 사용량 제거
+	if (Outer)
+	{
+		Outer->PropagateMemoryChange(-static_cast<int64>(AllocatedBytes), -static_cast<int32>(AllocatedCounts));
+	}
+}
+
 void UObject::SetOuter(UObject* InObject)
 {
 	if (Outer == InObject)
@@ -89,10 +117,9 @@ void UObject::PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta)
  */
 bool UObject::IsA(TObjectPtr<UClass> InClass) const
 {
-	if (!InClass)
+	if (!InClass || this == nullptr)
 	{
 		return false;
 	}
-
 	return GetClass()->IsChildOf(InClass);
 }

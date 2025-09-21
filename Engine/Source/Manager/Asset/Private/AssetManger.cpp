@@ -8,6 +8,8 @@
 #include "Asset/Public/ObjImporter.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Factory/Public/NewObject.h"
+#include "Runtime/Core/Public/ObjectIterator.h"
+#include "Utility/Public/Archive.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UAssetManager)
 
@@ -55,10 +57,7 @@ void UAssetManager::Initialize()
 	LoadStaticMeshShaders();
 
 	// 모든 프리미티브 StaticMesh 로드
-	LoadAllPrimitiveStaticMeshes();
-
-	// test.obj 로드 (하위 호환성을 위해 유지)
-	//LoadStaticMesh("Data/Cylinder.obj");
+	InitializeBasicPrimitives();
 }
 
 void UAssetManager::Release()
@@ -75,12 +74,12 @@ void UAssetManager::Release()
 	// Texture Resource 해제
 	ReleaseAllTextures();
 
-	// StaticMesh 애셋 해제
-	for (auto& Pair : StaticMeshAssets)
+	// StaticMesh 애셋 해제 - TObjectIterator를 사용하여 모든 StaticMesh 삭제
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
 	{
-		delete Pair.second;
+		UStaticMesh* StaticMesh = *It;
+		delete StaticMesh;
 	}
-	StaticMeshAssets.clear();
 }
 
 TArray<FVertex>* UAssetManager::GetVertexData(EPrimitiveType InType)
@@ -376,10 +375,13 @@ ID3D11ShaderResourceView* UAssetManager::CreateTextureFromMemory(const void* InD
 UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 {
 	// 이미 로드된 StaticMesh인지 확인
-	auto It = StaticMeshAssets.find(InFilePath);
-	if (It != StaticMeshAssets.end())
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
 	{
-		return It->second;
+		UStaticMesh* StaticMesh = *It;
+		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		{
+			return StaticMesh;
+		}
 	}
 
 	// 새 StaticMesh 로드
@@ -389,18 +391,49 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 		return nullptr;
 	}
 
-	// OBJ 파일에서 StaticMesh 데이터 로드
-	FStaticMesh StaticMeshData;
-	bool bImportSuccess = FObjImporter::ImportStaticMesh(InFilePath, StaticMeshData);
+	bool bLoadSuccess = false;
 
-	if (bImportSuccess)
+	// 바이너리 캐시가 유효한지 확인
+	if (UStaticMesh::IsBinaryCacheValid(InFilePath))
+	{
+		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
+		UE_LOG("AssetManager: Loading from binary cache: %s", BinaryPath.c_str());
+
+		// 바이너리에서 로드 시도
+		bLoadSuccess = NewStaticMesh->LoadFromBinary(BinaryPath);
+
+		if (bLoadSuccess)
+		{
+			UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", InFilePath.c_str());
+			return NewStaticMesh;
+		}
+		else
+		{
+			UE_LOG("AssetManager: Binary cache load failed, falling back to OBJ parsing");
+		}
+	}
+
+	// 바이너리 캐시가 없거나 실패한 경우 OBJ 파싱
+	UE_LOG("AssetManager: Parsing OBJ file: %s", InFilePath.c_str());
+	FStaticMesh StaticMeshData;
+	bLoadSuccess = FObjImporter::ImportStaticMesh(InFilePath, StaticMeshData);
+
+	if (bLoadSuccess)
 	{
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
 
-		// 캐시에 저장
-		StaticMeshAssets[InFilePath] = NewStaticMesh;
+		// OBJ 파싱 성공 시 바이너리 캐시로 저장
+		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
+		if (NewStaticMesh->SaveToBinary(BinaryPath))
+		{
+			UE_LOG("AssetManager: Successfully saved binary cache: %s", BinaryPath.c_str());
+		}
+		else
+		{
+			UE_LOG("AssetManager: Failed to save binary cache: %s", BinaryPath.c_str());
+		}
 
-		UE_LOG_SUCCESS("StaticMesh 로드 성공: %s", InFilePath.c_str());
+		UE_LOG_SUCCESS("StaticMesh OBJ 파싱 로드 성공: %s", InFilePath.c_str());
 		return NewStaticMesh;
 	}
 	else
@@ -413,23 +446,44 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 UStaticMesh* UAssetManager::GetStaticMesh(const FString& InFilePath)
 {
-	auto It = StaticMeshAssets.find(InFilePath);
-	return It != StaticMeshAssets.end() ? It->second : nullptr;
+	// TObjectIterator를 사용하여 로드된 StaticMesh 검색
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	{
+		UStaticMesh* StaticMesh = *It;
+		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		{
+			return StaticMesh;
+		}
+	}
+	return nullptr;
 }
 
 void UAssetManager::ReleaseStaticMesh(const FString& InFilePath)
 {
-	auto It = StaticMeshAssets.find(InFilePath);
-	if (It != StaticMeshAssets.end())
+	// TObjectIterator를 사용하여 해당 StaticMesh 찾아서 삭제
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
 	{
-		delete It->second;
-		StaticMeshAssets.erase(It);
+		UStaticMesh* StaticMesh = *It;
+		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		{
+			delete StaticMesh;
+			break;
+		}
 	}
 }
 
 bool UAssetManager::HasStaticMesh(const FString& InFilePath) const
 {
-	return StaticMeshAssets.find(InFilePath) != StaticMeshAssets.end();
+	// TObjectIterator를 사용하여 해당 StaticMesh가 존재하는지 확인
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	{
+		UStaticMesh* StaticMesh = *It;
+		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void UAssetManager::LoadStaticMeshShaders()
@@ -477,53 +531,88 @@ void UAssetManager::LoadStaticMeshShaders()
 }
 
 /**
- * @brief 모든 프리미티브 타입의 StaticMesh를 미리 로드하는 함수
+ * @brief Data 폴더의 모든 바이너리 캐시된 StaticMesh들을 자동으로 로드하는 함수
+ * .mesh 파일이 있는 모든 OBJ 파일들을 찾아서 로드
  */
-void UAssetManager::LoadAllPrimitiveStaticMeshes()
+void UAssetManager::InitializeBasicPrimitives()
 {
-	// 각 프리미티브 타입별 OBJ 파일 경로 매핑
-	TMap<EPrimitiveType, FString> PrimitiveFilePaths = {
-		{EPrimitiveType::Sphere, "Data/Sphere.obj"},
-		{EPrimitiveType::Cube, "Data/Cube.obj"},
-		{EPrimitiveType::Triangle, "Data/Triangle.obj"},
-		{EPrimitiveType::Square, "Data/Square.obj"},
-		{EPrimitiveType::Torus, "Data/Torus.obj"},
-		{EPrimitiveType::Cylinder, "Data/Cylinder.obj"},
-		{EPrimitiveType::Cone, "Data/Cone.obj"},
+	// Data 폴더에서 모든 .mesh 바이너리 캐시 파일들을 찾아서 로드
+	TArray<FString> CachedMeshFiles;
+
+	try
+	{
+		std::filesystem::path dataPath("Data");
+		if (std::filesystem::exists(dataPath) && std::filesystem::is_directory(dataPath))
+		{
+			for (const auto& entry : std::filesystem::directory_iterator(dataPath))
+			{
+				if (entry.is_regular_file() && entry.path().extension() == ".mesh")
+				{
+					// .mesh 파일에서 원본 .obj 파일 경로 유추
+					std::filesystem::path objPath = entry.path();
+					objPath.replace_extension(".obj");
+
+					// .obj 파일이 존재하는지 확인
+					if (std::filesystem::exists(objPath))
+					{
+						CachedMeshFiles.push_back(objPath.string());
+						UE_LOG("AssetManager: Found cached mesh: %s", objPath.string().c_str());
+					}
+				}
+			}
+		}
+	}
+	catch (const std::filesystem::filesystem_error& e)
+	{
+		UE_LOG("AssetManager: Error scanning Data directory: %s", e.what());
+	}
+
+	// 기본 프리미티브들도 포함 (캐시에 없는 경우를 위해, 기본 프리미티브들은 무조건 불러와야함.)
+	TArray<FString> DefaultPrimitiveFilePaths =
+	{
+		"Data\\Sphere.obj",
+		"Data\\Cube.obj",
+		"Data\\Triangle.obj",
+		"Data\\Square.obj",
+		"Data\\Torus.obj",
+		"Data\\Cylinder.obj",
+		"Data\\Cone.obj",
 	};
 
-	// 각 프리미티브 타입별로 StaticMesh 로드
-	for (const auto& Pair : PrimitiveFilePaths)
+	// 기본 프리미티브를 CachedMeshFiles에 추가 (중복 제거)
+	for (const FString& DefaultPath : DefaultPrimitiveFilePaths)
 	{
-		EPrimitiveType PrimitiveType = Pair.first;
-		const FString& FilePath = Pair.second;
+		bool bAlreadyExists = false;
+		for (const FString& CachedPath : CachedMeshFiles)
+		{
+			if (CachedPath == DefaultPath)
+			{
+				bAlreadyExists = true;
+				break;
+			}
+		}
 
+		if (!bAlreadyExists)
+		{
+			CachedMeshFiles.push_back(DefaultPath);
+		}
+	}
+
+	// 모든 메시 파일들을 로드
+	UE_LOG("AssetManager: Loading %d mesh files...", static_cast<int>(CachedMeshFiles.size()));
+
+	for (const FString& FilePath : CachedMeshFiles)
+	{
 		UStaticMesh* LoadedMesh = LoadStaticMesh(FilePath);
 		if (LoadedMesh)
 		{
-			PrimitiveStaticMeshes[PrimitiveType] = LoadedMesh;
-			UE_LOG_SUCCESS("프리미티브 StaticMesh 로드 성공: %s", EnumToString(PrimitiveType));
+			UE_LOG("AssetManager: Successfully loaded: %s", FilePath.c_str());
 		}
 		else
 		{
-			UE_LOG_ERROR("프리미티브 StaticMesh 로드 실패: %s (경로: %s)",
-				EnumToString(PrimitiveType), FilePath.c_str());
+			UE_LOG("AssetManager: Failed to load: %s", FilePath.c_str());
 		}
 	}
-}
 
-/**
- * @brief 특정 프리미티브 타입의 StaticMesh를 가져오는 함수
- * @param InPrimitiveType 가져올 프리미티브 타입
- * @return 해당 타입의 StaticMesh 포인터 (없으면 nullptr)
- */
-UStaticMesh* UAssetManager::GetPrimitiveStaticMesh(EPrimitiveType InPrimitiveType)
-{
-	auto It = PrimitiveStaticMeshes.find(InPrimitiveType);
-	if (It != PrimitiveStaticMeshes.end())
-	{
-		return It->second;
-	}
-	return nullptr;
+	UE_LOG("AssetManager: Initialization complete. Loaded meshes available through ObjectIterator.");
 }
-

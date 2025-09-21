@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Public/Object.h"
+#include "Runtime/Core/Public/Object.h"
 
 template <typename T>
 class TObjectIterator
@@ -45,15 +45,15 @@ private:
 	void AdvanceToValid()
 	{
 		Current = nullptr;
-		for (int i = Index; i < EndIndex; ++i)
+		for (size_t i = Index; i < EndIndex; ++i)
 		{
-			UObject* Obj = GUObjectArray[i].Get<UObject>();
+			UObject* Obj = GUObjectArray[i];
 			if (Obj)
 			{
 				auto* CastedObj = Cast<T>(Obj);
 				if (CastedObj)
 				{
-					Current = CastedObj
+					Current = CastedObj;
 					Index = i;
 					return;
 				}

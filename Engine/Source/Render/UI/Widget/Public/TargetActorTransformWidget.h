@@ -1,6 +1,8 @@
 #pragma once
 #include "Widget.h"
 
+class UStaticMesh;
+
 class UTargetActorTransformWidget
 	: public UWidget
 {
@@ -28,4 +30,12 @@ private:
 	bool bPositionChanged;
 	uint64 LevelMemoryByte;
 	uint32 LevelObjectCount;
+
+	// StaticMesh 변경 관련
+	void RefreshStaticMeshList();
+	void ApplyStaticMeshToActor();
+	TArray<UStaticMesh*> AvailableStaticMeshes;
+	TArray<FString> StaticMeshNames;
+	int32 SelectedMeshIndex = 0;
+	bool bMeshChanged = false;
 };

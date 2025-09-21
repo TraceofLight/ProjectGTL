@@ -429,7 +429,7 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 	ID3D11PixelShader* PixelShader = DefaultPixelShader;
 	ID3D11InputLayout* InputLayout = DefaultInputLayout;
 
-	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMesh)
+	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMeshComp)
 	{
 		auto& AssetManager = UAssetManager::GetInstance();
 		ID3D11VertexShader* StaticMeshVS = AssetManager.GetVertexShader(EShaderType::StaticMesh);

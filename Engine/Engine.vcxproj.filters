@@ -33,14 +33,8 @@
     <ClCompile Include="Source\Runtime\Component\Private\MeshComponent.cpp">
       <Filter>Source\Runtime\Component\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Runtime\Component\Private\PrimitiveComponent.cpp">
-      <Filter>Source\Runtime\Component\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Runtime\Component\Private\SceneComponent.cpp">
-      <Filter>Source\Runtime\Component\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Runtime\Component\Mesh\Private\CubeComponent.cpp">
-      <Filter>Source\Runtime\Component\Mesh\Private</Filter>
+    <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp">
+      <Filter>Source\Manager\UI\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Runtime\Component\Mesh\Private\SphereComponent.cpp">
       <Filter>Source\Runtime\Component\Mesh\Private</Filter>
@@ -201,18 +195,6 @@
     <ClCompile Include="Source\Factory\Actor\Private\ActorFactory.cpp">
       <Filter>Source\Factory\Actor\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Factory\Actor\Private\CubeActorFactory.cpp">
-      <Filter>Source\Factory\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Factory\Actor\Private\SphereActorFactory.cpp">
-      <Filter>Source\Factory\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Factory\Actor\Private\SquareActorFactory.cpp">
-      <Filter>Source\Factory\Actor\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Factory\Actor\Private\TriangleActorFactory.cpp">
-      <Filter>Source\Factory\Actor\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Factory\Component\Private\ComponentFactories.cpp">
       <Filter>Source\Factory\Component\Private</Filter>
     </ClCompile>
@@ -330,6 +312,36 @@
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp">
       <Filter>Source\Utility\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Runtime\Actor\Private\Actor.cpp" />
+    <ClCompile Include="Source\Runtime\Actor\Private\StaticMeshActor.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Private\ActorComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Private\BillBoardComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Private\LineComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Private\MeshComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Private\PrimitiveComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Private\SceneComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Mesh\Private\VertexDatas.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Private\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Private\AppWindow.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Private\Class.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Private\EngineLoop.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Private\Name.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Private\Object.cpp" />
+    <ClCompile Include="Source\Runtime\Level\Private\Level.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\PathSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\Subsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\EditorSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\EngineSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\LocalPlayerSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\SubsystemCollection.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\GameInstanceSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\Engine.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\EngineEditor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\GameInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\LocalPlayer.cpp" />
+    <ClCompile Include="Source\Window\Private\Viewport.cpp" />
+    <ClCompile Include="Source\Window\Private\ViewportClient.cpp" />
+    <ClCompile Include="Source\Utility\Private\Archive.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -368,14 +380,8 @@
     <ClInclude Include="Source\Runtime\Component\Public\PrimitiveComponent.h">
       <Filter>Source\Runtime\Component\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Runtime\Component\Public\SceneComponent.h">
-      <Filter>Source\Runtime\Component\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Runtime\Component\Mesh\Public\CubeComponent.h">
-      <Filter>Source\Runtime\Component\Mesh\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Runtime\Component\Mesh\Public\SphereComponent.h">
-      <Filter>Source\Runtime\Component\Mesh\Public</Filter>
+    <ClInclude Include="Source\Manager\UI\Public\UIManager.h">
+      <Filter>Source\Manager\UI\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Component\Mesh\Public\SquareComponent.h">
       <Filter>Source\Runtime\Component\Mesh\Public</Filter>
@@ -584,18 +590,6 @@
     <ClInclude Include="Source\Factory\Actor\Public\ActorFactory.h">
       <Filter>Source\Factory\Actor\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Factory\Actor\Public\CubeActorFactory.h">
-      <Filter>Source\Factory\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Factory\Actor\Public\SphereActorFactory.h">
-      <Filter>Source\Factory\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Factory\Actor\Public\SquareActorFactory.h">
-      <Filter>Source\Factory\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Factory\Actor\Public\TriangleActorFactory.h">
-      <Filter>Source\Factory\Actor\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Factory\Component\Public\ComponentFactory.h">
       <Filter>Source\Factory\Component\Public</Filter>
     </ClInclude>
@@ -719,6 +713,43 @@
     <ClInclude Include="Source\Utility\Public\UELogParser.h">
       <Filter>Source\Utility\Public</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Source\Runtime\Actor\Public\Actor.h" />
+    <ClInclude Include="Source\Runtime\Actor\Public\StaticMeshActor.h" />
+    <ClInclude Include="Source\Runtime\Component\Public\ActorComponent.h" />
+    <ClInclude Include="Source\Runtime\Component\Public\BillBoardComponent.h" />
+    <ClInclude Include="Source\Runtime\Component\Public\LineComponent.h" />
+    <ClInclude Include="Source\Runtime\Component\Public\MeshComponent.h" />
+    <ClInclude Include="Source\Runtime\Component\Public\PrimitiveComponent.h" />
+    <ClInclude Include="Source\Runtime\Component\Public\SceneComponent.h" />
+    <ClInclude Include="Source\Runtime\Component\Mesh\Public\VertexDatas.h" />
+    <ClInclude Include="Source\Runtime\Component\Mesh\Sample\Rectangle.h" />
+    <ClInclude Include="Source\Runtime\Component\Mesh\Sample\Sphere.h" />
+    <ClInclude Include="Source\Runtime\Component\Mesh\Sample\Triangle.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\ObjectIterator.h" />
+    <ClInclude Include="Source\Runtime\Component\Public\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\AppWindow.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Class.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\EngineLoop.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\EngineStatics.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Name.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Object.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\ObjectPtr.h" />
+    <ClInclude Include="Source\Runtime\Level\Public\Level.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\PathSubsystem.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\EditorSubsystem.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\GameInstanceSubsystem.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\LocalPlayerSubsystem.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\Subsystem.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\SubsystemCollection.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\EngineSubsystem.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Engine.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\EngineEditor.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\GameInstance.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\LocalPlayer.h" />
+    <ClInclude Include="Source\Window\Public\Viewport.h" />
+    <ClInclude Include="Source\Window\Public\ViewportClient.h" />
+    <ClInclude Include="Source\Utility\Public\Archive.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Asset\Shader\StaticMeshShader.hlsl">
@@ -736,6 +767,7 @@
     <FxCompile Include="Asset\Shader\ShaderFont.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
+    <FxCompile Include="Asset\Shader\StaticMeshShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Asset">

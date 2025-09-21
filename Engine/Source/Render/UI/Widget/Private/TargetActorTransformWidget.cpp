@@ -3,10 +3,15 @@
 
 #include "Runtime/Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
+#include "Runtime/Actor/Public/StaticMeshActor.h"
+#include "Runtime/Component/Public/StaticMeshComponent.h"
+#include "Asset/Public/StaticMesh.h"
+#include "Runtime/Core/Public/ObjectIterator.h"
 
 UTargetActorTransformWidget::UTargetActorTransformWidget()
 	: UWidget("Target Actor Tranform Widget")
 {
+	RefreshStaticMeshList();
 }
 
 UTargetActorTransformWidget::~UTargetActorTransformWidget() = default;
@@ -50,12 +55,6 @@ void UTargetActorTransformWidget::Update()
 
 void UTargetActorTransformWidget::RenderWidget()
 {
-	// Memory Information
-	// ImGui::Text("레벨 메모리 정보");
-	// ImGui::Text("Level Object Count: %u", LevelObjectCount);
-	// ImGui::Text("Level Memory: %.3f KB", static_cast<float>(LevelMemoryByte) / KILO);
-	// ImGui::Separator();
-
 	if (SelectedActor)
 	{
 		ImGui::Separator();
@@ -86,6 +85,40 @@ void UTargetActorTransformWidget::RenderWidget()
 		ImGui::Checkbox("Uniform Scale", &bUniformScale);
 
 		SelectedActor->SetUniformScale(bUniformScale);
+
+		// StaticMesh 변경 UI (StaticMeshActor인 경우에만 표시)
+		if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor))
+		{
+			ImGui::Separator();
+			ImGui::Spacing();
+			ImGui::Text("StaticMesh:");
+			ImGui::SameLine();
+
+			if (!AvailableStaticMeshes.empty())
+			{
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(200);
+
+				// StaticMesh 이름들을 const char* 배열로 변환
+				TArray<const char*> MeshNamesCStr;
+				for (const FString& Name : StaticMeshNames)
+				{
+					MeshNamesCStr.push_back(Name.c_str());
+				}
+
+				if (ImGui::Combo("##StaticMeshSelect", &SelectedMeshIndex, MeshNamesCStr.data(), static_cast<int>(MeshNamesCStr.size())))
+				{
+					bMeshChanged = true;
+				}
+
+				// 인덱스 범위 검사
+				SelectedMeshIndex = max(0, min(SelectedMeshIndex, static_cast<int>(AvailableStaticMeshes.size()) - 1));
+			}
+			else
+			{
+				ImGui::Text("No StaticMesh found!");
+			}
+		}
 	}
 
 	ImGui::Separator();
@@ -100,6 +133,12 @@ void UTargetActorTransformWidget::PostProcess()
 	{
 		ApplyTransformToActor();
 	}
+
+	if (bMeshChanged)
+	{
+		ApplyStaticMeshToActor();
+		bMeshChanged = false;
+	}
 }
 
 void UTargetActorTransformWidget::UpdateTransformFromActor()
@@ -109,6 +148,7 @@ void UTargetActorTransformWidget::UpdateTransformFromActor()
 		EditLocation = SelectedActor->GetActorLocation();
 		EditRotation = SelectedActor->GetActorRotation();
 		EditScale = SelectedActor->GetActorScale3D();
+		RefreshStaticMeshList();
 	}
 }
 
@@ -120,4 +160,64 @@ void UTargetActorTransformWidget::ApplyTransformToActor() const
 		SelectedActor->SetActorRotation(EditRotation);
 		SelectedActor->SetActorScale3D(EditScale);
 	}
+}
+
+/**
+ * @brief ObjectIterator를 사용하여 모든 StaticMesh 수집
+ */
+void UTargetActorTransformWidget::RefreshStaticMeshList()
+{
+	AvailableStaticMeshes.clear();
+	StaticMeshNames.clear();
+
+	// ObjectIterator를 사용해 모든 UStaticMesh 오브젝트 순회
+	for (UStaticMesh* StaticMesh : MakeObjectRange<UStaticMesh>())
+	{
+		if (StaticMesh && StaticMesh->IsValidMesh())
+		{
+			AvailableStaticMeshes.push_back(StaticMesh);
+
+			// StaticMesh 이름 생성 (경로나 에셋 이름 사용)
+			FString MeshName = StaticMesh->GetAssetPathFileName();
+
+			// 경로에서 파일명만 추출
+			size_t LastSlash = MeshName.find_last_of("/\\");
+			if (LastSlash != std::string::npos)
+			{
+				MeshName = MeshName.substr(LastSlash + 1);
+			}
+
+			StaticMeshNames.push_back(MeshName);
+		}
+	}
+
+	// 선택된 인덱스 범위 검사
+	if (SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.size()))
+	{
+		SelectedMeshIndex = 0;
+	}
+}
+
+/**
+ * @brief 선택된 StaticMesh를 현재 액터에 적용
+ */
+void UTargetActorTransformWidget::ApplyStaticMeshToActor()
+{
+	if (!SelectedActor || AvailableStaticMeshes.empty() || SelectedMeshIndex < 0 || SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.size()))
+	{
+		return;
+	}
+
+	AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor);
+	if (!StaticMeshActor)
+	{
+		return;
+	}
+
+	UStaticMesh* SelectedMesh = AvailableStaticMeshes[SelectedMeshIndex];
+	const FString& MeshName = StaticMeshNames[SelectedMeshIndex];
+
+	StaticMeshActor->SetStaticMesh(SelectedMesh);
+
+	UE_LOG("TargetActorTransformWidget: Applied StaticMesh '%s' to actor", MeshName.c_str());
 }

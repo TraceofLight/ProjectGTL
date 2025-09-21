@@ -49,12 +49,8 @@ FString FJsonSerializer::PrimitiveTypeToWideString(EPrimitiveType InType)
 {
 	switch (InType)
 	{
-	case EPrimitiveType::Sphere:
-		return "Sphere";
-	case EPrimitiveType::Cube:
-		return "Cube";
-	case EPrimitiveType::Triangle:
-		return "Triangle";
+	case EPrimitiveType::StaticMeshComp:
+		return "StaticMeshComp";
 	default:
 		return "Unknown";
 	}
@@ -65,17 +61,9 @@ FString FJsonSerializer::PrimitiveTypeToWideString(EPrimitiveType InType)
  */
 EPrimitiveType FJsonSerializer::StringToPrimitiveType(const FString& InTypeString)
 {
-	if (InTypeString == "Sphere")
+	if (InTypeString == "StaticMeshComp")
 	{
-		return EPrimitiveType::Sphere;
-	}
-	if (InTypeString == "Cube")
-	{
-		return EPrimitiveType::Cube;
-	}
-	if (InTypeString == "Triangle")
-	{
-		return EPrimitiveType::Triangle;
+		return EPrimitiveType::StaticMeshComp;
 	}
 
 	return EPrimitiveType::None;
@@ -91,6 +79,12 @@ JSON FJsonSerializer::PrimitiveMetadataToJson(const FPrimitiveMetadata& InPrimit
 	PrimitiveJson["Rotation"] = VectorToJson(InPrimitive.Rotation);
 	PrimitiveJson["Scale"] = VectorToJson(InPrimitive.Scale);
 	PrimitiveJson["Type"] = PrimitiveTypeToWideString(InPrimitive.Type);
+
+	if (InPrimitive.Type == EPrimitiveType::StaticMeshComp)
+	{
+		PrimitiveJson["ObjStaticMeshAsset"] = InPrimitive.ObjStaticMeshAsset;
+	}
+
 	return PrimitiveJson;
 }
 
@@ -115,6 +109,11 @@ FPrimitiveMetadata FJsonSerializer::JsonToPrimitive(const JSON& InJsonData, uint
 			PrimitiveMeta.Scale = JsonToVector(ScaleJson);
 			PrimitiveMeta.Type = StringToPrimitiveType(TypeJson.ToString());
 
+			if (PrimitiveMeta.Type == EPrimitiveType::StaticMeshComp && InJsonData.hasKey("ObjStaticMeshAsset"))
+			{
+				PrimitiveMeta.ObjStaticMeshAsset = InJsonData.at("ObjStaticMeshAsset").ToString();
+			}
+
 			UE_LOG("LevelSerializer: JsonToPrimitive: ID: %d | Scale: (%.3f, %.3f, %.3f)",
 			       InID, PrimitiveMeta.Scale.X, PrimitiveMeta.Scale.Y, PrimitiveMeta.Scale.Z);
 		}
@@ -125,6 +124,61 @@ FPrimitiveMetadata FJsonSerializer::JsonToPrimitive(const JSON& InJsonData, uint
 	}
 
 	return PrimitiveMeta;
+}
+
+/**
+ * @brief FCameraMetadata를 JSON으로 변환
+ */
+JSON FJsonSerializer::CameraMetadataToJson(const FCameraMetadata& InCamera)
+{
+	JSON CameraJson;
+	CameraJson["Location"] = VectorToJson(InCamera.Location);
+	CameraJson["Rotation"] = VectorToJson(InCamera.Rotation);
+	CameraJson["FOV"] = InCamera.FOV;
+	CameraJson["NearClip"] = InCamera.NearClip;
+	CameraJson["FarClip"] = InCamera.FarClip;
+	return CameraJson;
+}
+
+/**
+ * @brief JSON을 FCameraMetadata로 변환
+ */
+FCameraMetadata FJsonSerializer::JsonToCameraMetadata(const JSON& InJsonData)
+{
+	FCameraMetadata CameraMeta;
+
+	try
+	{
+		if (InJsonData.JSONType() == JSON::Class::Object)
+		{
+			if (InJsonData.hasKey("Location"))
+			{
+				CameraMeta.Location = JsonToVector(InJsonData.at("Location"));
+			}
+			if (InJsonData.hasKey("Rotation"))
+			{
+				CameraMeta.Rotation = JsonToVector(InJsonData.at("Rotation"));
+			}
+			if (InJsonData.hasKey("FOV"))
+			{
+				CameraMeta.FOV = static_cast<float>(InJsonData.at("FOV").ToFloat());
+			}
+			if (InJsonData.hasKey("NearClip"))
+			{
+				CameraMeta.NearClip = static_cast<float>(InJsonData.at("NearClip").ToFloat());
+			}
+			if (InJsonData.hasKey("FarClip"))
+			{
+				CameraMeta.FarClip = static_cast<float>(InJsonData.at("FarClip").ToFloat());
+			}
+		}
+	}
+	catch (const exception&)
+	{
+		// JSON 파싱 실패 시 기본값 유지
+	}
+
+	return CameraMeta;
 }
 
 /**
@@ -142,6 +196,8 @@ JSON FJsonSerializer::LevelToJson(const FLevelMetadata& InLevelData)
 		PrimitivesJson[to_string(ID)] = PrimitiveMetadataToJson(Primitive);
 	}
 	LevelJson["Primitives"] = PrimitivesJson;
+
+	LevelJson["PerspectiveCamera"] = CameraMetadataToJson(InLevelData.PerspectiveCamera);
 
 	return LevelJson;
 }
@@ -186,6 +242,13 @@ FLevelMetadata FJsonSerializer::JsonToLevel(JSON& InJsonData)
 					continue;
 				}
 			}
+		}
+
+		// PerspectiveCamera 파싱
+		if (InJsonData.hasKey("PerspectiveCamera") &&
+			InJsonData["PerspectiveCamera"].JSONType() == JSON::Class::Object)
+		{
+			LevelData.PerspectiveCamera = JsonToCameraMetadata(InJsonData["PerspectiveCamera"]);
 		}
 	}
 	catch (const exception&)

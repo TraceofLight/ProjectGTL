@@ -128,19 +128,12 @@ UENUM()
 enum class EPrimitiveType : uint8
 {
 	None = 0,
-	Sphere,
-	Cube,
-	Triangle,
-	Square,
-	StaticMesh,
-	Torus,
-	Cylinder,
-	Cone,
-	Arrow,
-	CubeArrow,
-	Ring,
-	Line,
-	BillBoard,
+	StaticMeshComp,
+	Arrow,				// For Location Gizmo
+	CubeArrow,			// For Scale Gizmo
+	Ring,				// For Rotation Gizmo
+	Line,				// For Line Rendering
+	BillBoard,			// For BillBoard Component Rendering
 
 	End = 0xFF
 };

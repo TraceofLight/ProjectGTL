@@ -1,16 +1,15 @@
 #include "pch.h"
 #include "Manager/Level/Public/LevelManager.h"
-
 #include "Runtime/Level/Public/Level.h"
-#include "Runtime/Actor/Public/CubeActor.h"
-#include "Runtime/Actor/Public/SphereActor.h"
-#include "Runtime/Actor/Public/TriangleActor.h"
-#include "Runtime/Actor/Public/SquareActor.h"
-#include "Runtime/Subsystem/Public/PathSubsystem.h"
-#include "Runtime/Engine/Public/Engine.h"
+#include "Manager/Path/Public/PathManager.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Utility/Public/Metadata.h"
 #include "Editor/Public/Editor.h"
+#include "Runtime/Actor/Public/StaticMeshActor.h"
+#include "Runtime/Component/Public/StaticMeshComponent.h"
+#include "Asset/Public/StaticMesh.h"
+#include "Manager/Asset/Public/AssetManager.h"
+#include "Editor/Public/Camera.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(ULevelManager)
 
@@ -107,6 +106,13 @@ bool ULevelManager::SaveCurrentLevel(const FString& InFilePath) const
 		// 현재 레벨의 메타데이터 생성
 		FLevelMetadata Metadata = ConvertLevelToMetadata(CurrentLevel);
 
+		// TODO: Editor의 카메라 세팅도 Metadata에 포함시켜야 함
+		//Metadata.PerspectiveCamera.FarClip = Editor->GetCameraFarClip();
+		//Metadata.PerspectiveCamera.NearClip = Editor->GetCameraNearClip();
+		//Metadata.PerspectiveCamera.FOV = Editor->GetCameraFOV();
+		//Metadata.PerspectiveCamera.Location = Editor->GetCameraLocation();
+		//Metadata.PerspectiveCamera.Rotation = Editor->GetCameraRotation();
+
 		bool bSuccess = FJsonSerializer::SaveLevelToFile(Metadata, FilePath.string());
 
 		if (bSuccess)
@@ -128,20 +134,22 @@ bool ULevelManager::SaveCurrentLevel(const FString& InFilePath) const
 }
 
 /**
- * @brief 지정된 파일로부터 Level Load & Register
+ * @brief 지정된 파일로부터 Level Load & Register (2번 이상 LOAD하면 delete OldLevel;에서 터짐.)
  */
 bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFilePath)
 {
 	UE_LOG("LevelManager: Loading Level '%s' From: %s", InLevelName.data(), InFilePath.data());
 
+	// 기존 레벨이 있다면 먼저 정리
+	ClearCurrentLevel();
+
 	// Make New Level
 	TObjectPtr<ULevel> NewLevel = TObjectPtr<ULevel>(new ULevel(InLevelName));
+	FLevelMetadata Metadata;
 
 	// 직접 LevelSerializer를 사용하여 로드
 	try
 	{
-		FLevelMetadata Metadata;
-
 		bool bLoadSuccess = FJsonSerializer::LoadLevelFromFile(Metadata, InFilePath);
 		if (!bLoadSuccess)
 		{
@@ -181,24 +189,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 
 	if (bSuccess)
 	{
-		// 기존 레벨이 있다면 정리
-		ULevel* OldLevel;
-
 		FName LevelName(InLevelName);
-		if (Levels.find(LevelName) != Levels.end())
-		{
-			OldLevel = Levels[LevelName];
-
-			// CurrentLevel이 삭제될 레벨과 같다면 미리 nullptr로 설정
-			if (CurrentLevel == OldLevel)
-			{
-				CurrentLevel->Cleanup();
-				CurrentLevel = nullptr;
-			}
-
-			delete OldLevel;
-			Levels.erase(LevelName);
-		}
 
 		// 새 레벨 등록 및 활성화
 		RegisterLevel(LevelName, NewLevel);
@@ -211,6 +202,9 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 
 		CurrentLevel = NewLevel;
 		CurrentLevel->Init();
+
+		// 카메라 정보 복원
+		RestoreCameraFromMetadata(Metadata.PerspectiveCamera);
 
 		UE_LOG("LevelManager: Level이 성공적으로 로드되어 Level '%s' (으)로 레벨을 교체 완료했습니다", InLevelName.c_str());
 	}
@@ -231,25 +225,15 @@ bool ULevelManager::CreateNewLevel(const FString& InLevelName)
 {
 	UE_LOG("LevelManager: Creating New Level: %s", InLevelName.c_str());
 
-	// 이미 존재하는 레벨 이름인지 확인
-	FName LevelName(InLevelName);
-	if (Levels.find(LevelName) != Levels.end())
-	{
-		UE_LOG("LevelManager: Level '%s' Already Exists", InLevelName.c_str());
-		return false;
-	}
+	// 기존 레벨이 있다면 먼저 정리
+	ClearCurrentLevel();
 
 	// 새 레벨 생성
 	TObjectPtr<ULevel> NewLevel = TObjectPtr<ULevel>(new ULevel(InLevelName));
 
 	// 레벨 등록 및 활성화
+	FName LevelName(InLevelName);
 	RegisterLevel(LevelName, NewLevel);
-
-	// 현재 레벨을 새 레벨로 전환
-	if (CurrentLevel && CurrentLevel != NewLevel)
-	{
-		CurrentLevel->Cleanup();
-	}
 
 	CurrentLevel = NewLevel;
 	CurrentLevel->Init();
@@ -306,29 +290,24 @@ FLevelMetadata ULevelManager::ConvertLevelToMetadata(TObjectPtr<ULevel> InLevel)
 		PrimitiveMeta.Location = Actor->GetActorLocation();
 		PrimitiveMeta.Rotation = Actor->GetActorRotation();
 		PrimitiveMeta.Scale = Actor->GetActorScale3D();
+		PrimitiveMeta.Type = EPrimitiveType::StaticMeshComp;
 
-		// Actor 타입에 따라 EPrimitiveType 설정
-		if (dynamic_cast<ACubeActor*>(Actor))
+		// StaticMeshActor에서 OBJ 파일 경로 가져오기
+		if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(Actor))
 		{
-			PrimitiveMeta.Type = EPrimitiveType::Cube;
+			if (UStaticMeshComponent* MeshComp = StaticMeshActor->GetStaticMeshComponent())
+			{
+				if (UStaticMesh* StaticMesh = MeshComp->GetStaticMesh())
+				{
+					PrimitiveMeta.ObjStaticMeshAsset = StaticMesh->GetAssetPathFileName();
+				}
+			}
 		}
-		else if (dynamic_cast<ASphereActor*>(Actor))
+
+		// ObjStaticMeshAsset이 비어있으면 기본값 설정
+		if (PrimitiveMeta.ObjStaticMeshAsset.empty())
 		{
-			PrimitiveMeta.Type = EPrimitiveType::Sphere;
-		}
-		else if (dynamic_cast<ATriangleActor*>(Actor))
-		{
-			PrimitiveMeta.Type = EPrimitiveType::Triangle;
-		}
-		else if (dynamic_cast<ASquareActor*>(Actor))
-		{
-			PrimitiveMeta.Type = EPrimitiveType::Square;
-		}
-		else
-		{
-			UE_LOG("LevelManager: Unknown Actor Type, Skipping...");
-			assert(!"고려하지 않은 Actor 타입");
-			continue;
+			PrimitiveMeta.ObjStaticMeshAsset = "Data/DefaultMesh.obj";
 		}
 
 		Metadata.Primitives[PrimitiveMeta.ID] = PrimitiveMeta;
@@ -361,17 +340,8 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 		// 타입에 따라 적절한 액터 생성
 		switch (PrimitiveMeta.Type)
 		{
-		case EPrimitiveType::Cube:
-			NewActor = InLevel->SpawnActor<ACubeActor>();
-			break;
-		case EPrimitiveType::Sphere:
-			NewActor = InLevel->SpawnActor<ASphereActor>();
-			break;
-		case EPrimitiveType::Triangle:
-			NewActor = InLevel->SpawnActor<ATriangleActor>();
-			break;
-		case EPrimitiveType::Square:
-			NewActor = InLevel->SpawnActor<ASquareActor>();
+		case EPrimitiveType::StaticMeshComp:
+			NewActor = InLevel->SpawnActor<AStaticMeshActor>("StaticMeshActor");
 			break;
 		default:
 			UE_LOG("LevelManager: Unknown Primitive Type: %d", static_cast<int32>(PrimitiveMeta.Type));
@@ -381,6 +351,27 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 
 		if (NewActor)
 		{
+			// StaticMeshActor의 경우 OBJ 파일 로드
+			if (PrimitiveMeta.Type == EPrimitiveType::StaticMeshComp)
+			{
+				if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(NewActor))
+				{
+					UAssetManager& AssetManager = UAssetManager::GetInstance();
+					UStaticMesh* PrimitiveMesh = AssetManager.LoadStaticMesh(PrimitiveMeta.ObjStaticMeshAsset);
+
+					if (PrimitiveMesh)
+					{
+						StaticMeshActor->SetStaticMesh(PrimitiveMesh);
+					}
+					else
+					{
+						UE_LOG("LevelManager: Failed To Load StaticMesh From: %s",
+							PrimitiveMeta.ObjStaticMeshAsset.c_str());
+						InLevel->DestroyActor(StaticMeshActor);
+					}
+				}
+			}
+
 			// Transform 정보 적용
 			NewActor->SetActorLocation(PrimitiveMeta.Location);
 			NewActor->SetActorRotation(PrimitiveMeta.Rotation);
@@ -398,4 +389,46 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 
 	UE_LOG("LevelManager: 레벨이 메타데이터로부터 성공적으로 로드되었습니다");
 	return true;
+}
+
+void ULevelManager::ClearCurrentLevel()
+{
+	if (CurrentLevel)
+	{
+		delete CurrentLevel;
+		CurrentLevel = nullptr;
+		UE_LOG("LevelManager: Current level cleared successfully");
+	}
+}
+
+
+/**
+ * @brief 메타데이터에서 카메라 정보를 복원
+ */
+void ULevelManager::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMetadata)
+{
+	if (Editor)
+	{
+		UCamera* Camera = Editor->GetCamera();
+		if (Camera)
+		{
+			Camera->SetLocation(InCameraMetadata.Location);
+			Camera->SetRotation(InCameraMetadata.Rotation);
+			Camera->SetFovY(InCameraMetadata.FOV);
+			Camera->SetNearZ(InCameraMetadata.NearClip);
+			Camera->SetFarZ(InCameraMetadata.FarClip);
+
+			UE_LOG("LevelManager: Camera restored - Location: (%.2f, %.2f, %.2f), FOV: %.1f",
+			       InCameraMetadata.Location.X, InCameraMetadata.Location.Y, InCameraMetadata.Location.Z,
+			       InCameraMetadata.FOV);
+		}
+		else
+		{
+			UE_LOG("LevelManager: Camera not found in Editor");
+		}
+	}
+	else
+	{
+		UE_LOG("LevelManager: Editor not available for camera restoration");
+	}
 }

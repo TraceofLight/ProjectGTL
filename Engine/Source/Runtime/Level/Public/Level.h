@@ -46,13 +46,6 @@ public:
 
 	const TArray<TObjectPtr<AActor>>& GetLevelActors() const { return LevelActors; }
 
-	const TArray<TObjectPtr<UPrimitiveComponent>>& GetLevelPrimitiveComponents() const
-	{
-		return LevelPrimitiveComponents;
-	}
-
-	void AddLevelPrimitiveComponent(AActor* Actor);
-
 	template <typename T, typename... Args>
 	TObjectPtr<T> SpawnActor(const FName& InName = "");
 
@@ -72,7 +65,6 @@ public:
 
 private:
 	TArray<TObjectPtr<AActor>> LevelActors;
-	TArray<TObjectPtr<UPrimitiveComponent>> LevelPrimitiveComponents;
 
 	// 지연 삭제를 위한 리스트
 	TArray<AActor*> ActorsToDelete;
@@ -81,9 +73,8 @@ private:
 	TObjectPtr<AGizmo> Gizmo = nullptr;
 	TObjectPtr<AAxis> Axis = nullptr;
 	TObjectPtr<AGrid> Grid = nullptr;
-	//////////////////////////////////////////////////////////////////////////
+
 	// TODO(PYB): Editor 제작되면 해당 클래스에 존재하는 카메라 관련 코드 제거
-	//////////////////////////////////////////////////////////////////////////
 	UCamera* CameraPtr = nullptr;
 
 	uint64 ShowFlags = static_cast<uint64>(EEngineShowFlags::SF_Primitives) |

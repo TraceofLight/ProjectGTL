@@ -34,7 +34,7 @@ public:
 	 * @brief 원본 파일 경로를 가져옴
 	 * @return 원본 메시 파일의 경로
 	 */
-	const FString& GetSourceFilePath() const { return StaticMeshData.PathFileName; }
+	const FString& GetAssetPathFileName() const { return StaticMeshData.PathFileName; }
 
 	/**
 	 * @brief 렌더링을 위한 정점 데이터를 가져옴
@@ -87,6 +87,34 @@ public:
 	 * @return 계산된 AABB
 	 */
 	FAABB CalculateAABB() const;
+
+	/**
+	 * @brief 메시 데이터를 바이너리 파일로 저장
+	 * @param FilePath 저장할 파일 경로
+	 * @return 성공 여부
+	 */
+	bool SaveToBinary(const FString& FilePath) const;
+
+	/**
+	 * @brief 바이너리 파일에서 메시 데이터를 로드
+	 * @param FilePath 로드할 파일 경로
+	 * @return 성공 여부
+	 */
+	bool LoadFromBinary(const FString& FilePath);
+
+	/**
+	 * @brief 바이너리 캐시가 유효한지 확인
+	 * @param ObjFilePath 원본 OBJ 파일 경로
+	 * @return 바이너리 캐시 사용 가능 여부
+	 */
+	static bool IsBinaryCacheValid(const FString& ObjFilePath);
+
+	/**
+	 * @brief OBJ 파일로부터 바이너리 파일 경로 생성
+	 * @param ObjFilePath 원본 OBJ 파일 경로
+	 * @return 바이너리 파일 경로
+	 */
+	static FString GetBinaryFilePath(const FString& ObjFilePath);
 
 protected:
 	/** 실제 메시 데이터 */

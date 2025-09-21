@@ -202,10 +202,10 @@ void FEngineLoop::Exit() const
 	CoreEditor.Shutdown();
 	CoreEngine.Shutdown();
 
+	UAssetManager::GetInstance().Release();
 	URenderer::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();
 	ULevelManager::GetInstance().Shutdown();
-	UAssetManager::GetInstance().Release();
 
 	// Release되지 않은 UObject의 메모리 할당 해제
 	// TODO(KHJ): 추후 GC가 처리할 것
