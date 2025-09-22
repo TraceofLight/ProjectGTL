@@ -14,7 +14,7 @@ class UMaterialInterface : public UObject
 	GENERATED_BODY()
 	DECLARE_CLASS(UMaterialInterface, UObject)
 public:
-	virtual FMaterialRenderProxy* GetRenderProxy() = 0; // GPU 바인딩용
+	virtual FMaterialRenderProxy* GetRenderProxy() { return nullptr; } // GPU 바인딩용
 };
 
 /*
