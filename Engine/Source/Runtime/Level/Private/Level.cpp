@@ -35,6 +35,9 @@ ULevel::~ULevel()
 
 	ActorsToDelete.clear();
 	LevelActors.clear();
+
+	UE_LOG_SYSTEM("Level: GUObjectArray에 존재하는 제거된 객체들을 정리합니다");
+	CleanupGUObjectArray();
 }
 
 void ULevel::Init()
