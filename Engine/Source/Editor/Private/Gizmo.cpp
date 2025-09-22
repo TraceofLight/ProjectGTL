@@ -60,7 +60,7 @@ UGizmo::UGizmo()
 UGizmo::~UGizmo() = default;
 
 void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const UCamera* InCamera, float InViewportWidth,
-                         float InViewportHeight)
+                         float InViewportHeight, int32 ViewportIndex)
 {
 	TargetActor = InActor;
 	if (!TargetActor)
@@ -102,19 +102,19 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
 	// X축 (Forward) - 빨간색
 	FQuaternion RotationX = LocalRotation * FQuaternion::Identity();
 	P.Rotation = RotationX.ToEuler();
-	P.Color = ColorFor(EGizmoDirection::Forward);
+	P.Color = ColorFor(EGizmoDirection::Forward, ViewportIndex);
 	Renderer.RenderPrimitive(P, RenderState);
 
 	// Y축 (Right) - 초록색 (Z축 주위로 90도 회전)
 	FQuaternion RotY = LocalRotation * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
 	P.Rotation = RotY.ToEuler();
-	P.Color = ColorFor(EGizmoDirection::Right);
+	P.Color = ColorFor(EGizmoDirection::Right, ViewportIndex);
 	Renderer.RenderPrimitive(P, RenderState);
 
 	// Z축 (Up) - 파란색 (Y축 주위로 -90도 회전)
 	FQuaternion RotZ = LocalRotation * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
 	P.Rotation = RotZ.ToEuler();
-	P.Color = ColorFor(EGizmoDirection::Up);
+	P.Color = ColorFor(EGizmoDirection::Up, ViewportIndex);
 	Renderer.RenderPrimitive(P, RenderState);
 }
 
@@ -162,13 +162,23 @@ void UGizmo::OnMouseDragStart(const FVector& CollisionPoint)
 /**
  * @brief 상태 오염 방지를 위해 하이라이트 색상은 렌더 시점에만 계산하기 위한 함수
  * @param InAxis 축 방향
+ * @param ViewportIndex 뷰포트 인덱스
  * @return 색상 벡터
  */
-FVector4 UGizmo::ColorFor(EGizmoDirection InAxis) const
+FVector4 UGizmo::ColorFor(EGizmoDirection InAxis, int32 ViewportIndex) const
 {
 	const int Index = AxisIndex(InAxis);
 	const FVector4& BaseColor = GizmoColor[Index];
-	const bool bIsHighlight = (InAxis == GizmoDirection);
+
+	// 뷰포트별 기즈모 선택 상태 확인
+	EGizmoDirection ViewportGizmoDirection = EGizmoDirection::None;
+	auto it = ViewportGizmoDirections.find(ViewportIndex);
+	if (it != ViewportGizmoDirections.end())
+	{
+		ViewportGizmoDirection = it->second;
+	}
+
+	const bool bIsHighlight = (InAxis == ViewportGizmoDirection);
 
 	// 드래깅 중이든 아니든 하이라이트된 축은 노란색으로 표시
 	if (bIsHighlight)
@@ -184,7 +194,38 @@ FVector4 UGizmo::ColorFor(EGizmoDirection InAxis) const
 }
 
 /**
- * @brief 언리얼 엔진처럼 화면에서 일정한 픽셀 크기를 유지하는 스케일을 계산하는 함수
+ * @brief 뷰포트별 기즈모 방향 설정하는 함수
+ * @param InViewportIndex 뷰포트 인덱스
+ * @param InDirection 설정할 기즈모 방향
+ */
+void UGizmo::SetGizmoDirectionForViewport(int32 InViewportIndex, EGizmoDirection InDirection)
+{
+	ViewportGizmoDirections[InViewportIndex] = InDirection;
+	// 전역 방향도 업데이트
+	if (InViewportIndex == 0)
+	{
+		GizmoDirection = InDirection;
+	}
+}
+
+/**
+ * @brief 뷰포트별 기즈모 방향 가져오는 함수
+ * @param InViewportIndex 뷰포트 인덱스
+ * @return 뷰포트의 기즈모 방향
+ */
+EGizmoDirection UGizmo::GetGizmoDirectionForViewport(int32 InViewportIndex) const
+{
+	auto Iter = ViewportGizmoDirections.find(InViewportIndex);
+	if (Iter != ViewportGizmoDirections.end())
+	{
+		return Iter->second;
+	}
+
+	return EGizmoDirection::None;
+}
+
+/**
+ * @brief 화면에서 일정한 픽셀 크기를 유지하는 스케일을 계산하는 함수
  */
 float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const UCamera* InCamera,
                                         float InViewportWidth, float InViewportHeight, float InDesiredPixelSize) const

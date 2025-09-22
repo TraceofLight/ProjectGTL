@@ -52,15 +52,16 @@ void UEditor::RenderEditor()
 	int32 CurrentViewportIndex = Renderer.GetViewportIdx();
 
 	if (CurrentViewportIndex >= 0 && CurrentViewportIndex < static_cast<int32>(Viewports.size()) &&
-	    CurrentViewportIndex < static_cast<int32>(Clients.size()) &&
-	    Viewports[CurrentViewportIndex] && Clients[CurrentViewportIndex])
+		CurrentViewportIndex < static_cast<int32>(Clients.size()) &&
+		Viewports[CurrentViewportIndex] && Clients[CurrentViewportIndex])
 	{
 		// 현재 렌더링 중인 뷰포트의 카메라와 크기 정보 가져오기
 		FViewportClient* CurrentClient = Clients[CurrentViewportIndex];
 		FViewport* CurrentViewport = Viewports[CurrentViewportIndex];
 
-		UCamera* ViewportCamera = CurrentClient->IsOrtho() ?
-			CurrentClient->GetOrthoCamera() : CurrentClient->GetPerspectiveCamera();
+		UCamera* ViewportCamera = CurrentClient->IsOrtho()
+			                          ? CurrentClient->GetOrthoCamera()
+			                          : CurrentClient->GetPerspectiveCamera();
 
 		if (ViewportCamera)
 		{
@@ -68,8 +69,9 @@ void UEditor::RenderEditor()
 			float ViewportWidth = static_cast<float>(ViewportRect.W);
 			float ViewportHeight = static_cast<float>(ViewportRect.H - CurrentViewport->GetToolbarHeight());
 
-			// 뷰포트별로 카메라 정보를 이용해 언리얼 방식으로 기즈모 크기 계산
-			Gizmo.RenderGizmo(SelectedActor, ViewportCamera->GetLocation(), ViewportCamera, ViewportWidth, ViewportHeight);
+			// 뷰포트별로 카메라 정보를 이용해 기즈모 크기 계산
+			Gizmo.RenderGizmo(SelectedActor, ViewportCamera->GetLocation(), ViewportCamera, ViewportWidth,
+			                  ViewportHeight, CurrentViewportIndex);
 		}
 		else
 		{
@@ -258,10 +260,16 @@ void UEditor::UpdateGizmoDrag(const FRay& InWorldRay, UCamera& InPickingCamera)
  */
 void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 {
-	// ImGui UI가 마우스 입력을 사용 중이면 에디터 내 상호작용을 무시
+	// ImGui UI가 마우스 입력을 사용 중이면 에디터 내 상호작용을 무시 및 초기화 진행
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
-		Gizmo.SetGizmoDirection(EGizmoDirection::None);
+		// 모든 뷰포트의 기즈모 상태 초기화
+		auto& ViewportManager = UViewportManager::GetInstance();
+		const auto& Viewports = ViewportManager.GetViewports();
+		for (int32 i = 0; i < static_cast<int32>(Viewports.size()); ++i)
+		{
+			Gizmo.SetGizmoDirectionForViewport(i, EGizmoDirection::None);
+		}
 		return;
 	}
 
@@ -286,10 +294,10 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 		}
 	}
 
-	ObjectPicker.PickGizmo(InWorldRay, Gizmo, CollisionPoint, ViewportWidth, ViewportHeight);
+	ObjectPicker.PickGizmo(InWorldRay, Gizmo, CollisionPoint, ViewportWidth, ViewportHeight, ViewportIndex);
 
 	// 업데이트된 기즈모의 상태를 확인하여 상호작용 여부를 판단
-	if (Gizmo.GetGizmoDirection() != EGizmoDirection::None)
+	if (Gizmo.GetGizmoDirectionForViewport(ViewportIndex) != EGizmoDirection::None)
 	{
 		if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
 		{

@@ -8,21 +8,30 @@ class UCamera;
 class UGizmo;
 struct FRay;
 
-class UObjectPicker : public UObject
+UCLASS()
+class UObjectPicker :
+	public UObject
 {
+	GENERATED_BODY()
+	DECLARE_CLASS(UObjectPicker, UObject)
+
 public:
 	UObjectPicker() = default;
 	// Assign camera to use for ray tests (per-frame/per-viewport)
 	void SetCamera(UCamera* InCamera) { Camera = InCamera; }
-	UPrimitiveComponent* PickPrimitive(const FRay& WorldRay, TArray<UPrimitiveComponent*> Candidate, float* Distance);
-	void PickGizmo(const FRay& WorldRay, UGizmo& Gizmo, FVector& CollisionPoint, float ViewportWidth = 0.0f, float ViewportHeight = 0.0f);
-	bool IsRayCollideWithPlane(const FRay& WorldRay, FVector PlanePoint, FVector Normal, FVector& PointOnPlane);
+	UPrimitiveComponent* PickPrimitive(const FRay& InWorldRay, const TArray<UPrimitiveComponent*>& InCandidate,
+	                                   float* InDistance);
+	void PickGizmo(const FRay& InWorldRay, UGizmo& InGizmo, FVector& InCollisionPoint,
+	               float InViewportWidth = 0.0f, float InViewportHeight = 0.0f, int32 InViewportIndex = 0);
+	bool IsRayCollideWithPlane(const FRay& InWorldRay, FVector InPlanePoint, FVector InNormal, FVector& InPointOnPlane);
 
 private:
-	bool IsRayPrimitiveCollided(const FRay& ModelRay, UPrimitiveComponent* Primitive, const FMatrix& ModelMatrix, float* ShortestDistance);
-	FRay GetModelRay(const FRay& Ray, UPrimitiveComponent* Primitive);
-	bool IsRayTriangleCollided(const FRay& Ray, const FVector& Vertex1, const FVector& Vertex2, const FVector& Vertex3,
-		const FMatrix& ModelMatrix, float* Distance);
-private:
 	UCamera* Camera = nullptr;
+
+	bool IsRayPrimitiveCollided(const FRay& InModelRay, UPrimitiveComponent* InPrimitive, const FMatrix& InModelMatrix,
+	                            float* InShortestDistance);
+	static FRay GetModelRay(const FRay& InRay, const UPrimitiveComponent* InPrimitive);
+	bool IsRayTriangleCollided(const FRay& InRay,
+	                           const FVector& InVertex1, const FVector& InVertex2, const FVector& InVertex3,
+	                           const FMatrix& InModelMatrix, float* InDistance);
 };

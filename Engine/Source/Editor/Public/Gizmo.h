@@ -54,7 +54,7 @@ class UGizmo :
 
 public:
 	void RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const UCamera* InCamera = nullptr,
-	                 float InViewportWidth = 0.0f, float InViewportHeight = 0.0f);
+	                 float InViewportWidth = 0.0f, float InViewportHeight = 0.0f, int32 ViewportIndex = 0);
 	void ChangeGizmoMode();
 	void ChangeGizmoMode(EGizmoMode InMode) { GizmoMode = InMode; }
 
@@ -92,6 +92,10 @@ public:
 	void SetActorRotation(const FVector& InRotation) const { TargetActor->SetActorRotation(InRotation); }
 	void SetActorScale(const FVector& InScale) const { TargetActor->SetActorScale3D(InScale); }
 
+	// 뷰포트별 기즈모 상태 관리
+	void SetGizmoDirectionForViewport(int32 InViewportIndex, EGizmoDirection InDirection);
+	EGizmoDirection GetGizmoDirectionForViewport(int32 InViewportIndex) const;
+
 	void SetWorld() { bIsWorld = true; }
 	void SetLocal() { bIsWorld = false; }
 	bool IsWorldMode() const { return bIsWorld; }
@@ -127,7 +131,7 @@ private:
 	}
 
 	// 렌더 시 하이라이트 색상 계산 (상태 오염 방지)
-	FVector4 ColorFor(EGizmoDirection InAxis) const;
+	FVector4 ColorFor(EGizmoDirection InAxis, int32 ViewportIndex) const;
 
 	TArray<FEditorPrimitive> Primitives;
 	AActor* TargetActor = nullptr;
@@ -151,6 +155,9 @@ private:
 
 	FRenderState RenderState;
 
-	EGizmoDirection GizmoDirection = EGizmoDirection::None;
+	// 뷰포트별 기즈모 선택 상태 (각 뷰포트별로 독립적인 하이라이트)
+	TMap<int32, EGizmoDirection> ViewportGizmoDirections;
+
+	EGizmoDirection GizmoDirection = EGizmoDirection::None; // 레거시 호환성용
 	EGizmoMode GizmoMode = EGizmoMode::Translate;
 };
