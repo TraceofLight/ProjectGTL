@@ -22,3 +22,5 @@ constexpr float ToDeg = 180.0f / PI;
 
 constexpr float CameraSpeed = 6.0f;
 constexpr float KeySensitivityDegPerPixel = 0.05f;
+
+constexpr uint32 MAX_DISPLAY_LOG_COUNT = 200;

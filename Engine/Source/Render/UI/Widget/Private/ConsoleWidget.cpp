@@ -99,7 +99,7 @@ void UConsoleWidget::RenderWidget()
 				ImGui::PushStyleColor(ImGuiCol_Text, Color);
 			}
 
-			ImGui::TextUnformatted(LogEntry.Message.c_str());
+			ImGui::TextUnformatted(LogEntry.Message.data());
 
 			if (bShouldApplyColor)
 			{
@@ -245,6 +245,12 @@ void UConsoleWidget::AddLogInternal(ELogType InType, const char* fmt, va_list In
 	// Log buffer 복사 후 제거
 	LogEntry.Message = FString(Buffer);
 	delete[] Buffer;
+
+	// Log 최대 갯수 제한
+	if (LogItems.size() >= MAX_DISPLAY_LOG_COUNT)
+	{
+		LogItems.pop_front();
+	}
 
 	LogItems.push_back(LogEntry);
 
