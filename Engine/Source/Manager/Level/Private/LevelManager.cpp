@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Manager/Level/Public/LevelManager.h"
-#include "Manager/Path/Public/PathManager.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Window/Public/ViewportClient.h"
@@ -50,9 +49,9 @@ void ULevelManager::LoadLevel(const FName& InName)
 
 void ULevelManager::Shutdown()
 {
-	for (auto& LevelIter : Levels)
+	for (auto& Level : Levels)
 	{
-		delete LevelIter.second;
+		SafeDelete(Level.second);
 	}
 
 	delete Editor;
@@ -64,8 +63,11 @@ void ULevelManager::Shutdown()
  */
 void ULevelManager::CreateDefaultLevel()
 {
-	Levels[FName("Untitled")] = new ULevel("Untitled");
-	LoadLevel(FName("Untitled"));
+	TObjectPtr<ULevel> Level = NewObject<ULevel>();
+	Level->SetDisplayName("NewLevel");
+
+	Levels[FName("NewLevel")] = Level;
+	LoadLevel(FName("NewLevel"));
 }
 
 void ULevelManager::Update() const
@@ -156,7 +158,8 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 	ClearCurrentLevel();
 
 	// Make New Level
-	TObjectPtr<ULevel> NewLevel = TObjectPtr<ULevel>(new ULevel(InLevelName));
+	TObjectPtr<ULevel> NewLevel = NewObject<ULevel>();
+	NewLevel->SetDisplayName(InLevelName);
 	FLevelMetadata Metadata;
 
 	// 직접 LevelSerializer를 사용하여 로드
@@ -166,7 +169,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!bLoadSuccess)
 		{
 			UE_LOG("LevelManager: Failed To Load Level From: %s", InFilePath.c_str());
-			delete NewLevel;
+			SafeDelete(NewLevel);
 			return false;
 		}
 
@@ -175,7 +178,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!FJsonSerializer::ValidateLevelData(Metadata, ErrorMessage))
 		{
 			UE_LOG("LevelManager: Level Validation Failed: %s", ErrorMessage.c_str());
-			delete NewLevel;
+			SafeDelete(NewLevel);
 			return false;
 		}
 
@@ -185,14 +188,14 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!bSuccess)
 		{
 			UE_LOG("LevelManager: Failed To Create Level From Metadata");
-			delete NewLevel;
+			SafeDelete(NewLevel);
 			return false;
 		}
 	}
 	catch (const exception& InException)
 	{
 		UE_LOG("LevelManager: Exception During Load: %s", InException.what());
-		delete NewLevel;
+		SafeDelete(NewLevel);
 		return false;
 	}
 
@@ -223,7 +226,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 	else
 	{
 		// 로드 실패 시 정리
-		delete NewLevel;
+		SafeDelete(NewLevel);
 		UE_LOG("LevelManager: 파일로부터 Level을 로드하는 데에 실패했습니다");
 	}
 
@@ -240,14 +243,13 @@ bool ULevelManager::CreateNewLevel()
 
 	// 기존 레벨이 있다면 먼저 정리 (Asset 포함)
 	UE_LOG("LevelManager: 기존 레벨 정리를 시도합니다");
-	ClearCurrentLevel();  // 이미 ForceReleaseAllStaticMeshes() 포함됨
+	ClearCurrentLevel();
 
 	// 새 레벨 생성 (내부 Level 명칭은 다르게, 겉보기 이름은 동일하게 보이도록 처리)
 	TObjectPtr<ULevel> NewLevel = NewObject<ULevel>();
 	FName NewLevelName = "Level_" + to_string(ULevel::GetNextGenNumber());
 	NewLevel->SetName(NewLevelName);
-	// NewLevel->SetDisplayName("NewLevel");
-	UE_LOG_DEBUG("LevelManager: Internal Level Name: %s", NewLevelName.ToString().data());
+	NewLevel->SetDisplayName("NewLevel");
 
 	// 레벨 등록 및 활성화
 	RegisterLevel(NewLevelName, NewLevel);
@@ -412,8 +414,7 @@ void ULevelManager::ClearCurrentLevel()
 {
 	if (CurrentLevel)
 	{
-		delete CurrentLevel;
-		CurrentLevel = nullptr;
+		SafeDelete(CurrentLevel);
 		UE_LOG("LevelManager: Current level cleared successfully");
 	}
 }

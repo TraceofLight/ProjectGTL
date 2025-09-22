@@ -14,6 +14,10 @@ public:
 	void AddMemoryUsage(uint64 InBytes, uint32 InCount);
 	void RemoveMemoryUsage(uint64 InBytes, uint32 InCount);
 
+	static void CheckAndCleanupGUObjectArray();
+	static void CleanupGUObjectArray();
+	static uint32 GetNullObjectCount();
+
 	// Getter & Setter
 	const FName& GetName() const { return Name; }
 	UObject* GetOuter() const { return Outer.Get(); }
@@ -45,7 +49,7 @@ private:
 	uint32 AllocatedCounts = 0;
 
 	void PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta);
-	void SetInternalIndex(uint32 NewIndex) { InternalIndex = NewIndex; }
+	void SetInternalIndex(uint32 InNewIndex) { InternalIndex = InNewIndex; }
 };
 
 
