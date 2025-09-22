@@ -422,16 +422,7 @@ void UMainBarWidget::LoadLevel()
  */
 void UMainBarWidget::CreateNewLevel()
 {
-	ULevelManager& LevelMgr = ULevelManager::GetInstance();
-	FString NewLevelName = FString("NewLevel");
-	if (LevelMgr.CreateNewLevel(NewLevelName))
-	{
-		UE_LOG("MainBarWidget: 새로운 레벨이 성공적으로 생성되었습니다");
-	}
-	else
-	{
-		UE_LOG("MainBarWidget: 새로운 레벨 생성에 실패했습니다");
-	}
+	ULevelManager::GetInstance().CreateNewLevel();
 }
 
 /**

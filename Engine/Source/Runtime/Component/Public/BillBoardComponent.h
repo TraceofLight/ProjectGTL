@@ -4,12 +4,16 @@
 
 class AActor;
 
+UCLASS()
 class UBillBoardComponent :
 	public UPrimitiveComponent
 {
+	GENERATED_BODY()
+	DECLARE_CLASS(UBillBoardComponent, UPrimitiveComponent)
+
 public:
 	UBillBoardComponent();
-	~UBillBoardComponent();
+	~UBillBoardComponent() override = default;
 
 	void UpdateRotationMatrix();
 

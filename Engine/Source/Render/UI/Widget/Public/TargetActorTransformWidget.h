@@ -9,6 +9,7 @@ class UTargetActorTransformWidget
 public:
 	void Initialize() override;
 	void Update() override;
+	void SetActorProperties();
 	void RenderWidget() override;
 	void PostProcess() override;
 
@@ -20,7 +21,7 @@ public:
 	~UTargetActorTransformWidget() override;
 
 private:
-	AActor* SelectedActor;
+	TObjectPtr<AActor> SelectedActor;
 
 	FVector EditLocation;
 	FVector EditRotation;

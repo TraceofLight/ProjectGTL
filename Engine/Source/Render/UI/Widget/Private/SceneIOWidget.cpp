@@ -184,7 +184,7 @@ void USceneIOWidget::CreateNewLevel()
 		}
 
 		ULevelManager& LevelManager = ULevelManager::GetInstance();
-		bool bSuccess = LevelManager.CreateNewLevel(LevelName);
+		bool bSuccess = LevelManager.CreateNewLevel();
 
 		if (bSuccess)
 		{

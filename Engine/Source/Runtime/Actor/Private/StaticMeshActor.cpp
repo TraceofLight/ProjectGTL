@@ -8,23 +8,25 @@ IMPLEMENT_CLASS(AStaticMeshActor, AActor)
 
 AStaticMeshActor::AStaticMeshActor()
 {
-	uint32 ID = GetNextGenNumber();
+	AStaticMeshActor::GetClass()->IncrementGenNumber();
 
 	// StaticMeshComponent 생성 및 RootComponent로 설정
-	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent_" + to_string(ID));
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(FName::FName_None);
+	StaticMeshComponent->SetDisplayName("StaticMeshComponent_" + to_string(UStaticMeshComponent::GetNextGenNumber()));
 
-	SetRootComponent(StaticMeshComponent.Get());
+	SetRootComponent(StaticMeshComponent);
 }
 
 AStaticMeshActor::AStaticMeshActor(UObject* InOuter)
 	: AActor(InOuter)
 {
-	uint32 ID = GetNextGenNumber();
+	AStaticMeshActor::GetClass()->IncrementGenNumber();
 
 	// StaticMeshComponent 생성 및 RootComponent로 설정
-	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent_" + to_string(ID));
+	StaticMeshComponent =CreateDefaultSubobject<UStaticMeshComponent>(
+			"StaticMeshComponent_" + to_string(UStaticMeshComponent::GetNextGenNumber()));
 
-	SetRootComponent(StaticMeshComponent.Get());
+	SetRootComponent(StaticMeshComponent);
 }
 
 // XXX(KHJ): 이거 기본 소멸자 해도 되나? 멤버들 스마트 포인터라 안 지워줘도 알아서 날아가나..

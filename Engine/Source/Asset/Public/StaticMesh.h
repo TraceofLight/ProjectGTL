@@ -17,7 +17,7 @@ class UStaticMesh : public UObject
 
 public:
 	UStaticMesh();
-	virtual ~UStaticMesh();
+	~UStaticMesh() override;
 
 	/**
 	 * @brief 스태틱 메시 데이터를 가져옴
@@ -101,9 +101,10 @@ public:
 	 * @param FilePath 로드할 파일 경로
 	 * @return 성공 여부
 	 */
-	bool LoadFromBinary(const FString& FilePath);
-
-	const TArray<UMaterialInterface*>& GetMaterialSlots() const { return MaterialSlots; }
+	bool LoadFromBinary(const FString& FilePath);
+
+	const TArray<UMaterialInterface*>& GetMaterialSlots() const { return MaterialSlots; }
+
 	void SetMaterialSlots(const TArray<UMaterialInterface*>& InMaterialSlots);
 
 	/**

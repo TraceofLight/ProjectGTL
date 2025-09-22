@@ -76,7 +76,7 @@ private:
 	int HistoryPosition;
 
 	// Log output
-	TArray<FLogEntry> LogItems;
+	std::deque<FLogEntry> LogItems;
 	bool bIsAutoScroll;
 	bool bIsScrollToBottom;
 

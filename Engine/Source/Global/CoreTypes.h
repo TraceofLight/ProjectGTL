@@ -43,7 +43,8 @@ struct FVertex
 	}
 
 	FVertex(const FVector& InPosition)
-		: Position(InPosition), Color(FVector4(1.0f, 1.0f, 1.0f, 1.0f)), Normal(FVector(0.0f, 0.0f, 1.0f)), TextureCoord(FVector2(0.0f, 0.0f))
+		: Position(InPosition), Color(FVector4(1.0f, 1.0f, 1.0f, 1.0f)), Normal(FVector(0.0f, 0.0f, 1.0f)),
+		  TextureCoord(FVector2(0.0f, 0.0f))
 	{
 	}
 };
@@ -75,9 +76,14 @@ struct FTransform
 	FTransform() = default;
 
 	FTransform(const FVector& InLocation, const FVector& InRotation = FVector::ZeroVector(),
-			   const FVector& InScale = FVector::OneVector())
+	           const FVector& InScale = FVector::OneVector())
 		: Location(InLocation), Rotation(InRotation), Scale(InScale)
 	{
+	}
+
+	bool operator==(const FTransform& InOther) const
+	{
+		return this->Location == InOther.Location && this->Rotation == InOther.Rotation && this->Scale == InOther.Scale;
 	}
 };
 
@@ -89,7 +95,10 @@ struct FPoint
 	INT X, Y;
 
 	FPoint() = default;
-	constexpr FPoint(LONG InX, LONG InY) : X(InX), Y(InY) {}
+
+	constexpr FPoint(LONG InX, LONG InY) : X(InX), Y(InY)
+	{
+	}
 };
 
 /**
@@ -100,5 +109,8 @@ struct FRect
 	LONG X, Y, W, H;
 
 	FRect() = default;
-	constexpr FRect(LONG InX, LONG InY, LONG InW, LONG InH) : X(InX), Y(InY), W(InW), H(InH) {}
+
+	constexpr FRect(LONG InX, LONG InY, LONG InW, LONG InH) : X(InX), Y(InY), W(InW), H(InH)
+	{
+	}
 };
