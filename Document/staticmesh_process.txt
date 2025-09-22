@@ -1,0 +1,23 @@
+1. OBJ 임포트(파서/팩토리)
+    - OBJ/MTL 로드 → 위치/노멀/UV/페이스 파싱, 필요 시 삼각분할
+    - 중복 정점 머지 → Vertex/Index 버퍼용 배열 생성
+    - 탄젠트/바이노멀 재계산, 서브메시(머티리얼별 드로우콜) 분리
+    - AABB 등 바운딩 계산
+2. FStaticMesh 생성(원본 지오메트리)
+    - 파싱 결과를 정규화해 정점(Attribute)/인덱스/서브메시 범위를 보관
+    - 메시에 대한 바운딩 정보, 톱니/스무딩 같은 기하 메타데이터 유지
+    - CPU 측 “불변 원본 데이터” 역할
+3. UStaticMesh 구성(애셋화 + GPU 준비)
+    - FStaticMesh를 소유하는 애셋 오브젝트로 래핑
+    - 로드 시 DX11 리소스 생성: VertexBuffer/IndexBuffer 업로드, 입력레이아웃/프리미티브 토폴로지 설정
+    - LOD/머티리얼 슬롯/콜리전(옵션) 메타데이터 관리
+    - 디스크 저장: Engine/Asset/ 등 애셋 경로와 식별자 관리
+4. StaticMeshComponent 생성(인스턴스화)
+    - UStaticMesh 참조를 보유하고, 트랜스폼(위치/회전/스케일)과 머티리얼 오버라이드 관리
+    - 등록 시 렌더 프록시 생성, 상수버퍼/바운즈 업데이트, 컬링 대상 포함
+    - 씬 내 하나의 렌더러 인스턴스가 됨
+5. StaticMeshActor 스폰(씬 배치)
+    - 액터 스폰 → 기본 StaticMeshComponent를 루트로 생성/부착
+    - 액터 트랜스폼 지정, 씬/월드에 등록 → SceneManager/Hierarchy에 노출
+    - 에디터에서 드래그&드롭 또는 “Create Actor From Asset”으로 배치
+    - 저장 시 레벨/씬 데이터에 액터와 컴포넌트의 참조/트랜스폼 기록

@@ -2,6 +2,7 @@
 #include "Runtime/Core/Public/Object.h"
 #include "Asset/Public/StaticMeshData.h"
 #include "Physics/Public/AABB.h"
+#include "Material/Public/Material.h"
 
 /**
  * @brief UStaticMesh: 스태틱 메시 데이터를 보유하는 애셋 클래스
@@ -100,7 +101,10 @@ public:
 	 * @param FilePath 로드할 파일 경로
 	 * @return 성공 여부
 	 */
-	bool LoadFromBinary(const FString& FilePath);
+	bool LoadFromBinary(const FString& FilePath);
+
+	const TArray<UMaterialInterface*>& GetMaterialSlots() const { return MaterialSlots; }
+	void SetMaterialSlots(const TArray<UMaterialInterface*>& InMaterialSlots);
 
 	/**
 	 * @brief 바이너리 캐시가 유효한지 확인
@@ -120,9 +124,12 @@ protected:
 	/** 실제 메시 데이터 */
 	FStaticMesh StaticMeshData;
 
+	TArray<UMaterialInterface*> MaterialSlots;
+
 	/** 정점 버퍼 */
 	ID3D11Buffer* VertexBuffer = nullptr;
 
 	/** 인덱스 버퍼 */
 	ID3D11Buffer* IndexBuffer = nullptr;
 };
+

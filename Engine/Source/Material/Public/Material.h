@@ -1,7 +1,9 @@
 #pragma once
-#include "Core/Public/Object.h"
+#include "Runtime/Core/Public/Object.h"
+#include "Asset/Public/StaticMeshData.h"
 
-class FMaterialRenderProxy;
+struct FMaterialRenderProxy;
+struct ID3D11ShaderResourceView;
 
 /**
 * @brief 머티리얼 공통 인터페이스
@@ -12,7 +14,7 @@ class UMaterialInterface : public UObject
 	GENERATED_BODY()
 	DECLARE_CLASS(UMaterialInterface, UObject)
 public:
-	virtual FMaterialRenderProxy* GetRenderProxy() = 0; // GPU 바인딩용
+	virtual FMaterialRenderProxy* GetRenderProxy() { return nullptr; } // GPU 바인딩용
 };
 
 /*
@@ -25,9 +27,28 @@ class UMaterial : public UMaterialInterface
 	GENERATED_BODY()
 	DECLARE_CLASS(UMaterial, UMaterialInterface)
 public:
+	void SetMaterialInfo(const FObjMaterialInfo& InMaterialInfo);
+	const FObjMaterialInfo& GetMaterialInfo() const;
+	const FString& GetMaterialName() const { return MaterialInfo.MaterialName; }
+
+	void SetDiffuseTexture(ID3D11ShaderResourceView* InTexture);
+	ID3D11ShaderResourceView* GetDiffuseTexture() const;
+
+	void SetNormalTexture(ID3D11ShaderResourceView* InTexture);
+	ID3D11ShaderResourceView* GetNormalTexture() const;
+
+	void SetSpecularTexture(ID3D11ShaderResourceView* InTexture);
+	ID3D11ShaderResourceView* GetSpecularTexture() const;
+
 	// 셰이더 핸들/경로 + 파라미터(스칼라/벡터/텍스처)
 	FMaterialRenderProxy* RenderProxy = nullptr;
 	FMaterialRenderProxy* GetRenderProxy() override { return RenderProxy; }
+
+private:
+	FObjMaterialInfo MaterialInfo;
+	ID3D11ShaderResourceView* DiffuseTexture = nullptr;
+	ID3D11ShaderResourceView* NormalTexture = nullptr;
+	ID3D11ShaderResourceView* SpecularTexture = nullptr;
 };
 
 /*
@@ -45,3 +66,4 @@ public:
 	FMaterialRenderProxy* RenderProxy = nullptr; // 머지된 결과
 	FMaterialRenderProxy* GetRenderProxy() override { return RenderProxy; }
 };
+
