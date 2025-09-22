@@ -276,6 +276,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source\Material\Private\Material.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\Actor.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\StaticMeshActor.cpp" />
     <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />

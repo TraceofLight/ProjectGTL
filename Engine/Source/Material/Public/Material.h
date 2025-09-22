@@ -1,7 +1,7 @@
 #pragma once
-#include "Core/Public/Object.h"
+#include "Runtime/Core/Public/Object.h"
 
-class FMaterialRenderProxy;
+struct FMaterialRenderProxy;
 
 /**
 * @brief 머티리얼 공통 인터페이스
