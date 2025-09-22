@@ -22,17 +22,24 @@ void UTargetActorTransformWidget::Initialize()
 
 void UTargetActorTransformWidget::Update()
 {
-	// 매 프레임 Level의 선택된 Actor를 확인해서 정보 반영
-	// TODO(KHJ): 적절한 위치를 찾을 것
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	// Level memory는 현재 따로 출력하지 않음
+	// LevelMemoryByte = CurrentLevel->GetAllocatedBytes();
+	// LevelObjectCount = CurrentLevel->GetAllocatedCount();
+}
 
-	LevelMemoryByte = CurrentLevel->GetAllocatedBytes();
-	LevelObjectCount = CurrentLevel->GetAllocatedCount();
+/**
+ * @brief Actor에 대한 속성값을 로드하는 함수
+ * 원래 Update() 함수에 존재했으나, Update와 Render 시점 차이에 따른 Actor 상태 차이로 인한 문제가 발생
+ * 최대한 Render 직전에 업데이트 할 수 있도록 호출 지점을 조절한 상태
+ */
+void UTargetActorTransformWidget::SetActorProperties()
+{
+	ULevelManager& LevelManager = ULevelManager::GetInstance();
+	TObjectPtr<ULevel> CurrentLevel = LevelManager.GetCurrentLevel();
 
 	if (CurrentLevel)
 	{
-		AActor* CurrentSelectedActor = CurrentLevel->GetSelectedActor();
+		TObjectPtr<AActor> CurrentSelectedActor = CurrentLevel->GetSelectedActor();
 
 		// Update Current Selected Actor
 		if (SelectedActor != CurrentSelectedActor)
@@ -56,6 +63,8 @@ void UTargetActorTransformWidget::Update()
 
 void UTargetActorTransformWidget::RenderWidget()
 {
+	SetActorProperties();
+
 	if (SelectedActor)
 	{
 		ImGui::Separator();
