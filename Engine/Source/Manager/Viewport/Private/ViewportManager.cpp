@@ -16,6 +16,16 @@
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UViewportManager)
 
+
+static FVector OrthoCamFwd[6] = {
+	FVector(0, 0, -1), // Top: 위에서 아래로 본다 (카메라 forward = -Z)
+	FVector(0, 0,  1), // Bottom
+	FVector(0, -1, 0), // Left
+	FVector(0,  1, 0), // Right
+	FVector(-1,  0, 0), // Front
+	FVector(1, 0, 0), // Back
+};
+
 UViewportManager::UViewportManager() = default;
 UViewportManager::~UViewportManager() = default;
 
@@ -28,20 +38,26 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	}
 	AppWindow = InWindow;
 
-	OrthographicCamera = new UCamera;
-	OrthographicCamera->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthographicCamera->SetFarZ(10000.0f);
-
 	// Start with a single window, initial rect (menu height applied on first Update)
 	SWindow* Single = new SWindow();
 	Single->OnResize({0, 0, Width, Height});
 	SetRoot(Single);
-	bFourSplitActive = false;
 
-	// 싱글 모드용 Viewport/Client 1쌍
-	CreateViewportsAndClients(1);
+	// 뷰포트 & 클라이언트 생성
+	InitializeViewportAndClient();
 
-	//LastTime = UTimeManager::GetInstance().GetGameTime(); // 있다면
+	// 직교 6방향 카메라 초기화
+	InitializeOrthoGraphicCamera();
+
+	// perspective 4개 초기화
+	InitializePerspectiveCamera();
+
+	// 직교 카메라 중점 업데이트
+	//UpdateOrthoGraphicCameraPoint();
+
+	// 바인드
+	BindOrthoGraphicCameraToClient();
+
 }
 
 void UViewportManager::SetRoot(SWindow* InRoot)
@@ -57,22 +73,39 @@ SWindow* UViewportManager::GetRoot()
 void UViewportManager::BuildSingleLayout()
 {
 	if (!Root) return;
-	int32 w = 0, h = 0;
-	if (AppWindow) AppWindow->GetClientSize(w, h);
-	const int menuH = (int)UUIManager::GetInstance().GetMainMenuBarHeight();
-	const FRect Rect{0, menuH, w, max(0, h - menuH)};
+	// 0) 싱글로 전환하기 전에 "어떤 뷰포트가 메인으로 갈지" 결정
+	int32 PromoteIdx = (int32)GetViewportIndexUnderMouse(); // 마우스 아래 인덱스
+	if (PromoteIdx < 0 || PromoteIdx >= (int32)Viewports.size())
+	{
+		// 우클릭 드래그 중인 뷰가 있으면 그걸 우선, 없으면 0번 유지
+		PromoteIdx = (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < (int32)Viewports.size())
+			? ActiveRmbViewportIdx
+			: 0;
+	}
 
-	// 기존 캡처 해제 (안전)
+	// 0.5) 선택된 인덱스를 0번으로 올리기(뷰포트/클라이언트 페어 동기 스왑)
+	if (PromoteIdx != 0)
+	{
+		std::swap(Viewports[0], Viewports[PromoteIdx]);
+		std::swap(Clients[0], Clients[PromoteIdx]);
+	}
+
+	// 1) 윈도우 크기 읽기
+	int32 Width = 0, Height = 0;
+	if (AppWindow)
+	{
+		AppWindow->GetClientSize(Width, Height);
+	}
+	const int32 MenuH = (int32)UUIManager::GetInstance().GetMainMenuBarHeight();
+	const FRect Rect{ 0, MenuH, Width, max(0, Height - MenuH) };
+
+	// 2) 기존 캡처 해제 (안전)
 	Capture = nullptr;
 
-	// 새 루트 구성
+	// 3) 새 루트 구성 (싱글)
 	SWindow* Single = new SWindow();
 	Single->OnResize(Rect);
 	SetRoot(Single);
-	bFourSplitActive = false;
-
-	// 뷰/클라 재구성 (1쌍)
-	CreateViewportsAndClients(1);
 }
 
 void UViewportManager::BuildFourSplitLayout()
@@ -110,16 +143,14 @@ void UViewportManager::BuildFourSplitLayout()
 
 	RootSplit->OnResize(Rect);
 	SetRoot(RootSplit);
-	bFourSplitActive = true;
 
-	// 뷰/클라 재구성 (4쌍)
-	CreateViewportsAndClients(4);
+
 
 	// 초기 4분할 뷰타입 배치: Top / Front / Right / Perspective
 	if (Clients.size() == 4)
 	{
 		Clients[0]->SetViewType(EViewType::Perspective);
-		Clients[1]->SetViewMode(EViewMode::Unlit);
+		Clients[0]->SetViewMode(EViewMode::Unlit);
 
 		Clients[1]->SetViewType(EViewType::OrthoRight);
 		Clients[1]->SetViewMode(EViewMode::WireFrame);
@@ -129,27 +160,9 @@ void UViewportManager::BuildFourSplitLayout()
 
 		Clients[3]->SetViewType(EViewType::OrthoLeft);
 		Clients[3]->SetViewMode(EViewMode::WireFrame);
-
-		// 오쏘 3개는 공유 상태(센터/줌)에 맞춰 즉시 정렬
-		for (int idx : {1, 2, 3})
-		{
-			if (UCamera* O = Clients[idx]->GetOrthoCamera())
-			{
-				Clients[idx]->ApplyOrthoBasisForViewType(*O);
-				O->SetCameraType(ECameraType::ECT_Orthographic);
-				if (!bOrthoSharedInit)
-				{
-					OrthoSharedCenter = O->GetLocation();
-					OrthoSharedFovY = O->GetFovY();
-					bOrthoSharedInit = true;
-				}
-				O->SetFovY(OrthoSharedFovY);
-				O->SetLocation(OrthoSharedCenter);
-				O->UpdateMatrixByOrth();
-				O->Update();
-			}
-		}
 	}
+
+	ForceRefreshOrthoViewsAfterLayoutChange();
 }
 
 void UViewportManager::GetLeafRects(TArray<FRect>& OutRects)
@@ -177,99 +190,7 @@ void UViewportManager::GetLeafRects(TArray<FRect>& OutRects)
 	Local::Collect(Root, OutRects);
 }
 
-void UViewportManager::CreateViewportsAndClients(int32 InCount)
-{
-	// 0) 이전 첫 번째 카메라 상태 백업 (레이아웃 전환 시 1번 뷰 카메라를 유지하기 위함)
-	bool bHadPrev = !Clients.empty();
-	UCamera PrevPerspCopy;
-	UCamera PrevOrthoCopy;
-	if (bHadPrev)
-	{
-		FViewportClient* PrevC = Clients[0];
-		if (PrevC)
-		{
-			if (auto* P = PrevC->GetPerspectiveCamera()) { PrevPerspCopy = *P; }
-			if (auto* O = PrevC->GetOrthoCamera()) { PrevOrthoCopy = *O; }
-		}
-	}
 
-	// 1) 기존 자원 정리 (매니저가 소유하므로 직접 delete)
-	for (FViewport* Viewport : Viewports) { delete Viewport; }
-	for (FViewportClient* ViewportClient : Clients) { delete ViewportClient; }
-	Viewports.clear();
-	Clients.clear();
-
-	Viewports.reserve(InCount);
-	Clients.reserve(InCount);
-
-	// 2) 새로 생성
-	for (int32 i = 0; i < InCount; ++i)
-	{
-		FViewport* VP = new FViewport();
-		FViewportClient* CL = new FViewportClient();
-
-		// 각 클라이언트별 카메라 구성 (오쏘/퍼스 각각 전용)
-		{
-			TObjectPtr<UCamera> OrthoCam = NewObject<UCamera>();
-			OrthoCam->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
-			OrthoCam->SetCameraType(ECameraType::ECT_Orthographic);
-			// Initialize with shared defaults; will be synced below
-			OrthoCam->SetFovY(OrthoSharedFovY);
-			OrthoCam->SetLocation(OrthoSharedCenter);
-			CL->SetOrthoCamera(OrthoCam);
-
-			TObjectPtr<UCamera> PerspCam = NewObject<UCamera>();
-			PerspCam->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
-			PerspCam->SetCameraType(ECameraType::ECT_Perspective);
-			CL->SetPerspectiveCamera(PerspCam);
-		}
-
-		// 뷰 ↔ 클라 연결
-		VP->SetViewportClient(CL);
-
-		Viewports.emplace_back(VP);
-		Clients.emplace_back(CL);
-	}
-
-	// 2.5) 이전 1번 뷰 카메라 상태를 신규 1번에 반영 (요구사항: 단일/4분할 전환해도 1번 카메라 유지)
-	if (InCount >= 1 && bHadPrev)
-	{
-		FViewportClient* NewC = Clients[0];
-		if (NewC)
-		{
-			if (auto* NewP = NewC->GetPerspectiveCamera()) { *NewP = PrevPerspCopy; }
-			if (auto* NewO = NewC->GetOrthoCamera()) { *NewO = PrevOrthoCopy; }
-		}
-	}
-
-	// Initialize shared ortho state from first client if not set
-	if (!bOrthoSharedInit && !Clients.empty())
-	{
-		if (UCamera* O0 = Clients[0]->GetOrthoCamera())
-		{
-			OrthoSharedCenter = O0->GetLocation();
-			OrthoSharedFovY = O0->GetFovY();
-			bOrthoSharedInit = true;
-		}
-	}
-
-	// Apply shared state to all ortho cams
-	for (auto* C : Clients)
-	{
-		if (!C) continue;
-		if (UCamera* O = C->GetOrthoCamera())
-		{
-			C->ApplyOrthoBasisForViewType(*O);
-			O->SetCameraType(ECameraType::ECT_Orthographic);
-			O->SetFovY(OrthoSharedFovY);
-			O->SetLocation(OrthoSharedCenter);
-			O->UpdateMatrixByOrth();
-		}
-	}
-
-	// 3) 현재 리프 Rect를 뽑아 뷰포트에 반영
-	SyncRectsToViewports();
-}
 
 void UViewportManager::SyncRectsToViewports()
 {
@@ -307,15 +228,15 @@ void UViewportManager::UpdateActiveRmbViewportIndex()
 		return;
 	}
 
-	const FVector& mp = Input.GetMousePosition();
-	const LONG mx = (LONG)mp.X;
-	const LONG my = (LONG)mp.Y;
+	const FVector& MousePosition = Input.GetMousePosition();
+	const LONG MousePositionX = (LONG)MousePosition.X;
+	const LONG MousePositioinY = (LONG)MousePosition.Y;
 
 	const int32 N = (int32)Viewports.size();
 	for (int32 i = 0; i < N; ++i)
 	{
-		const FRect& r = Viewports[i]->GetRect();
-		if (mx >= r.X && mx < r.X + r.W && my >= r.Y && my < r.Y + r.H)
+		const FRect& Rect = Viewports[i]->GetRect();
+		if (MousePositionX >= Rect.X && MousePositionX < Rect.X + Rect.W && MousePositioinY >= Rect.Y && MousePositioinY < Rect.Y + Rect.H)
 		{
 			ActiveRmbViewportIdx = i;
 			break;
@@ -334,67 +255,26 @@ void UViewportManager::TickCameras(float DeltaSeconds)
 		if (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < N)
 		{
 			Clients[ActiveRmbViewportIdx]->Tick(DeltaSeconds);
-
-			// If current view is orthographic, update shared center/zoom and sync others
-			if (Clients[ActiveRmbViewportIdx]->IsOrtho())
-			{
-				if (UCamera* O = Clients[ActiveRmbViewportIdx]->GetOrthoCamera())
-				{
-					OrthoSharedCenter = O->GetLocation();
-					OrthoSharedFovY = O->GetFovY();
-					bOrthoSharedInit = true;
-					SyncOrthographicSharedState(ActiveRmbViewportIdx);
-				}
-			}
-		}
-	}
-	else
-	{
-		// 우클릭이 아닐 때는 입력 기반 이동이 없어도 무방하므로, 필요한 경우에만 Tick을 호출할 수 있음
-		// 여기서는 보수적으로 아무 것도 하지 않음 (Draw에서 행렬 갱신 수행)
-	}
-
-
-	if (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < N)
-	{
-		Clients[ActiveRmbViewportIdx]->Tick(DeltaSeconds);
-
-		// If current view is orthographic, update shared center/zoom and sync others
-		if (Clients[ActiveRmbViewportIdx]->IsOrtho())
-		{
-			if (UCamera* O = Clients[ActiveRmbViewportIdx]->GetOrthoCamera())
-			{
-				OrthoSharedCenter = O->GetLocation();
-				OrthoSharedFovY = O->GetFovY();
-				bOrthoSharedInit = true;
-				SyncOrthographicSharedState(ActiveRmbViewportIdx);
-			}
 		}
 	}
 }
 
 void UViewportManager::Update()
 {
-	if (!Root) return;
-
-	// Δt
-	//const double Now = UTimeManager::GetInstance().GetGameTime(); // 있으면
-	//const float  DeltaTime = (float)max(0.0, Now - LastTime);
-	// LastTime = Now;
-
-	// -1) 매 프레임 루트 레이아웃을 메인 메뉴바 높이를 반영하여 갱신
+	if (!Root)
 	{
-		int32 w = 0, h = 0;
-		if (AppWindow) AppWindow->GetClientSize(w, h);
-		//UE_LOG("%d   %d", w, h);
-
-		const int menuH = (int)UUIManager::GetInstance().GetMainMenuBarHeight();
-		if (w > 0 && h > 0)
-		{
-			Root->OnResize(FRect{0, menuH, w, max(0, h - menuH)});
-		}
+		return;
 	}
 
+	int32 w = 0, h = 0;
+	if (AppWindow) AppWindow->GetClientSize(w, h);
+
+	const int menuH = (int)UUIManager::GetInstance().GetMainMenuBarHeight();
+	if (w > 0 && h > 0)
+	{
+		Root->OnResize(FRect{0, menuH, w, max(0, h - menuH)});
+	}
+	
 
 	// 0) 스플리터 등 윈도우 트리 입력 처리 (캡처/드래그 우선)
 	TickInput();
@@ -418,27 +298,29 @@ void UViewportManager::Update()
 
 		if (WheelDelta != 0.0f)
 		{
-			int32 idx = GetViewportIndexUnderMouse();
-			if (idx >= 0 && idx < (int32)Clients.size())
+			int32 Index = GetViewportIndexUnderMouse();
+			if (Index >= 0 && Index < (int32)Clients.size())
 			{
-				FViewportClient* C = Clients[idx];
-				if (C && C->IsOrtho())
+				FViewportClient* Client = Clients[Index];
+				if (Client && Client->IsOrtho())
 				{
-					if (UCamera* O = C->GetOrthoCamera())
+					if (UCamera* OrthoGraphicCamera = Client->GetOrthoCamera())
 					{
 						const float DollyStep = 5.0f; // 튜닝 가능
-						O->SetLocation(O->GetLocation() + O->GetForward() * (WheelDelta * DollyStep));
-						// 공유 상태 갱신 및 동기화
-						OrthoSharedCenter = O->GetLocation();
-						OrthoSharedFovY = O->GetFovY();
-						bOrthoSharedInit = true;
-						SyncOrthographicSharedState(idx);
+						SharedFovY -=  WheelDelta * DollyStep;
+
 						UInputManager::GetInstance().SetMouseWheelDelta(0.0f);
 					}
 				}
 			}
 		}
 	}
+
+	UpdateOrthoGraphicCameraPoint();
+
+	UpdateOrthoGraphicCameraFov();
+
+	ApplySharedOrthoCenterToAllCameras();
 
 	// 3) 카메라 업데이트 (공유 오쏘 1회, 퍼스펙티브는 각자)
 	TickCameras(DT);
@@ -460,7 +342,7 @@ void UViewportManager::RenderOverlay()
 	}
 	Root->OnPaint();
 
-	const int32 N = (int32)Viewports.size();
+	int32 N = (int32)Viewports.size();
 	if (N == 0) return;
 
 	// ViewType ViewMode 콤보 라벨 & 매핑
@@ -487,6 +369,11 @@ void UViewportManager::RenderOverlay()
 		EViewType::OrthoBack
 	};
 
+
+	if (ViewportChange == EViewportChange::Single)
+	{
+		N = 1;
+	}
 	for (int32 i = 0; i < N; ++i)
 	{
 		const FRect& r = Viewports[i]->GetRect();
@@ -569,45 +456,86 @@ void UViewportManager::RenderOverlay()
 			{
 				if (curIdx >= 0 && curIdx < IM_ARRAYSIZE(IndexToViewType))
 				{
-					UE_LOG("%d", curIdx);
 					EViewType NewType = IndexToViewType[curIdx];
 					Clients[i]->SetViewType(NewType);
-
+					
+						
 					// Apply camera basis + refresh immediately so toolbar change takes effect without RMB
 					if (NewType == EViewType::Perspective)
 					{
-						if (UCamera* P = Clients[i]->GetPerspectiveCamera())
+						// 퍼스펙티브 바인딩
+						if (UCamera* Cam = PerspectiveCameras[i])
 						{
-							P->SetCameraType(ECameraType::ECT_Perspective);
-							P->Update();
+							Clients[i]->SetPerspectiveCamera(Cam);
+							Cam->SetCameraType(ECameraType::ECT_Perspective);
+							Cam->Update();
 						}
 					}
 					else
 					{
-						if (UCamera* O = Clients[i]->GetOrthoCamera())
-						{
-							Clients[i]->ApplyOrthoBasisForViewType(*O);
+						const int OrthoIdx = curIdx - 1;
 
-							// Sync with shared ortho state (center + zoom)
-							//UE_LOG("88888888");
-							if (!bOrthoSharedInit)
-							{
-								//UE_LOG("9999999");
-								OrthoSharedCenter = O->GetLocation();
-								OrthoSharedFovY = O->GetFovY();
-								bOrthoSharedInit = true;
-							}
-							O->SetFovY(OrthoSharedFovY);
-							O->SetLocation(OrthoSharedCenter);
-							O->UpdateMatrixByOrth();
-							// Also push to other orthographic viewports
-							SyncOrthographicSharedState(i);
-							O->Update();
+						if (OrthoIdx >= 0 && OrthoIdx < (int)OrthoGraphicCameras.size())
+						{
+							UCamera* Cam = OrthoGraphicCameras[OrthoIdx];
+							Clients[i]->SetOrthoCamera(Cam);
+							Cam->SetCameraType(ECameraType::ECT_Orthographic);
+							Cam->Update();
 						}
 					}
 				}
 			}
+
+			{
+				// 우측 여백(툴바 끝과 버튼 사이), 버튼 크기(아이콘 버튼이면 보통 24~28px)
+				const float kRightPadding = 6.0f;
+
+				// 만약 FUEImgui에 사이즈 질의가 있다면 사용:
+				// const ImVec2 iconSize = FUEImgui::GetToolbarIconSize(); // 가정
+				// const float  btnW     = iconSize.x;
+
+				// 없다면 고정값(필요하면 프로젝트 값에 맞춰 조정)
+				const float  btnW = 24.0f;
+
+				// 현재 윈도우의 컨텐츠 우측 x좌표
+				const float contentRight = ImGui::GetWindowContentRegionMax().x;
+				// 현재 커서 y는 유지하고, x만 우측으로 점프
+				float targetX = contentRight - kRightPadding - btnW;
+				// 혹시 앞의 위젯이 너무 오른쪽까지 차지했다면 음수되지 않도록 보정
+				targetX = std::max(targetX, ImGui::GetCursorPosX());
+
+				// 같은 줄 유지 후 커서 이동
+				ImGui::SameLine();
+				ImGui::SetCursorPosX(targetX);
+			}
+
+			// 현재 레이아웃 상태 보관
+			enum class ELayout : uint8 { Single, Quad };
+			static ELayout CurrentLayout = ELayout::Quad;
+
+			if (ViewportChange == EViewportChange::Single)
+			{
+				if (FUEImgui::ToolbarIconButton("LayoutQuad", EUEViewportIcon::Quad, CurrentLayout == ELayout::Quad))
+				{
+					CurrentLayout = ELayout::Quad;
+					ViewportChange = EViewportChange::Quad;
+					BuildFourSplitLayout();
+				}
+			}
+			if (ViewportChange == EViewportChange::Quad)
+			{
+				if (FUEImgui::ToolbarIconButton("LayoutSingle", EUEViewportIcon::Single, CurrentLayout == ELayout::Single))
+				{
+					CurrentLayout = ELayout::Single;
+					ViewportChange = EViewportChange::Single;
+					BuildSingleLayout();
+				}
+			}
 		}
+
+		
+
+
 		ImGui::End();
 
 		ImGui::PopStyleVar(3);
@@ -615,23 +543,289 @@ void UViewportManager::RenderOverlay()
 	}
 }
 
-void UViewportManager::SyncOrthographicSharedState(int32 SourceIdx)
+
+void UViewportManager::InitializeViewportAndClient()
 {
+	for (int i = 0;i < 4;i++)
+	{
+		FViewport* Viewport = new FViewport();
+		FViewportClient* ViewportClient = new FViewportClient();
+
+		Viewport->SetViewportClient(ViewportClient);
+
+		Clients.push_back(ViewportClient);
+		Viewports.push_back(Viewport);
+
+	}
+}
+
+void UViewportManager::InitializeOrthoGraphicCamera()
+{
+	for (int i = 0; i < 6; ++i)
+	{
+		UCamera* Cam = NewObject<UCamera>();
+		Cam->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
+		OrthoGraphicCameras.push_back(Cam);
+	}
+
+	// 상단 
+	OrthoGraphicCameras[0]->SetLocation(FVector(0.0f, 0.0f, 100.0f));
+	OrthoGraphicCameras[0]->SetRotation(FVector(0.0f, 90.0f, 180.0f));
+	OrthoGraphicCameras[0]->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[0]->SetFarZ(150.0f);
+
+	// 하단 			 
+	OrthoGraphicCameras[1]->SetLocation(FVector(0.0f, 0.0f, -100.0f));
+	OrthoGraphicCameras[1]->SetRotation(FVector(0.0f,-90.0f, 0.0f));
+	OrthoGraphicCameras[1]->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[1]->SetFarZ(150.0f);
+
+	// 왼쪽			 
+	OrthoGraphicCameras[2]->SetLocation(FVector(00.0f, 100.0f, 0.0f));
+	OrthoGraphicCameras[2]->SetRotation(FVector(0.0f, 0.0f, -90.0f));
+	OrthoGraphicCameras[2]->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[2]->SetFarZ(150.0f);
+
+	// 오른쪽 			
+	OrthoGraphicCameras[3]->SetLocation(FVector(0.0f, -100.0f, 0.0f));
+	OrthoGraphicCameras[3]->SetRotation(FVector(0.0f, 0.0f, 90.0f));
+	OrthoGraphicCameras[3]->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[3]->SetFarZ(150.0f);
+
+	// 정면 			 
+	OrthoGraphicCameras[4]->SetLocation(FVector(100.0f, 0.0f, 0.0f));
+	OrthoGraphicCameras[4]->SetRotation(FVector(180.0f, 180.0f, 0.0f));
+	OrthoGraphicCameras[4]->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[4]->SetFarZ(150.0f);
+
+	// 후면 			 
+	OrthoGraphicCameras[5]->SetLocation(FVector(-100.0f, 0.0f, 0.0f));
+	OrthoGraphicCameras[5]->SetRotation(FVector(0.0f, 0.0f, 0.0f));
+	OrthoGraphicCameras[5]->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[5]->SetFarZ(150.0f);
+}
+
+void UViewportManager::InitializePerspectiveCamera()
+{
+	for (int i = 0; i < 4; ++i)
+	{		
+		UCamera* Cam = NewObject<UCamera>();
+		Cam->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
+		PerspectiveCameras.push_back(Cam);
+
+		Clients[i]->SetPerspectiveCamera(Cam);
+	}
+}
+
+void UViewportManager::UpdateOrthoGraphicCameraPoint()
+{
+	// RMB 드래그 중인 오쏘 뷰포트만 처리
+	auto& Input = UInputManager::GetInstance();
+	if (!Input.IsKeyDown(EKeyInput::MouseRight))
+	{
+		return;
+	}
+
+	const int32 Index = ActiveRmbViewportIdx;
+	if (Index < 0 || Index >= (int32)Clients.size()) return;
+
+	FViewportClient* ViewportClient = Clients[Index];
+	if (!ViewportClient || !ViewportClient->IsOrtho()) return;
+
+	FViewport* Viewport = Viewports[Index];
+	if (!Viewport) return;
+
+	const FRect& Rect = Viewport->GetRect();
+	const int32 ToolH = Viewport->GetToolbarHeight(); // 델타에는 영향 X, 높이 > 폭 계산용
+	const float Width = (float)Rect.W;
+	const float Height = (float)max<LONG>(0, Rect.H - ToolH);
+	if (Width <= 0.0f || Height <= 0.0f) return;
+
+	UCamera* OrthoCam = ViewportClient->GetOrthoCamera();
+	if (!OrthoCam) return;
+
+	// ViewType → fwd/right/up 기저 구성
+	const EViewType ViewType = ViewportClient->GetViewType();
+
+	FVector Fwd(1, 0, 0);
+	switch (ViewType)
+	{
+	case EViewType::OrthoTop:    Fwd = FVector(0, 0, -1); break;
+	case EViewType::OrthoBottom: Fwd = FVector(0, 0, 1); break;
+	case EViewType::OrthoFront:  Fwd = FVector(-1, 0, 0); break;
+	case EViewType::OrthoBack:   Fwd = FVector(1, 0, 0); break;
+	case EViewType::OrthoRight:  Fwd = FVector(0, 1, 0); break;
+	case EViewType::OrthoLeft:   Fwd = FVector(0, -1, 0); break;
+	default: return; // 퍼스펙티브면 여기선 스킵
+	}
+	Fwd.Normalize();
+
+	FVector UpRef(0, 0, 1);
+	if (std::fabs(Fwd.Dot(UpRef)) > 0.999f) UpRef = FVector(1, 0, 0);
+
+	FVector Right = Fwd.Cross(UpRef); Right.Normalize();
+	FVector Up = Right.Cross(Fwd);  Up.Normalize();
+
+	// 마우스 델타(px) → NDC 델타 → 월드 델타
+	const FVector& d = Input.GetMouseDelta();
+	if (d.X == 0.0f && d.Y == 0.0f) return;
+
+	UE_LOG("%f %f", -d.X, d.Y);
+
+	const float Aspect = (Height > 0.f) ? (Width / Height) : 1.0f;
+	const float Rad = FVector::GetDegreeToRadian(OrthoCam->GetFovY());
+	const float OrthoWidth = 2.0f * std::tanf(Rad * 0.5f);
+	const float OrthoHeight = (Aspect > 0.0f) ? (OrthoWidth / Aspect) : OrthoWidth;
+
+	// 화면 기준 오른쪽(+), 위쪽(-) → NDC 변환
+	const float NdcDX = (-d.X / Width) * 2.0f;
+	const float NdcDY = (-d.Y / Height) * 2.0f;
+
+	const FVector WorldDelta = Right * (NdcDX * (OrthoWidth * 0.5f)) + Up * (NdcDY * (OrthoHeight * 0.5f));
+
+	// 공유 중심점 갱신
+	OrthoGraphicCamerapoint.X += WorldDelta.X;
+	OrthoGraphicCamerapoint.Y += WorldDelta.Y;
+	OrthoGraphicCamerapoint.Z += WorldDelta.Z;
+
+	// 6방향 오쏘 카메라를 중심점 기준으로 재배치 (각 카메라의 '거리' 유지)
+	auto Reposition = [&](int CamIndex, const FVector& CamFwd)
+		{
+			if (CamIndex < 0 || CamIndex >= (int)OrthoGraphicCameras.size()) return;
+			if (UCamera* Cam = OrthoGraphicCameras[CamIndex])
+			{
+				const FVector Loc = Cam->GetLocation();
+				const FVector ToC = Loc - OrthoGraphicCamerapoint;
+				const float   Dist = std::fabs(ToC.Dot(CamFwd)); // 현재 중심까지의 전방거리 유지
+				Cam->SetLocation(OrthoGraphicCamerapoint - CamFwd * Dist);
+				Cam->Update(); // 뷰/투영 상수 갱신
+			}
+		};
+
+
+	//UE_LOG("%f %f %f", OrthoGraphicCamerapoint.X, OrthoGraphicCamerapoint.Y, OrthoGraphicCamerapoint.Z);
+}
+
+void UViewportManager::UpdateOrthoGraphicCameraFov()
+{
+	for (int i = 0;i < 6;++i)
+	{
+		OrthoGraphicCameras[i]->SetFovY(SharedFovY);
+	}
+}
+
+void UViewportManager::BindOrthoGraphicCameraToClient()
+{
+	Clients[1]->SetViewType(EViewType::OrthoLeft);
+	Clients[1]->SetOrthoCamera(OrthoGraphicCameras[3]);
+
+	Clients[2]->SetViewType(EViewType::OrthoTop);
+	Clients[2]->SetOrthoCamera(OrthoGraphicCameras[0]);
+
+	Clients[3]->SetViewType(EViewType::OrthoRight);
+	Clients[3]->SetOrthoCamera(OrthoGraphicCameras[2]);
+}
+
+void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
+{
+	// 1) 현재 리프 Rect들을 뷰포트에 즉시 반영 (전환 직후 크기 확정)
+	SyncRectsToViewports();
+
+	// 2) 각 클라이언트에 카메라 재바인딩 + Update + OnResize
 	const int32 N = (int32)Clients.size();
 	for (int32 i = 0; i < N; ++i)
 	{
-		if (i == SourceIdx) continue;
 		FViewportClient* C = Clients[i];
 		if (!C) continue;
-		if (!C->IsOrtho()) continue;
-		if (UCamera* O = C->GetOrthoCamera())
+
+		const EViewType VT = C->GetViewType();
+		if (VT == EViewType::Perspective)
 		{
-			C->ApplyOrthoBasisForViewType(*O);
-			O->SetCameraType(ECameraType::ECT_Orthographic);
-			O->SetFovY(OrthoSharedFovY);
-			O->SetLocation(OrthoSharedCenter);
-			O->UpdateMatrixByOrth();
+			// 퍼스펙티브는 자신 카메라 보장
+			if (i < (int32)PerspectiveCameras.size() && PerspectiveCameras[i])
+			{
+				C->SetPerspectiveCamera(PerspectiveCameras[i]);
+				PerspectiveCameras[i]->SetCameraType(ECameraType::ECT_Perspective);
+				PerspectiveCameras[i]->Update();
+			}
 		}
+		else
+		{
+			// 오쏘: ViewType → 6방향 인덱스 매핑
+			int OrthoIdx = -1;
+			switch (VT)
+			{
+			case EViewType::OrthoTop:    OrthoIdx = 0; break;
+			case EViewType::OrthoBottom: OrthoIdx = 1; break;
+			case EViewType::OrthoLeft:   OrthoIdx = 2; break;
+			case EViewType::OrthoRight:  OrthoIdx = 3; break;
+			case EViewType::OrthoFront:  OrthoIdx = 4; break;
+			case EViewType::OrthoBack:   OrthoIdx = 5; break;
+			default: break;
+			}
+
+			if (OrthoIdx >= 0 && OrthoIdx < (int)OrthoGraphicCameras.size())
+			{
+				UCamera* Cam = OrthoGraphicCameras[OrthoIdx];
+				C->SetOrthoCamera(Cam);
+				Cam->SetCameraType(ECameraType::ECT_Orthographic);
+				Cam->Update();
+			}
+		}
+
+		// 크기 반영(툴바 높이 포함) — 깜빡임/툴바 좌표 안정화
+		const FRect& R = Viewports[i]->GetRect();
+		Viewports[i]->SetToolbarHeight(24);
+		C->OnResize({ R.W, R.H });
+	}
+
+	// 3) 오쏘 6방향 카메라를 공유 중심점에 맞춰 정렬만 수행(이동 입력 없이)
+	auto Reposition = [&](int CamIndex, const FVector& CamFwd)
+		{
+			if (CamIndex < 0 || CamIndex >= (int)OrthoGraphicCameras.size()) return;
+			if (UCamera* Cam = OrthoGraphicCameras[CamIndex])
+			{
+				const FVector Loc = Cam->GetLocation();
+				const FVector ToC = Loc - OrthoGraphicCamerapoint;
+				const float   Dist = std::fabs(ToC.Dot(CamFwd));
+				Cam->SetLocation(OrthoGraphicCamerapoint - CamFwd * Dist);
+				Cam->Update();
+			}
+		};
+
+	Reposition(0, FVector(0, 0, -1)); // Top
+	Reposition(1, FVector(0, 0, 1)); // Bottom
+	Reposition(2, FVector(0, -1, 0)); // Left
+	Reposition(3, FVector(0, 1, 0)); // Right
+	Reposition(4, FVector(1, 0, 0)); // Front
+	Reposition(5, FVector(-1, 0, 0)); // Back
+
+	// 4) 드래그 대상 초기화
+	ActiveRmbViewportIdx = -1;
+}
+
+void UViewportManager::ApplySharedOrthoCenterToAllCameras()
+{
+	// OrthoGraphicCamerapoint 기준으로 6개 오쏘 카메라 위치 갱신
+	for (UCamera* Cam : OrthoGraphicCameras)
+	{
+		if (!Cam) continue;
+
+		// 카메라 '전방'을 "센터 - 카메라 위치"로 잡으면, Top/Right/... 어떤 회전이라도 일관되게 작동
+		FVector fwd = (OrthoGraphicCamerapoint - Cam->GetLocation()).Normalized();
+
+		// 특이 케이스 보호: fwd가 0이면 월드 Z를 피벗으로 대체
+		if (fwd.IsNearlyZero())
+		{
+			fwd = FVector(0, 0, -1); // 아무거나 기본값
+		}
+
+		// 현재 센터까지의 전방 거리 유지
+		const FVector toC = Cam->GetLocation() - OrthoGraphicCamerapoint;
+		const float   dist = std::fabs(toC.Dot(fwd));
+
+		Cam->SetLocation(OrthoGraphicCamerapoint - fwd * dist);
+		Cam->Update();
 	}
 }
 
@@ -700,7 +894,6 @@ int8 UViewportManager::GetViewportIndexUnderMouse() const
 			return i;
 		}
 	}
-
 	return -1;
 }
 
@@ -720,62 +913,3 @@ bool UViewportManager::ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, f
 	return true;
 }
 
-
-//namespace {
-//    void CollectLeavesRecursive(SWindow* Node, TArray<FRect>& Out)
-//    {
-//        if (!Node) return;
-//        if (auto* Split = Cast(Node))
-//        {
-//            CollectLeavesRecursive(Split->SideLT, Out);
-//            CollectLeavesRecursive(Split->SideRB, Out);
-//        }
-//        else
-//        {
-//            Out.emplace_back(Node->GetRect());
-//        }
-//    }
-//}
-
-//void UViewportManager::GetLeafRects(TArray<FRect>& OutRects)
-//{
-//    OutRects.clear();
-//    if (!Root) return;
-//    CollectLeavesRecursive(Root, OutRects);
-//}
-
-//void UViewportManager::BuildFourSplitLayout()
-//{
-//    if (!Root)
-//        return;
-//
-//    const FRect rect = Root->GetRect();
-//    Capture = nullptr;
-//
-//    // Build 4-way splitter tree
-//    SSplitter* RootSplit = new SSplitterV();
-//    RootSplit->Ratio = 0.5f;
-//
-//    static float SharedY = 0.5f;
-//
-//    SSplitter* Left = new SSplitterH(); Left->Ratio = 0.5f;
-//    Left->SetSharedRatio(&SharedY);
-//    Left->Ratio = SharedY;
-//
-//    SSplitter* Right = new SSplitterH(); Right->Ratio = 0.5f;
-//    Right->SetSharedRatio(&SharedY);
-//    Right->Ratio = SharedY;
-//
-//    RootSplit->SetChildren(Left, Right);
-//
-//    SWindow* Top = new SWindow();
-//    SWindow* Front = new SWindow();
-//    SWindow* Side = new SWindow();
-//    SWindow* Persp = new SWindow();
-//    Left->SetChildren(Top, Front);
-//    Right->SetChildren(Side, Persp);
-//
-//    RootSplit->OnResize(rect);
-//    SetRoot(RootSplit);
-//    bFourSplitActive = true;
-//}

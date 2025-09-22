@@ -193,19 +193,6 @@ void UMainBarWidget::RenderWindowsMenu() const
 
 				UE_LOG("MainBarWidget: 모든 창 숨겨짐");
 			}
-
-            if (ImGui::MenuItem("뷰포트 4분할"))
-            {
-                UViewportManager::GetInstance().BuildFourSplitLayout();
-                UE_LOG("MainBarWidget: 뷰포트 4분할 레이아웃 적용");
-            }
-
-            if (ImGui::MenuItem("뷰포트 단일"))
-            {
-                UViewportManager::GetInstance().BuildSingleLayout();
-                UE_LOG("MainBarWidget: 뷰포트 단일 레이아웃 적용");
-            }
-
 		}
 
 		ImGui::EndMenu();

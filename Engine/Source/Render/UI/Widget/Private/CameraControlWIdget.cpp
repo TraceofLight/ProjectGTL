@@ -52,7 +52,7 @@ void UCameraControlWidget::Update()
 		}
 	}
 
-	SyncFromCamera();
+	//SyncFromCamera();
 }
 
 void UCameraControlWidget::RenderWidget()

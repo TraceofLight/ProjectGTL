@@ -107,6 +107,23 @@ struct FVector
 		}
 	}
 
+	FVector Normalized() const {
+		float ls = LengthSquared();
+		if (ls > 0.0f) {
+			float inv = 1.0f / sqrtf(ls);
+			return FVector(X * inv, Y * inv, Z * inv);
+		}
+		return FVector(0, 0, 0);
+	}
+
+
+	bool IsNearlyZero(float Tolerance = 1e-6f) const
+	{
+		return fabsf(X) <= Tolerance
+			&& fabsf(Y) <= Tolerance
+			&& fabsf(Z) <= Tolerance;
+	}
+
 	/**
 	 * @brief 각도를 라디안으로 변환한 값을 반환하는 함수
 	 */
