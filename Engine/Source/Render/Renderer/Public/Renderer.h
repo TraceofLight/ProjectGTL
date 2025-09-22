@@ -7,6 +7,9 @@
 class UPipeline;
 class UDeviceResources;
 class UPrimitiveComponent;
+class UStaticMeshComponent;
+class UMaterialInterface;
+struct FStaticMeshSection;
 class AActor;
 class AGizmo;
 class UEditor;
@@ -83,7 +86,7 @@ public:
 	void UpdateConstant(const FVector& InPosition, const FVector& InRotation, const FVector& InScale) const;
 	void UpdateConstant(const FViewProjConstants& InViewProjConstants) const;
 	void UpdateConstant(const FMatrix& InMatrix) const;
-	void UpdateConstant(const FVector4& InColor) const;
+	void UpdateConstant(const FVector4& InColor, float InUseVertexColor = 1.0f, float InUseDiffuseTexture = 0.0f) const;
 
 	static void ReleaseVertexBuffer(ID3D11Buffer* InVertexBuffer);
 
@@ -169,6 +172,8 @@ private:
 	TMap<FRasterKey, ID3D11RasterizerState*, FRasterKeyHasher> RasterCache;
 
 	ID3D11RasterizerState* GetRasterizerState(const FRenderState& InRenderState);
+	void RenderStaticMeshSection(const FStaticMeshSection& InSection, const TArray<UMaterialInterface*>& InMaterialSlots, const FVector4& InFallbackColor);
+	void ApplyMaterial(UMaterialInterface* InMaterial, const FVector4& InFallbackColor);
 	bool bIsResizing = false;
 
 	///////////////////////////////////////////

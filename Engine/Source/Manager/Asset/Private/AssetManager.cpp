@@ -57,7 +57,7 @@ void UAssetManager::Initialize()
 	LoadStaticMeshShaders();
 
 	// 모든 프리미티브 StaticMesh 로드
-	InitializeBasicPrimitives();
+	//InitializeBasicPrimitives();
 }
 
 void UAssetManager::Release()
