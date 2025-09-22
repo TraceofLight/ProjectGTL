@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Asset/Public/ObjImporter.h"
+#include <algorithm>
+#include <utility>
 
 bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& OutObjectInfos)
 {
@@ -16,7 +18,19 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 	TArray<FVector2> GlobalUVs;
 	TArray<FVector> GlobalNormals;
 
+	FString ObjDirectory;
+	size_t LastSlash = InFilePath.find_last_of("/");
+	if (LastSlash != FString::npos)
+	{
+		ObjDirectory = InFilePath.substr(0, LastSlash + 1);
+	}
+
+	TMap<FString, FObjMaterialInfo> MaterialLibrary;
+
 	FObjInfo* CurrentObject = nullptr;
+	int32 CurrentSectionIndex = -1;
+	FString CurrentGroupName;
+	FString CurrentMaterialName;
 
 	std::string Line;
 	while (std::getline(File, Line))
@@ -28,9 +42,22 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 		{
 			OutObjectInfos.emplace_back("TempObject");
 			CurrentObject = &OutObjectInfos.back();
+			CurrentGroupName = CurrentObject->ObjectName;
+			CurrentSectionIndex = -1;
+			CurrentMaterialName.clear();
 		}
 
-		ParseOBJLine(ObjLine, *CurrentObject, OutObjectInfos, GlobalVertices, GlobalUVs, GlobalNormals);
+		ParseOBJLine(ObjLine,
+			*CurrentObject,
+			OutObjectInfos,
+			GlobalVertices,
+			GlobalUVs,
+			GlobalNormals,
+			CurrentSectionIndex,
+			CurrentGroupName,
+			CurrentMaterialName,
+			MaterialLibrary,
+			ObjDirectory);
 
 		// 새 객체가 추가되었으면 CurrentObject 업데이트
 		if (!OutObjectInfos.empty())
@@ -51,6 +78,7 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 
 	return true;
 }
+
 
 bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FObjMaterialInfo>& OutMaterials)
 {
@@ -149,6 +177,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 
 	OutStaticMesh.Vertices.clear();
 	OutStaticMesh.Indices.clear();
+	OutStaticMesh.Sections.clear();
 
 	// 모든 객체를 하나의 스태틱 메시로 결합
 	for (const FObjInfo& ObjectInfo : InObjectInfos)
@@ -160,6 +189,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 
 		// 결합된 메시에 맞게 인덱스 조정
 		uint32 VertexOffset = static_cast<uint32>(OutStaticMesh.Vertices.size());
+		uint32 IndexOffset = static_cast<uint32>(OutStaticMesh.Indices.size());
 		for (uint32& Index : ObjectIndices)
 		{
 			Index += VertexOffset;
@@ -168,12 +198,49 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 		// 최종 메시에 추가
 		OutStaticMesh.Vertices.insert(OutStaticMesh.Vertices.end(), ObjectVertices.begin(), ObjectVertices.end());
 		OutStaticMesh.Indices.insert(OutStaticMesh.Indices.end(), ObjectIndices.begin(), ObjectIndices.end());
+
+		for (const FObjSectionInfo& SectionInfo : ObjectInfo.Sections)
+		{
+			if (SectionInfo.IndexCount <= 0)
+			{
+				continue;
+			}
+
+			int32 MaxCount = static_cast<int32>(ObjectIndices.size());
+			if (SectionInfo.StartIndex < 0 || SectionInfo.StartIndex >= MaxCount)
+			{
+				continue;
+			}
+
+			int32 ClampedCount = std::min(SectionInfo.IndexCount, MaxCount - SectionInfo.StartIndex);
+			if (ClampedCount <= 0)
+			{
+				continue;
+			}
+
+			FStaticMeshSection MeshSection;
+			MeshSection.StartIndex = IndexOffset + SectionInfo.StartIndex;
+			MeshSection.IndexCount = ClampedCount;
+			MeshSection.MaterialSlotIndex = -1;
+			MeshSection.MaterialName = SectionInfo.MaterialName;
+			OutStaticMesh.Sections.push_back(MeshSection);
+		}
+	}
+
+	if (OutStaticMesh.Sections.empty() && !OutStaticMesh.Indices.empty())
+	{
+		FStaticMeshSection DefaultSection;
+		DefaultSection.StartIndex = 0;
+		DefaultSection.IndexCount = static_cast<int32>(OutStaticMesh.Indices.size());
+		DefaultSection.MaterialSlotIndex = -1;
+		OutStaticMesh.Sections.push_back(DefaultSection);
 	}
 
 	return !OutStaticMesh.Vertices.empty() && !OutStaticMesh.Indices.empty();
 }
 
-bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh)
+
+bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh, TArray<FObjInfo>& OutObjectInfos)
 {
 	TArray<FObjInfo> ObjectInfos;
 
@@ -182,19 +249,26 @@ bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutS
 		return false;
 	}
 
+	OutObjectInfos = std::move(ObjectInfos);
+
 	OutStaticMesh.PathFileName = InFilePath;
-	return ConvertToStaticMesh(ObjectInfos, OutStaticMesh);
+	return ConvertToStaticMesh(OutObjectInfos, OutStaticMesh);
 }
+
 
 void FObjImporter::ParseOBJLine(const FString& Line,
 	FObjInfo& CurrentObject,
 	TArray<FObjInfo>& AllObjects,
 	TArray<FVector>& GlobalVertices,
 	TArray<FVector2>& GlobalUVs,
-	TArray<FVector>& GlobalNormals)
+	TArray<FVector>& GlobalNormals,
+	int32& CurrentSectionIndex,
+	FString& CurrentGroupName,
+	FString& CurrentMaterialName,
+	TMap<FString, FObjMaterialInfo>& MaterialLibrary,
+	const FString& ObjDirectory)
 {
 	FString TrimmedLine = TrimString(Line);
-
 	if (TrimmedLine.empty() || TrimmedLine[0] == '#')
 	{
 		return; // 빈 줄과 주석은 건너뜀
@@ -202,7 +276,6 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 
 	TArray<FString> Tokens;
 	SplitString(TrimmedLine, ' ', Tokens);
-
 	if (Tokens.empty())
 	{
 		return;
@@ -243,30 +316,153 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 		FString FaceData = "";
 		for (size_t i = 1; i < Tokens.size(); ++i)
 		{
-			if (i > 1) FaceData += " ";
+			if (i > 1)
+			{
+				FaceData += " ";
+			}
 			FaceData += Tokens[i];
 		}
-		ParseFaceData(FaceData, CurrentObject);
+
+		int32 PreviousIndexCount = static_cast<int32>(CurrentObject.VertexIndexList.size());
+		int32 AddedIndices = ParseFaceData(FaceData, CurrentObject);
+		if (AddedIndices > 0)
+		{
+			if (CurrentSectionIndex < 0)
+			{
+				FString SectionName = !CurrentGroupName.empty() ? CurrentGroupName : CurrentObject.ObjectName;
+				CurrentObject.Sections.emplace_back(SectionName, PreviousIndexCount);
+				CurrentSectionIndex = static_cast<int32>(CurrentObject.Sections.size()) - 1;
+
+				if (!CurrentMaterialName.empty())
+				{
+					CurrentObject.Sections[CurrentSectionIndex].MaterialName = CurrentMaterialName;
+				}
+			}
+
+			if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(CurrentObject.Sections.size()))
+			{
+				FObjSectionInfo& ActiveSection = CurrentObject.Sections[CurrentSectionIndex];
+				if (ActiveSection.IndexCount == 0)
+				{
+					ActiveSection.StartIndex = PreviousIndexCount;
+				}
+				ActiveSection.IndexCount += AddedIndices;
+			}
+		}
 	}
-	else if ((Tokens[0] == "o" || Tokens[0] == "g") && Tokens.size() > 1)
+	else if (Tokens[0] == "o" && Tokens.size() > 1)
 	{
-		// 새 객체 또는 그룹
-		// 첫 번째 임시 객체를 실제 이름으로 변경하거나 새 객체 생성
 		if (!AllObjects.empty() && AllObjects[0].ObjectName == "TempObject")
 		{
 			AllObjects[0].ObjectName = Tokens[1];
+			CurrentGroupName = Tokens[1];
 		}
 		else
 		{
 			AllObjects.emplace_back(Tokens[1]);
 		}
+
+		CurrentSectionIndex = -1;
+		CurrentMaterialName.clear();
+	}
+	else if (Tokens[0] == "g" && Tokens.size() > 1)
+	{
+		FString SectionName = Tokens[1];
+		CurrentGroupName = SectionName;
+		if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(CurrentObject.Sections.size()))
+		{
+			FObjSectionInfo& ActiveSection = CurrentObject.Sections[CurrentSectionIndex];
+			if (ActiveSection.IndexCount == 0)
+			{
+				ActiveSection.SectionName = SectionName;
+				if (!CurrentMaterialName.empty())
+				{
+					ActiveSection.MaterialName = CurrentMaterialName;
+				}
+				return;
+			}
+		}
+
+		int32 SectionStart = static_cast<int32>(CurrentObject.VertexIndexList.size());
+		CurrentObject.Sections.emplace_back(SectionName, SectionStart);
+		CurrentSectionIndex = static_cast<int32>(CurrentObject.Sections.size()) - 1;
+		if (!CurrentMaterialName.empty())
+		{
+			CurrentObject.Sections[CurrentSectionIndex].MaterialName = CurrentMaterialName;
+		}
+	}
+	else if ((Tokens[0] == "mtllib" || Tokens[0] == "matlib") && Tokens.size() > 1)
+	{
+		FString LibraryName = Tokens[1];
+		FString LibraryPath = LibraryName;
+		bool bIsAbsolute = (LibraryName.find(':') != FString::npos) || (!LibraryName.empty() && (LibraryName[0] == '/' || LibraryName[0] == '\\'));
+		if (!bIsAbsolute)
+		{
+			LibraryPath = ObjDirectory + LibraryName;
+		}
+
+		TArray<FObjMaterialInfo> ParsedMaterials;
+		if (ParseMaterialLibrary(LibraryPath, ParsedMaterials))
+		{
+			for (const FObjMaterialInfo& Material : ParsedMaterials)
+			{
+				MaterialLibrary[Material.MaterialName] = Material;
+			}
+		}
+	}
+	else if (Tokens[0] == "usemtl" && Tokens.size() > 1)
+	{
+		CurrentMaterialName = Tokens[1];
+		auto MaterialIt = MaterialLibrary.find(CurrentMaterialName);
+		if (MaterialIt != MaterialLibrary.end())
+		{
+			CurrentObject.Materials[CurrentMaterialName] = MaterialIt->second;
+		}
+		else
+		{
+			CurrentObject.Materials[CurrentMaterialName] = FObjMaterialInfo(CurrentMaterialName);
+		}
+
+		bool bCreateNewSection = false;
+		if (CurrentSectionIndex < 0)
+		{
+			bCreateNewSection = true;
+		}
+		else if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(CurrentObject.Sections.size()))
+		{
+			FObjSectionInfo& ActiveSection = CurrentObject.Sections[CurrentSectionIndex];
+			if (!ActiveSection.MaterialName.empty() && ActiveSection.MaterialName != CurrentMaterialName)
+			{
+				bCreateNewSection = true;
+			}
+			else if (ActiveSection.IndexCount > 0 && ActiveSection.MaterialName != CurrentMaterialName)
+			{
+				bCreateNewSection = true;
+			}
+		}
+
+		if (bCreateNewSection)
+		{
+			int32 SectionStart = static_cast<int32>(CurrentObject.VertexIndexList.size());
+			FString SectionName = !CurrentGroupName.empty() ? CurrentGroupName : CurrentMaterialName;
+			CurrentObject.Sections.emplace_back(SectionName, SectionStart);
+			CurrentSectionIndex = static_cast<int32>(CurrentObject.Sections.size()) - 1;
+		}
+
+		if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(CurrentObject.Sections.size()))
+		{
+			CurrentObject.Sections[CurrentSectionIndex].MaterialName = CurrentMaterialName;
+		}
 	}
 }
 
-void FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObject)
+
+int32 FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObject)
 {
 	TArray<FString> FaceVertices;
 	SplitString(FaceData, ' ', FaceVertices);
+
+	size_t VertexCountBefore = CurrentObject.VertexIndexList.size();
 
 	// 면을 삼각형으로 변환 (면이 최소 삼각형이라고 가정)
 	for (size_t i = 1; i < FaceVertices.size() - 1; ++i)
@@ -277,9 +473,9 @@ void FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObjec
 		SplitString(FaceVertices[i], '/', VertexComponents[1]);
 		SplitString(FaceVertices[i + 1], '/', VertexComponents[2]);
 
-		// 삼각형의 각 정점에 대한 인덱스 추가
 		for (int j = 0; j < 3; ++j)
 		{
+			// 삼각형의 각 정점에 대한 인덱스 추가
 			if (!VertexComponents[j].empty() && !VertexComponents[j][0].empty())
 			{
 				CurrentObject.VertexIndexList.push_back(std::stoi(VertexComponents[j][0].c_str()) - 1); // OBJ 인덱스는 1부터 시작
@@ -296,7 +492,11 @@ void FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObjec
 			}
 		}
 	}
+
+	size_t VertexCountAfter = CurrentObject.VertexIndexList.size();
+	return static_cast<int32>(VertexCountAfter - VertexCountBefore);
 }
+
 
 void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 	TArray<FVertex>& OutVertices,

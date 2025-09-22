@@ -416,11 +416,154 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 	// 바이너리 캐시가 없거나 실패한 경우 OBJ 파싱
 	UE_LOG("AssetManager: Parsing OBJ file: %s", InFilePath.c_str());
 	FStaticMesh StaticMeshData;
-	bLoadSuccess = FObjImporter::ImportStaticMesh(InFilePath, StaticMeshData);
+	TArray<FObjInfo> ObjInfos;
+	bLoadSuccess = FObjImporter::ImportStaticMesh(InFilePath, StaticMeshData, ObjInfos);
 
 	if (bLoadSuccess)
 	{
+		TArray<UMaterialInterface*> MaterialSlots;
+		TMap<FString, int32> MaterialNameToSlot;
+
+		FString ObjDirectory;
+		size_t LastSlash = InFilePath.find_last_of("/");
+		if (LastSlash != FString::npos)
+		{
+			ObjDirectory = InFilePath.substr(0, LastSlash + 1);
+		}
+
+		auto ResolveTexturePath = [&](const FString& RelativePath) -> FString
+		{
+			if (RelativePath.empty())
+			{
+				return FString();
+			}
+
+			bool bIsAbsolute = (RelativePath.find(':') != FString::npos) ||
+				(!RelativePath.empty() && (RelativePath[0] == '/' || RelativePath[0] == '\\'));
+			if (bIsAbsolute)
+			{
+				return RelativePath;
+			}
+
+			return ObjDirectory + RelativePath;
+		};
+
+		auto FindMaterialInfo = [&](const FString& MaterialName) -> const FObjMaterialInfo*
+		{
+			for (const FObjInfo& Info : ObjInfos)
+			{
+				auto MaterialIt = Info.Materials.find(MaterialName);
+				if (MaterialIt != Info.Materials.end())
+				{
+					return &MaterialIt->second;
+				}
+			}
+
+			return nullptr;
+		};
+
+		auto EnsureMaterialSlot = [&](const FString& MaterialName) -> int32
+		{
+			auto ExistingSlot = MaterialNameToSlot.find(MaterialName);
+			if (ExistingSlot != MaterialNameToSlot.end())
+			{
+				return ExistingSlot->second;
+			}
+
+			const FObjMaterialInfo* MaterialInfoPtr = FindMaterialInfo(MaterialName);
+			FObjMaterialInfo MaterialInfo = MaterialInfoPtr ? *MaterialInfoPtr : FObjMaterialInfo(MaterialName);
+
+			UMaterial* MaterialAsset = NewObject<UMaterial>();
+			if (MaterialAsset)
+			{
+				MaterialAsset->SetMaterialInfo(MaterialInfo);
+
+				if (!MaterialInfo.DiffuseTexturePath.empty())
+				{
+					FString TexturePath = ResolveTexturePath(MaterialInfo.DiffuseTexturePath);
+					if (!TexturePath.empty())
+					{
+						ComPtr<ID3D11ShaderResourceView> Texture = LoadTexture(TexturePath);
+						if (Texture)
+						{
+							MaterialAsset->SetDiffuseTexture(Texture.Get());
+						}
+					}
+				}
+
+				if (!MaterialInfo.NormalTexturePath.empty())
+				{
+					FString TexturePath = ResolveTexturePath(MaterialInfo.NormalTexturePath);
+					if (!TexturePath.empty())
+					{
+						ComPtr<ID3D11ShaderResourceView> Texture = LoadTexture(TexturePath);
+						if (Texture)
+						{
+							MaterialAsset->SetNormalTexture(Texture.Get());
+						}
+					}
+				}
+
+				if (!MaterialInfo.SpecularTexturePath.empty())
+				{
+					FString TexturePath = ResolveTexturePath(MaterialInfo.SpecularTexturePath);
+					if (!TexturePath.empty())
+					{
+						ComPtr<ID3D11ShaderResourceView> Texture = LoadTexture(TexturePath);
+						if (Texture)
+						{
+							MaterialAsset->SetSpecularTexture(Texture.Get());
+						}
+					}
+				}
+			}
+
+			int32 SlotIndex = static_cast<int32>(MaterialSlots.size());
+			MaterialSlots.push_back(MaterialAsset);
+			MaterialNameToSlot.emplace(MaterialName, SlotIndex);
+			return SlotIndex;
+		};
+
+		for (const FObjInfo& ObjInfo : ObjInfos)
+		{
+			for (const FObjSectionInfo& SectionInfo : ObjInfo.Sections)
+			{
+				if (SectionInfo.IndexCount <= 0)
+				{
+					continue;
+				}
+
+				if (SectionInfo.MaterialName.empty())
+				{
+					continue;
+				}
+
+				EnsureMaterialSlot(SectionInfo.MaterialName);
+			}
+		}
+
+		for (FStaticMeshSection& Section : StaticMeshData.Sections)
+		{
+			if (!Section.MaterialName.empty())
+			{
+				auto SlotIt = MaterialNameToSlot.find(Section.MaterialName);
+				if (SlotIt != MaterialNameToSlot.end())
+				{
+					Section.MaterialSlotIndex = SlotIt->second;
+				}
+				else
+				{
+					Section.MaterialSlotIndex = -1;
+				}
+			}
+			else
+			{
+				Section.MaterialSlotIndex = -1;
+			}
+		}
+
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
+		NewStaticMesh->SetMaterialSlots(MaterialSlots);
 
 		// OBJ 파싱 성공 시 바이너리 캐시로 저장
 		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);

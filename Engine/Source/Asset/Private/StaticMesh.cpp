@@ -229,3 +229,7 @@ FString UStaticMesh::GetBinaryFilePath(const FString& ObjFilePath)
 {
 	return FArchiveHelpers::GetBinaryFilePath(ObjFilePath);
 }
+void UStaticMesh::SetMaterialSlots(const TArray<UMaterialInterface*>& InMaterialSlots)
+{
+	MaterialSlots = InMaterialSlots;
+}

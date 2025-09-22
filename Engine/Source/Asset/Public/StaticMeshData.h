@@ -33,14 +33,20 @@ struct FObjMaterialInfo
 	}
 };
 
-/**
-* @brief 다중 머터리얼 사용시 각 슬롯 정보
-* @note
-*/
-struct FMateiralSlot
+struct FObjSectionInfo
 {
-	FName MaterialName; // 머터리얼 이름
-	UMaterialInterface* DefaultMaterial = nullptr; // 기본 머터리얼
+	FString SectionName;	// OBJ 'g' 키워드로 정의된 섹션 이름
+	FString MaterialName;	// 섹션에서 사용할 머티리얼 이름
+	int32 StartIndex = 0;	// 섹션 시작 인덱스 (파싱된 인덱스 배열 기준)
+	int32 IndexCount = 0;	// 섹션에 포함된 인덱스 수
+
+	FObjSectionInfo() = default;
+
+	FObjSectionInfo(const FString& InSectionName, int32 InStartIndex)
+		: SectionName(InSectionName)
+		, StartIndex(InStartIndex)
+	{
+	}
 };
 
 /**
@@ -58,9 +64,9 @@ struct FObjInfo
 	TArray<FVector> NormalList;					// OBJ 'vn' 명령어의 원시 노멀 벡터
 	TArray<uint32> VertexIndexList;				// OBJ 'f' 명령어의 정점 인덱스 (VertexList 참조)
 	TArray<uint32> UVIndexList;					// OBJ 'f' 명령어의 UV 인덱스 (UVList 참조)
-	TArray<uint32> NormalIndexList;				// OBJ 'f' 명령어의 노멀 인덱스 (NormalList 참조)
-	TArray<FObjMaterialInfo> MaterialList;	// 이 객체에서 사용하는 재질 목록
-	TArray<FString> TextureList;				// 이 객체에서 사용하는 텍스처 파일 경로 목록
+	TArray<uint32> NormalIndexList;			// OBJ 'f' 명령어의 노멀 인덱스 (NormalList 참조)
+	TArray<FObjSectionInfo> Sections;		// OBJ 그룹과 머티리얼을 위한 섹션 정보
+	TMap<FString, FObjMaterialInfo> Materials;	// 이 객체에서 참조하는 머티리얼 정보
 
 	FObjInfo() = default;
 
@@ -82,7 +88,8 @@ struct FStaticMeshSection
 {
 	int32 StartIndex = 0;   // 섹션의 시작 인덱스 (Indices 배열에서)
 	int32 IndexCount = 0;  // 섹션의 인덱스 개수
-	int32 MaterialSlotIndex = 0; // 슬롯은 UStaticMesh에서 관리
+	int32 MaterialSlotIndex = -1; // 슬롯은 UStaticMesh에서 관리
+	FString MaterialName; // 섹션에서 사용할 머티리얼 이름 (슬롯 매핑용)
 };
 
 /**

@@ -43,7 +43,7 @@ public:
 	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
 	 * @return 전체 파이프라인 성공 시 true, 그렇지 않으면 false
 	 */
-	static bool ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh);
+	static bool ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh, TArray<FObjInfo>& OutObjectInfos);
 
 private:
 	/**
@@ -60,14 +60,19 @@ private:
 		TArray<FObjInfo>& AllObjects,
 		TArray<FVector>& GlobalVertices,
 		TArray<FVector2>& GlobalUVs,
-		TArray<FVector>& GlobalNormals);
+		TArray<FVector>& GlobalNormals,
+		int32& CurrentSectionIndex,
+		FString& CurrentGroupName,
+		FString& CurrentMaterialName,
+		TMap<FString, FObjMaterialInfo>& MaterialLibrary,
+		const FString& ObjDirectory);
 
 	/**
 	 * @brief OBJ 파일에서 면 데이터를 파싱
 	 * @param FaceData 면 데이터 문자열 (예: "1/1/1 2/2/2 3/3/3")
 	 * @param CurrentObject 면 데이터를 추가할 객체
 	 */
-	static void ParseFaceData(const FString& FaceData, FObjInfo& CurrentObject);
+	static int32 ParseFaceData(const FString& FaceData, FObjInfo& CurrentObject);
 
 	/**
 	 * @brief 면 인덱스를 적절한 정점 데이터를 가진 삼각형 목록으로 변환
@@ -108,3 +113,4 @@ private:
 	 */
 	static FVector2 UVToUEBasis(const FVector2& InVector);
 };
+
