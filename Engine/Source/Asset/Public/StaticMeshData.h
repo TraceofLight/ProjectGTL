@@ -104,7 +104,34 @@ struct FStaticMesh
 	TArray<uint32> Indices;			// 삼각형 렌더링을 위한 인덱스 버퍼
 	TArray<FStaticMeshSection> Sections; // 다중 머터리얼 사용을 위한 메시 섹션
 
-	FStaticMesh() = default;
+	FStaticMesh()
+	{
+		UE_LOG_DEBUG("FStaticMesh: Default constructor called");
+	}
+
+	// 복사 생성자
+	FStaticMesh(const FStaticMesh& Other)
+		: PathFileName(Other.PathFileName)
+		, Vertices(Other.Vertices)
+		, Indices(Other.Indices)
+		, Sections(Other.Sections)
+	{
+		UE_LOG_DEBUG("FStaticMesh: Copy constructor called for %s", PathFileName.c_str());
+	}
+
+	// 복사 생성 연산자
+	FStaticMesh& operator=(const FStaticMesh& Other)
+	{
+		if (this != &Other)
+		{
+			PathFileName = Other.PathFileName;
+			Vertices = Other.Vertices;
+			Indices = Other.Indices;
+			Sections = Other.Sections;
+			UE_LOG_DEBUG("FStaticMesh: Copy assignment operator called for %s", PathFileName.c_str());
+		}
+		return *this;
+	}
 
 	/**
 	 * @brief 파일 경로로 생성하는 생성자
