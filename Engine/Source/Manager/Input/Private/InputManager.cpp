@@ -24,6 +24,7 @@ void UInputManager::InitializeKeyMapping()
 	VirtualKeyMap['D'] = EKeyInput::D;
 	VirtualKeyMap['Q'] = EKeyInput::Q;
 	VirtualKeyMap['E'] = EKeyInput::E;
+	VirtualKeyMap['R'] = EKeyInput::R;
 	VirtualKeyMap['F'] = EKeyInput::F;
 
 	// 화살표 키 매핑
@@ -59,6 +60,7 @@ void UInputManager::InitializeKeyMapping()
 	VirtualKeyMap[VK_MBUTTON] = EKeyInput::MouseMiddle;
 
 	// 기타 키 매핑
+	VirtualKeyMap[VK_OEM_3] = EKeyInput::Backquote;
 	VirtualKeyMap[VK_F1] = EKeyInput::F1;
 	VirtualKeyMap[VK_F2] = EKeyInput::F2;
 	VirtualKeyMap[VK_F3] = EKeyInput::F3;

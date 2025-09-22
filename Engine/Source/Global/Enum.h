@@ -12,6 +12,7 @@ enum class EKeyInput : uint8
 	D,
 	Q,
 	E,
+	R,
 
 	// 포커싱 키
 	F,
@@ -49,6 +50,7 @@ enum class EKeyInput : uint8
 	MouseMiddle,
 
 	// 기타
+	Backquote,
 	F1,
 	F2,
 	F3,

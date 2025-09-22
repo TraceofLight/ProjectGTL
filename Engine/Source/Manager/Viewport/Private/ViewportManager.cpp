@@ -694,8 +694,13 @@ int8 UViewportManager::GetViewportIndexUnderMouse() const
 	for (int8 i = 0; i < static_cast<int8>(Viewports.size()); ++i)
 	{
 		const FRect& Rect = Viewports[i]->GetRect();
+		const int32 ToolbarHeight = Viewports[i]->GetToolbarHeight();
+
+		const LONG RenderAreaTop = Rect.Y + ToolbarHeight;
+		const LONG RenderAreaBottom = Rect.Y + Rect.H;
+
 		if (MousePositionX >= Rect.X && MousePositionX < Rect.X + Rect.W &&
-			MousePositionY >= Rect.Y && MousePositionY < Rect.Y + Rect.H)
+			MousePositionY >= RenderAreaTop && MousePositionY < RenderAreaBottom)
 		{
 			return i;
 		}
@@ -710,11 +715,22 @@ bool UViewportManager::ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, f
 	const FRect& Rect = Viewports[Index]->GetRect();
 	if (Rect.W <= 0 || Rect.H <= 0) return false;
 
+	// 툴바 높이를 고려한 실제 렌더링 영역 기준으로 NDC 계산
+	const int32 ToolbarHeight = Viewports[Index]->GetToolbarHeight();
+	const float RenderAreaY = static_cast<float>(Rect.Y + ToolbarHeight);
+	const float RenderAreaHeight = static_cast<float>(Rect.H - ToolbarHeight);
+
+	if (RenderAreaHeight <= 0)
+	{
+		return false;
+	}
+
 	const FVector& MousePosition = UInputManager::GetInstance().GetMousePosition();
 	const float LocalX = (MousePosition.X - (float)Rect.X);
-	const float LocalY = (MousePosition.Y - (float)Rect.Y);
+	const float LocalY = (MousePosition.Y - RenderAreaY);
 	const float Width = (float)Rect.W;
-	const float Height = (float)Rect.H;
+	const float Height = RenderAreaHeight;
+
 	OutNdcX = (LocalX / Width) * 2.0f - 1.0f;
 	OutNdcY = 1.0f - (LocalY / Height) * 2.0f;
 	return true;

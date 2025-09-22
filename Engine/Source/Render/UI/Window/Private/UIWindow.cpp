@@ -64,7 +64,7 @@ void UUIWindow::OnMainWindowResized() const
 
 	ImVec2 TargetPosition(
 		Viewport->WorkPos.x + CurrentViewportSize.x * Anchor.x,
-		Viewport->WorkPos.y + CurrentViewportSize.y * Anchor.y + MenuBarOffset
+		Viewport->WorkPos.y + CurrentViewportSize.y * Anchor.y
 	);
 
 	ImVec2 FinalPosition(
@@ -133,9 +133,9 @@ void UUIWindow::ClampWindow() const
 		bPositionChanged = true;
 	}
 
-	if (Position.y < WorkPosition.y + MenuBarOffset)
+	if (Position.y < WorkPosition.y)
 	{
-		Position.y = WorkPosition.y + MenuBarOffset;
+		Position.y = WorkPosition.y;
 		bPositionChanged = true;
 	}
 
@@ -169,7 +169,8 @@ void UUIWindow::RenderWindow()
 	if (bShouldRestorePosition && RestoreFrameCount > 0)
 	{
 		ImVec2 AdjustedPosition = LastWindowPosition;
-		AdjustedPosition.y = max(AdjustedPosition.y, MenuBarOffset);
+		const ImGuiViewport* Viewport = ImGui::GetMainViewport();
+		AdjustedPosition.y = max(AdjustedPosition.y, Viewport->WorkPos.y);
 		ImGui::SetNextWindowPos(AdjustedPosition, ImGuiCond_Always);
 		--RestoreFrameCount;
 		if (RestoreFrameCount <= 0)
@@ -181,7 +182,8 @@ void UUIWindow::RenderWindow()
 	else if (!bShouldRestorePosition)
 	{
 		ImVec2 AdjustedDefaultPosition = Config.DefaultPosition;
-		AdjustedDefaultPosition.y = max(AdjustedDefaultPosition.y, MenuBarOffset);
+		const ImGuiViewport* Viewport = ImGui::GetMainViewport();
+		AdjustedDefaultPosition.y = max(AdjustedDefaultPosition.y, Viewport->WorkPos.y);
 		ImGui::SetNextWindowPos(AdjustedDefaultPosition, ImGuiCond_FirstUseEver);
 	}
 
@@ -293,37 +295,40 @@ void UUIWindow::ApplyDockingSettings() const
 	ImGuiIO& IO = ImGui::GetIO();
 	float ScreenWidth = IO.DisplaySize.x;
 	float ScreenHeight = IO.DisplaySize.y;
-	float menuBarOffset = GetMenuBarOffset();
+
+	const ImGuiViewport* Viewport = ImGui::GetMainViewport();
+	float WorkPosY = Viewport ? Viewport->WorkPos.y : 0.0f;
+	float WorkSizeY = Viewport ? Viewport->WorkSize.y : ScreenHeight;
 
 	switch (Config.DockDirection)
 	{
 	case EUIDockDirection::Left:
-		ImGui::SetNextWindowPos(ImVec2(0, menuBarOffset), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(Config.DefaultSize.x, ScreenHeight - menuBarOffset), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(0, WorkPosY), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(Config.DefaultSize.x, WorkSizeY), ImGuiCond_FirstUseEver);
 		break;
 
 	case EUIDockDirection::Right:
-		ImGui::SetNextWindowPos(ImVec2(ScreenWidth - Config.DefaultSize.x, menuBarOffset), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(Config.DefaultSize.x, ScreenHeight - menuBarOffset), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(ScreenWidth - Config.DefaultSize.x, WorkPosY), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(Config.DefaultSize.x, WorkSizeY), ImGuiCond_FirstUseEver);
 		break;
 
 	case EUIDockDirection::Top:
-		ImGui::SetNextWindowPos(ImVec2(0, menuBarOffset), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(0, WorkPosY), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ScreenWidth, Config.DefaultSize.y), ImGuiCond_FirstUseEver);
 		break;
 
 	case EUIDockDirection::Bottom:
-		ImGui::SetNextWindowPos(ImVec2(0, ScreenHeight - Config.DefaultSize.y), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(0, WorkPosY + WorkSizeY - Config.DefaultSize.y), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ScreenWidth, Config.DefaultSize.y), ImGuiCond_FirstUseEver);
 		break;
 
 	case EUIDockDirection::Center:
 		{
-			ImVec2 Center = ImVec2(ScreenWidth * 0.5f, (ScreenHeight + menuBarOffset) * 0.5f);
+			ImVec2 Center = ImVec2(ScreenWidth * 0.5f, WorkPosY + WorkSizeY * 0.5f);
 			ImVec2 WindowPosition = ImVec2(Center.x - Config.DefaultSize.x * 0.5f,
 			                               Center.y - Config.DefaultSize.y * 0.5f);
-			// 최소 Y 위치는 메뉴바 아래로 제한
-			WindowPosition.y = max(WindowPosition.y, menuBarOffset);
+			// 최소 Y 위치는 작업 영역 시작 지점으로 제한
+			WindowPosition.y = max(WindowPosition.y, WorkPosY);
 			ImGui::SetNextWindowPos(WindowPosition, ImGuiCond_FirstUseEver);
 		}
 		break;
@@ -373,7 +378,6 @@ float UUIWindow::GetMenuBarOffset() const
 		return 0.0f;
 	}
 
-	// ImGui의 메인 뷰포트를 통해 메뉴바 높이 가져오기
 	ImGuiViewport* Viewport = ImGui::GetMainViewport();
 	if (Viewport)
 	{

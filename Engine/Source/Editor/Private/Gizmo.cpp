@@ -5,6 +5,9 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Global/Quaternion.h"
+#include "Editor/Public/Camera.h"
+
+IMPLEMENT_CLASS(UGizmo, UObject)
 
 UGizmo::UGizmo()
 {
@@ -56,88 +59,62 @@ UGizmo::UGizmo()
 
 UGizmo::~UGizmo() = default;
 
-void UGizmo::RenderGizmo(AActor* Actor, const FVector& CameraLocation)
+void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const UCamera* InCamera, float InViewportWidth,
+                         float InViewportHeight, int32 ViewportIndex)
 {
-	TargetActor = Actor;
-	if (!TargetActor) { return; }
-	float DistanceToCamera = (CameraLocation - TargetActor->GetActorLocation()).Length();
+	TargetActor = InActor;
+	if (!TargetActor)
+	{
+		return;
+	}
 
 	URenderer& Renderer = URenderer::GetInstance();
 	const int Mode = static_cast<int>(GizmoMode);
 	auto& P = Primitives[Mode];
 	P.Location = TargetActor->GetActorLocation();
 
-	float Scale = DistanceToCamera * ScaleFactor;
-	if (DistanceToCamera < MinScaleFactor)
-		Scale = MinScaleFactor * ScaleFactor;
+	// 화면에서 일정한 픽셀 크기를 유지하기 위한 스케일 계산
+	float Scale = CalculateScreenSpaceScale(InCameraLocation, InCamera, InViewportWidth, InViewportHeight);
+
+	// 피킹에서 사용할 현재 스케일 값 저장
+	CurrentRenderScale = Scale;
+
 	TranslateCollisionConfig.Scale = Scale;
 	RotateCollisionConfig.Scale = Scale;
 
 	P.Scale = FVector(Scale, Scale, Scale);
 
-	// 오일러 버전
-	//// Y (Right)
-	//P.Rotation = FVector{ 0,0,89.99f } + LocalRotation;
-	//P.Color = ColorFor(EGizmoDirection::Right);
-	//Renderer.RenderPrimitive(P, RenderState);
-
-	//// Z (Up)
-	//P.Rotation = FVector{ 0, -89.99f, 0 } + LocalRotation;
-	//P.Color = ColorFor(EGizmoDirection::Up);
-	//Renderer.RenderPrimitive(P, RenderState);
-
-	//// X (Forward)
-	//P.Rotation = FVector{ 0,0,0 } + LocalRotation;
-	//P.Color = ColorFor(EGizmoDirection::Forward);
-	//Renderer.RenderPrimitive(P, RenderState);
-
-	// Actor 로컬 회전 쿼터니언
-	// 1) 드래그 중에 로컬 축 변화되는거 보이는 모드
-	/*FQuaternion LocalRot;
-	if (GizmoMode == EGizmoMode::Scale)
-	{
-		LocalRot = FQuaternion::FromEuler(TargetActor->GetActorRotation());
-	}
-	else if (GizmoMode == EGizmoMode::Rotate)
-	{
-		LocalRot = FQuaternion::Identity();
-	}
-	else
-	{
-		LocalRot = bIsWorld ? FQuaternion::Identity() : FQuaternion::FromEuler(TargetActor->GetActorRotation());
-	}*/
-
-	// 2) 드래그 중에는 나머지 축 유지되는 모드 (회전 후 새로운 로컬 기즈모 보여줌)
-	FQuaternion LocalRot;
+	// 드래그 중에는 나머지 축 유지되는 모드 (회전 후 새로운 로컬 기즈모 보여줌)
+	FQuaternion LocalRotation;
 	if (GizmoMode == EGizmoMode::Rotate && !bIsWorld && bIsDragging)
 	{
-		LocalRot = FQuaternion::FromEuler(DragStartActorRotation);
+		LocalRotation = FQuaternion::FromEuler(DragStartActorRotation);
 	}
 	else if (GizmoMode == EGizmoMode::Scale)
 	{
-		LocalRot = FQuaternion::FromEuler(TargetActor->GetActorRotation());
+		LocalRotation = FQuaternion::FromEuler(TargetActor->GetActorRotation());
 	}
 	else
 	{
-		LocalRot = bIsWorld ? FQuaternion::Identity() : FQuaternion::FromEuler(TargetActor->GetActorRotation());
+		LocalRotation = bIsWorld ? FQuaternion::Identity() : FQuaternion::FromEuler(TargetActor->GetActorRotation());
 	}
 
 	// X축 (Forward) - 빨간색
-	FQuaternion RotX = LocalRot * FQuaternion::Identity();
-	P.Rotation = RotX.ToEuler();
-	P.Color = ColorFor(EGizmoDirection::Forward);
+	FQuaternion RotationX = LocalRotation * FQuaternion::Identity();
+	P.Rotation = RotationX.ToEuler();
+	P.Color = ColorFor(EGizmoDirection::Forward, ViewportIndex);
 	Renderer.RenderPrimitive(P, RenderState);
 
 	// Y축 (Right) - 초록색 (Z축 주위로 90도 회전)
-	FQuaternion RotY = LocalRot * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
+	FQuaternion RotY = LocalRotation * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
 	P.Rotation = RotY.ToEuler();
-	P.Color = ColorFor(EGizmoDirection::Right);
+	P.Color = ColorFor(EGizmoDirection::Right, ViewportIndex);
 	Renderer.RenderPrimitive(P, RenderState);
 
 	// Z축 (Up) - 파란색 (Y축 주위로 -90도 회전)
-	FQuaternion RotZ = LocalRot * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
+	FQuaternion RotZ = LocalRotation * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
 	P.Rotation = RotZ.ToEuler();
-	P.Color = ColorFor(EGizmoDirection::Up);
+	P.Color = ColorFor(EGizmoDirection::Up, ViewportIndex);
 	Renderer.RenderPrimitive(P, RenderState);
 }
 
@@ -146,48 +123,157 @@ void UGizmo::ChangeGizmoMode()
 	switch (GizmoMode)
 	{
 	case EGizmoMode::Translate:
-		GizmoMode = EGizmoMode::Rotate; break;
+		GizmoMode = EGizmoMode::Rotate;
+		break;
 	case EGizmoMode::Rotate:
-		GizmoMode = EGizmoMode::Scale; break;
+		GizmoMode = EGizmoMode::Scale;
+		break;
 	case EGizmoMode::Scale:
 		GizmoMode = EGizmoMode::Translate;
 	}
 }
 
-void UGizmo::SetLocation(const FVector& Location)
+void UGizmo::SetLocation(const FVector& InLocation) const
 {
-	TargetActor->SetActorLocation(Location);
+	TargetActor->SetActorLocation(InLocation);
 }
 
-bool UGizmo::IsInRadius(float Radius)
+bool UGizmo::IsInRadius(float InRadius) const
 {
-	if (Radius >= RotateCollisionConfig.InnerRadius * RotateCollisionConfig.Scale && Radius <= RotateCollisionConfig.OuterRadius * RotateCollisionConfig.Scale)
+	if (InRadius >= RotateCollisionConfig.InnerRadius * RotateCollisionConfig.Scale &&
+		InRadius <= RotateCollisionConfig.OuterRadius * RotateCollisionConfig.Scale)
+	{
 		return true;
+	}
+
 	return false;
 }
 
-void UGizmo::OnMouseDragStart(FVector& CollisionPoint)
+void UGizmo::OnMouseDragStart(const FVector& CollisionPoint)
 {
 	bIsDragging = true;
 	DragStartMouseLocation = CollisionPoint;
-	DragStartActorLocation = Primitives[(int)GizmoMode].Location;
+	DragStartActorLocation = Primitives[static_cast<int>(GizmoMode)].Location;
 	DragStartActorRotation = TargetActor->GetActorRotation();
 	DragStartActorScale = TargetActor->GetActorScale3D();
 }
 
-// 하이라이트 색상은 렌더 시점에만 계산 (상태 오염 방지)
-FVector4 UGizmo::ColorFor(EGizmoDirection InAxis) const
+
+/**
+ * @brief 상태 오염 방지를 위해 하이라이트 색상은 렌더 시점에만 계산하기 위한 함수
+ * @param InAxis 축 방향
+ * @param ViewportIndex 뷰포트 인덱스
+ * @return 색상 벡터
+ */
+FVector4 UGizmo::ColorFor(EGizmoDirection InAxis, int32 ViewportIndex) const
 {
-	const int Idx = AxisIndex(InAxis);
-	//UE_LOG("%d", Idx);
-	const FVector4& BaseColor = GizmoColor[Idx];
-	const bool bIsHighlight = (InAxis == GizmoDirection);
+	const int Index = AxisIndex(InAxis);
+	const FVector4& BaseColor = GizmoColor[Index];
 
-	const FVector4 Paint = bIsHighlight ? FVector4(1,1,0,1) : BaseColor;
-	//UE_LOG("InAxis: %d, Idx: %d, Dir: %d, base color: %.f, %.f, %.f, bHighLight: %d", InAxis, Idx, GizmoDirection, BaseColor.X, BaseColor.Y, BaseColor.Z, bIsHighlight);
+	// 뷰포트별 기즈모 선택 상태 확인
+	EGizmoDirection ViewportGizmoDirection = EGizmoDirection::None;
+	auto it = ViewportGizmoDirections.find(ViewportIndex);
+	if (it != ViewportGizmoDirections.end())
+	{
+		ViewportGizmoDirection = it->second;
+	}
 
-	if (bIsDragging)
-		return BaseColor;
+	const bool bIsHighlight = (InAxis == ViewportGizmoDirection);
+
+	// 드래깅 중이든 아니든 하이라이트된 축은 노란색으로 표시
+	if (bIsHighlight)
+	{
+		// 드래깅 중일 때는 좀 더 진한 노란색, 호버링일 때는 밝은 노란색
+		return bIsDragging ? FVector4(1.0f, 0.8f, 0.0f, 1.0f) : FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+	}
 	else
-		return Paint;
+	{
+		// 하이라이트되지 않은 축은 기본 색상
+		return BaseColor;
+	}
+}
+
+/**
+ * @brief 뷰포트별 기즈모 방향 설정하는 함수
+ * @param InViewportIndex 뷰포트 인덱스
+ * @param InDirection 설정할 기즈모 방향
+ */
+void UGizmo::SetGizmoDirectionForViewport(int32 InViewportIndex, EGizmoDirection InDirection)
+{
+	ViewportGizmoDirections[InViewportIndex] = InDirection;
+	// 전역 방향도 업데이트
+	if (InViewportIndex == 0)
+	{
+		GizmoDirection = InDirection;
+	}
+}
+
+/**
+ * @brief 뷰포트별 기즈모 방향 가져오는 함수
+ * @param InViewportIndex 뷰포트 인덱스
+ * @return 뷰포트의 기즈모 방향
+ */
+EGizmoDirection UGizmo::GetGizmoDirectionForViewport(int32 InViewportIndex) const
+{
+	auto Iter = ViewportGizmoDirections.find(InViewportIndex);
+	if (Iter != ViewportGizmoDirections.end())
+	{
+		return Iter->second;
+	}
+
+	return EGizmoDirection::None;
+}
+
+/**
+ * @brief 화면에서 일정한 픽셀 크기를 유지하는 스케일을 계산하는 함수
+ */
+float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const UCamera* InCamera,
+                                        float InViewportWidth, float InViewportHeight, float InDesiredPixelSize) const
+{
+	if (!InCamera || !TargetActor || InViewportWidth <= 0.0f || InViewportHeight <= 0.0f)
+	{
+		return 1.0f;
+	}
+
+	// 기즈모 위치와 카메라 사이의 거리
+	float DistanceToCamera = (InCameraLocation - TargetActor->GetActorLocation()).Length();
+	DistanceToCamera = max(DistanceToCamera, 0.1f);
+
+	// 원근 투영
+	if (InCamera->GetCameraType() == ECameraType::ECT_Perspective)
+	{
+		// FOV와 거리를 이용한 화면 공간 크기 계산
+		float FovYRadians = InCamera->GetFovY() * (PI / 180.0f);
+		float TanHalfFov = tanf(FovYRadians * 0.5f);
+
+		// 원근 투영에서 화면 끝으로 갈수록 커지는 현상 보정
+		// 기즈모 위치에서 카메라 중심까지의 벡터와 카메라 방향 벡터의 도트곱 계산
+		FVector CameraToGizmo = TargetActor->GetActorLocation() - InCameraLocation;
+		FVector CameraForward = InCamera->GetForward();
+		CameraToGizmo.Normalize();
+		CameraForward.Normalize();
+
+		// 카메라 중심축으로부터의 각도 계산 (코사인 값)
+		float CosAngle = CameraForward.Dot(CameraToGizmo);
+		CosAngle = max(0.1f, CosAngle); // 너무 가장자리에서의 기하급수적 증가 방지
+
+		// 시야각 보정을 위한 스케일 팩터
+		float ViewAngleCorrection = 1.0f / CosAngle;
+
+		// 화면 공간에서 1픽셀이 월드 공간에서 차지하는 크기
+		float WorldUnitsPerPixel = (2.0f * DistanceToCamera * TanHalfFov) / InViewportHeight;
+
+		// 원하는 픽셀 크기를 월드 스케일로 변환 (시야각 보정 적용)
+		return (WorldUnitsPerPixel * InDesiredPixelSize) / ViewAngleCorrection;
+	}
+	// 직교 투영
+	else
+	{
+		// FOV 값이 화면 높이를 의미함 (더 작은 크기로 조정)
+		float OrthographicHeight = InCamera->GetFovY();
+		float WorldUnitsPerPixel = OrthographicHeight / InViewportHeight;
+
+		// 직교 투영에서는 좌표계 차이로 인해 더 작은 크기 사용 (휴리스틱하게 보정함)
+		return WorldUnitsPerPixel * (InDesiredPixelSize * 0.05f);
+	}
 }

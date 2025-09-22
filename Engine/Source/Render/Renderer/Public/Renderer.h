@@ -101,6 +101,7 @@ public:
 	ID3D11RenderTargetView* GetRenderTargetView() const { return DeviceResources->GetRenderTargetView(); }
 	UDeviceResources* GetDeviceResources() const { return DeviceResources; }
 	bool GetIsResizing() const { return bIsResizing; }
+	uint32 GetViewportIdx() const { return ViewportIdx; }
 
 	void SetIsResizing(bool isResizing) { bIsResizing = isResizing; }
 
