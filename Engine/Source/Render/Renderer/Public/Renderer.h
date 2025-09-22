@@ -7,6 +7,9 @@
 class UPipeline;
 class UDeviceResources;
 class UPrimitiveComponent;
+class UStaticMeshComponent;
+class UMaterialInterface;
+struct FStaticMeshSection;
 class AActor;
 class AGizmo;
 class UEditor;
@@ -48,18 +51,6 @@ public:
 	void Init(HWND InWindowHandle);
 	void Release();
 
-	// Initialize
-	void CreateRasterizerState();
-	void CreateDepthStencilState();
-	void CreateDefaultShader();
-	void CreateConstantBuffer();
-
-	// Release
-	void ReleaseConstantBuffer();
-	void ReleaseDefaultShader();
-	void ReleaseDepthStencilState();
-	void ReleaseRasterizerState();
-
 	// Render
 	void Update();
 	void RenderBegin() const;
@@ -71,6 +62,7 @@ public:
 
 	// 공통 렌더링 함수들
 	void RenderPrimitiveComponent(class UPrimitiveComponent* InPrimitiveComponent);
+	void RenderStaticMeshComponent(class UStaticMeshComponent* InStaticMeshComponent);
 	void SetupRenderPipeline(class UPrimitiveComponent* InPrimitiveComponent);
 	void RenderIndexed(class UPrimitiveComponent* InPrimitiveComponent);
 	void RenderDirect(class UPrimitiveComponent* InPrimitiveComponent);
@@ -94,7 +86,7 @@ public:
 	void UpdateConstant(const FVector& InPosition, const FVector& InRotation, const FVector& InScale) const;
 	void UpdateConstant(const FViewProjConstants& InViewProjConstants) const;
 	void UpdateConstant(const FMatrix& InMatrix) const;
-	void UpdateConstant(const FVector4& InColor) const;
+	void UpdateConstant(const FVector4& InColor, float InUseVertexColor = 1.0f, float InUseDiffuseTexture = 0.0f) const;
 
 	static void ReleaseVertexBuffer(ID3D11Buffer* InVertexBuffer);
 
@@ -113,11 +105,26 @@ public:
 	void SetIsResizing(bool isResizing) { bIsResizing = isResizing; }
 
 private:
+	// Internal Initialize
+	void CreateRasterizerState();
+	void CreateDepthStencilState();
+	void CreateSamplerState();
+	void CreateDefaultShader();
+	void CreateConstantBuffer();
+
+	// Internal Release
+	void ReleaseConstantBuffer();
+	void ReleaseDefaultShader();
+	void ReleaseSamplerState();
+	void ReleaseDepthStencilState();
+	void ReleaseRasterizerState();
+
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
 	UFontRenderer* FontRenderer = nullptr;
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
 
+	ID3D11SamplerState* DefaultSamplerState = nullptr;
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
 	ID3D11Buffer* ConstantBufferModels = nullptr;
@@ -165,7 +172,8 @@ private:
 	TMap<FRasterKey, ID3D11RasterizerState*, FRasterKeyHasher> RasterCache;
 
 	ID3D11RasterizerState* GetRasterizerState(const FRenderState& InRenderState);
-
+	void RenderStaticMeshSection(const FStaticMeshSection& InSection, const TArray<UMaterialInterface*>& InMaterialSlots, const FVector4& InFallbackColor);
+	void ApplyMaterial(UMaterialInterface* InMaterial, const FVector4& InFallbackColor);
 	bool bIsResizing = false;
 
 	///////////////////////////////////////////

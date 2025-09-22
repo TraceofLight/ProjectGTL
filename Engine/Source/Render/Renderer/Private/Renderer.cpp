@@ -8,6 +8,7 @@
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Asset/Public/AssetManager.h"
+#include "Material/Public/Material.h"
 //#include "Component/Public/PrimitiveComponent.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
@@ -33,6 +34,7 @@ void URenderer::Init(HWND InWindowHandle)
 	// 래스터라이저 상태 생성
 	CreateRasterizerState();
 	CreateDepthStencilState();
+	CreateSamplerState();
 	CreateDefaultShader();
 	CreateConstantBuffer();
 
@@ -50,6 +52,7 @@ void URenderer::Release()
 {
 	ReleaseConstantBuffer();
 	ReleaseDefaultShader();
+	ReleaseSamplerState();
 	ReleaseDepthStencilState();
 	ReleaseRasterizerState();
 
@@ -93,6 +96,22 @@ void URenderer::CreateDepthStencilState()
 	DisabledDescription.StencilEnable = FALSE;
 
 	GetDevice()->CreateDepthStencilState(&DisabledDescription, &DisabledDepthStencilState);
+}
+
+void URenderer::CreateSamplerState()
+{
+	// NOTE: Mipmap이 없는 텍스처 사용을 전제로 만들어짐.
+	// 추후 Mipmap 적용된 텍스처 사용하게 되면 수정 요망.
+	D3D11_SAMPLER_DESC SamplerDesc = {};
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.MipLODBias = 0.0f;
+	SamplerDesc.MaxAnisotropy = 1;
+	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+
+	GetDevice()->CreateSamplerState(&SamplerDesc, &DefaultSamplerState);
 }
 
 /**
@@ -167,6 +186,18 @@ void URenderer::ReleaseDefaultShader()
 	{
 		DefaultVertexShader->Release();
 		DefaultVertexShader = nullptr;
+	}
+}
+
+/**
+ * @brief Release Default Sampler State
+ */
+void URenderer::ReleaseSamplerState()
+{
+	if(DefaultSamplerState)
+	{
+		DefaultSamplerState->Release();
+		DefaultSamplerState = nullptr;
 	}
 }
 
@@ -385,6 +416,17 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 		return;
 	}
 
+	// StaticMesh 컴포넌트는 머터리얼 처리를 위해 전용 경로 사용
+	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMeshComp)
+	{
+		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(InPrimitiveComponent);
+		if (StaticMeshComponent)
+		{
+			RenderStaticMeshComponent(StaticMeshComponent);
+			return;
+		}
+	}
+
 	// 일반 프리미티브의 경우 기존 렌더링 방식 사용
 	// 공통 파이프라인 설정
 	SetupRenderPipeline(InPrimitiveComponent);
@@ -519,6 +561,144 @@ void URenderer::RenderDirect(UPrimitiveComponent* InPrimitiveComponent)
 
 	Pipeline->SetVertexBuffer(VertexBuffer, InPrimitiveComponent->GetRenderVertexStride());
 	Pipeline->Draw(InPrimitiveComponent->GetRenderVertexCount(), 0);
+}
+
+/**
+ * @brief StaticMeshComponent를 렌더링하는 함수. 머티리얼 등의 처리를 위해 별도 함수 사용.
+ * @param InStaticMeshComponent 렌더링할 스태틱 메시 컴포넌트
+ */
+void URenderer::RenderStaticMeshComponent(UStaticMeshComponent* InStaticMeshComponent)
+{
+	if (!InStaticMeshComponent || !InStaticMeshComponent->HasRenderData())
+	{
+		return;
+	}
+
+	UStaticMesh* StaticMesh = InStaticMeshComponent->GetStaticMesh();
+	if (!StaticMesh || !StaticMesh->IsValidMesh())
+	{
+		return;
+	}
+
+	SetupRenderPipeline(InStaticMeshComponent);
+
+	ID3D11Buffer* VertexBuffer = InStaticMeshComponent->GetRenderVertexBuffer();
+	if (!VertexBuffer)
+	{
+		return;
+	}
+
+	Pipeline->SetVertexBuffer(VertexBuffer, InStaticMeshComponent->GetRenderVertexStride());
+
+	const FVector4 FallbackColor = InStaticMeshComponent->GetColor();
+	const TArray<UMaterialInterface*>& MaterialSlots = StaticMesh->GetMaterialSlots();
+
+	ID3D11Buffer* IndexBuffer = InStaticMeshComponent->GetRenderIndexBuffer();
+	const bool bUseIndexedRendering = InStaticMeshComponent->UseIndexedRendering() && IndexBuffer != nullptr;
+
+	if (bUseIndexedRendering)
+	{
+		Pipeline->SetIndexBuffer(IndexBuffer, sizeof(uint32));
+
+		const TArray<FStaticMeshSection>& MeshSections = StaticMesh->GetStaticMeshData().Sections;
+		bool bDrewSection = false;
+		for (const FStaticMeshSection& Section : MeshSections)
+		{
+			if (Section.IndexCount <= 0)
+			{
+				continue;
+			}
+
+			RenderStaticMeshSection(Section, MaterialSlots, FallbackColor);
+			bDrewSection = true;
+		}
+
+		if (!bDrewSection)
+		{
+			ApplyMaterial(nullptr, FallbackColor);
+			Pipeline->DrawIndexed(InStaticMeshComponent->GetRenderIndexCount(), 0, 0);
+		}
+	}
+	else
+	{
+		ApplyMaterial(nullptr, FallbackColor);
+		Pipeline->Draw(InStaticMeshComponent->GetRenderVertexCount(), 0);
+	}
+}
+
+/**
+ * @brief StaticMesh의 섹션 단위로 렌더링하는 함수
+ * @param InSection 렌더링할 스태틱 메시 섹션 정보
+ * @param InMaterialSlots 메시가 참조하는 머티리얼 슬롯 배열
+ * @param InFallbackColor 머티리얼이 없을 때 사용할 대체 색상
+ */
+void URenderer::RenderStaticMeshSection(const FStaticMeshSection& InSection, const TArray<UMaterialInterface*>& InMaterialSlots, const FVector4& InFallbackColor)
+{
+	UMaterialInterface* SectionMaterial = nullptr;
+	if (InSection.MaterialSlotIndex >= 0 && InSection.MaterialSlotIndex < static_cast<int32>(InMaterialSlots.size()))
+	{
+		SectionMaterial = InMaterialSlots[InSection.MaterialSlotIndex];
+	}
+
+	ApplyMaterial(SectionMaterial, InFallbackColor);
+	Pipeline->DrawIndexed(static_cast<uint32>(InSection.IndexCount), static_cast<uint32>(InSection.StartIndex), 0);
+}
+
+/**
+ * @brief 머티리얼을 적용하는 함수
+ * @param InMaterial 적용할 머티리얼 인터페이스
+ * @param InFallbackColor 머티리얼이 없을 때 사용할 대체 색상
+ */
+void URenderer::ApplyMaterial(UMaterialInterface* InMaterial, const FVector4& InFallbackColor)
+{
+	FVector4 FinalColor = InFallbackColor;
+	ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+	bool bAppliedMaterial = false;
+
+	auto UseMaterial = [&](UMaterial* Material)
+	{
+		if (!Material)
+		{
+			return;
+		}
+
+		const FObjMaterialInfo& Info = Material->GetMaterialInfo();
+		FinalColor = FVector4(Info.DiffuseColorScalar.X, Info.DiffuseColorScalar.Y, Info.DiffuseColorScalar.Z, Info.TransparencyScalar);
+		DiffuseSRV = Material->GetDiffuseTexture();
+		bAppliedMaterial = true;
+	};
+
+	if (InMaterial)
+	{
+		if (UMaterial* Material = Cast<UMaterial>(InMaterial))
+		{
+			UseMaterial(Material);
+		}
+		else if (UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(InMaterial))
+		{
+			UseMaterial(MaterialInstance->Parent);
+		}
+	}
+
+	if (DefaultSamplerState)
+	{
+		Pipeline->SetSamplerState(0, false, DefaultSamplerState);
+	}
+
+	if (DiffuseSRV)
+	{
+		Pipeline->SetTexture(0, false, DiffuseSRV);
+	}
+	else
+	{
+		ID3D11ShaderResourceView* NullSrv = nullptr;
+		GetDeviceContext()->PSSetShaderResources(0, 1, &NullSrv);
+	}
+
+	const bool bUseVertexColor = !bAppliedMaterial;
+	const bool bUseDiffuseTexture = DiffuseSRV != nullptr;
+
+	UpdateConstant(FinalColor, bUseVertexColor ? 1.0f : 0.0f, bUseDiffuseTexture ? 1.0f : 0.0f);
 }
 
 /**
@@ -865,7 +1045,7 @@ void URenderer::CreateConstantBuffer()
 	// 색상 정보용 상수 버퍼 생성 (Slot 2)
 	{
 		D3D11_BUFFER_DESC ColorConstantBufferDescription = {};
-		ColorConstantBufferDescription.ByteWidth = sizeof(FVector4) + 0xf & 0xfffffff0; // 16바이트 단위 정렬
+		ColorConstantBufferDescription.ByteWidth = sizeof(FVector4) * 2 + 0xf & 0xfffffff0; // 16바이트 단위 정렬
 		ColorConstantBufferDescription.Usage = D3D11_USAGE_DYNAMIC; // 매 프레임 CPU에서 업데이트
 		ColorConstantBufferDescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		ColorConstantBufferDescription.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -980,7 +1160,14 @@ void URenderer::UpdateConstant(const FMatrix& InMatrix) const
 	}
 }
 
-void URenderer::UpdateConstant(const FVector4& InColor) const
+/**
+* @brief 머티리얼 상수 버퍼 업데이트 함수
+* @note: Diffuse Texture 사용시 Diffuse Color 대신 DiffuseTexture 색상 사용. Vertex 자체 색상 사용시 머티리얼에 의한 색상은 무시됨.
+* @param InColor: 머티리얼의 Diffuse Color
+* @param InUseVertexColor: 정점 자체 색상 사용 여부 (1.0f = 사용, 0.0f = 미사용)
+* @param InUseDiffuseTexture: 머티리얼의 Diffuse Texture 사용 여부 (1.0f = 사용, 0.0f = 미사용)
+*/
+void URenderer::UpdateConstant(const FVector4& InColor, float InUseVertexColor, float InUseDiffuseTexture) const
 {
 	Pipeline->SetConstantBuffer(2, false, ConstantBufferColor);
 
@@ -989,13 +1176,18 @@ void URenderer::UpdateConstant(const FVector4& InColor) const
 		D3D11_MAPPED_SUBRESOURCE ConstantBufferMSR = {};
 
 		GetDeviceContext()->Map(ConstantBufferColor, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferMSR);
-		// update constant buffer every frame
-		FVector4* ColorConstants = static_cast<FVector4*>(ConstantBufferMSR.pData);
+		FVector4* MaterialConstants = static_cast<FVector4*>(ConstantBufferMSR.pData);
+		if (MaterialConstants)
 		{
-			ColorConstants->X = InColor.X;
-			ColorConstants->Y = InColor.Y;
-			ColorConstants->Z = InColor.Z;
-			ColorConstants->W = InColor.W;
+			MaterialConstants[0].X = InColor.X;
+			MaterialConstants[0].Y = InColor.Y;
+			MaterialConstants[0].Z = InColor.Z;
+			MaterialConstants[0].W = InColor.W;
+
+			MaterialConstants[1].X = InUseVertexColor;
+			MaterialConstants[1].Y = InUseDiffuseTexture;
+			MaterialConstants[1].Z = 0.0f;
+			MaterialConstants[1].W = 0.0f;
 		}
 		GetDeviceContext()->Unmap(ConstantBufferColor, 0);
 	}
