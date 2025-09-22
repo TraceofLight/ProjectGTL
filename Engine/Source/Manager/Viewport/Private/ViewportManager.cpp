@@ -683,28 +683,25 @@ void UViewportManager::TickInput()
  * @brief 마우스가 컨트롤 중인 Viewport의 인덱스를 반환하는 함수
  * @return 기본적으로는 index를 반환, 아무 것도 만지지 않았다면 -1
  */
-int8 UViewportManager::GetViewportIndexUnderMouse()
+int8 UViewportManager::GetViewportIndexUnderMouse() const
 {
 	const auto& InputManager = UInputManager::GetInstance();
 
-	if (InputManager.IsKeyPressed(EKeyInput::MouseRight))
-	{
-		const FVector& MousePosition = InputManager.GetMousePosition();
-		const LONG MousePositionX = static_cast<LONG>(MousePosition.X);
-		const LONG MousePositionY = static_cast<LONG>(MousePosition.Y);
+	const FVector& MousePosition = InputManager.GetMousePosition();
+	const LONG MousePositionX = static_cast<LONG>(MousePosition.X);
+	const LONG MousePositionY = static_cast<LONG>(MousePosition.Y);
 
-		for (int8 i = 0; i < static_cast<int8>(Viewports.size()); ++i)
+	for (int8 i = 0; i < static_cast<int8>(Viewports.size()); ++i)
+	{
+		const FRect& Rect = Viewports[i]->GetRect();
+		if (MousePositionX >= Rect.X && MousePositionX < Rect.X + Rect.W &&
+			MousePositionY >= Rect.Y && MousePositionY < Rect.Y + Rect.H)
 		{
-			const FRect& Rect = Viewports[i]->GetRect();
-			if (MousePositionX >= Rect.X && MousePositionX < Rect.X + Rect.W &&
-				MousePositionY >= Rect.Y && MousePositionY < Rect.Y + Rect.H)
-			{
-				LastFocusedViewIndex = i;
-			}
+			return i;
 		}
 	}
 
-	return LastFocusedViewIndex;
+	return -1;
 }
 
 bool UViewportManager::ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const

@@ -14,7 +14,7 @@ UStaticMeshActorFactory::UStaticMeshActorFactory()
 
 	// Support class setting
 	SupportedClass = AStaticMeshActor::StaticClass();
-	Description = "Static Mesh Actor Factory";
+	Description = "StaticMeshActorFactory";
 
 	// Register self
 	RegisterFactory(TObjectPtr<UFactory>(this));
@@ -108,7 +108,14 @@ void UStaticMeshActorFactory::PostCreateActor(AActor* InActor, const FTransform&
 		StaticMeshActor->SetActorRotation(InTransform.Rotation);
 		StaticMeshActor->SetActorScale3D(InTransform.Scale);
 
-		UE_LOG_INFO("StaticMeshActor 초기화 완료 - 위치: (%f, %f, %f)",
-		            InTransform.Location.X, InTransform.Location.Y, InTransform.Location.Z);
+		if (InTransform == FTransform())
+		{
+			UE_LOG_SUCCESS("StaticMeshActorFactory: StaticMeshActor 초기화 완료");
+		}
+		else
+		{
+			UE_LOG_SUCCESS("StaticMeshActor 초기화 완료 - 위치: (%f, %f, %f)",
+						InTransform.Location.X, InTransform.Location.Y, InTransform.Location.Z);
+		}
 	}
 }
