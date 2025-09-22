@@ -4,9 +4,6 @@
 #include "Asset/Public/StaticMesh.h"
 #include "Manager/Asset/Public/AssetManager.h"
 
-// TODO(KHJ): GetNextGenNumber로 처리하도록 해야 함
-static uint32 NextStaticMeshActorID = 0;
-
 IMPLEMENT_CLASS(UStaticMeshActorFactory, UActorFactory)
 
 UStaticMeshActorFactory::UStaticMeshActorFactory()
@@ -87,7 +84,7 @@ TObjectPtr<AActor> UStaticMeshActorFactory::CreateNewActor()
 	TObjectPtr<AStaticMeshActor> NewStaticMeshActor =
 		Cast<AStaticMeshActor>(AStaticMeshActor::CreateDefaultObjectAStaticMeshActor());
 
-	NewStaticMeshActor->SetDisplayName("StaticMeshActor_" + to_string(++NextStaticMeshActorID));
+	NewStaticMeshActor->SetDisplayName("StaticMeshActor_" + to_string(AStaticMeshActor::GetNextGenNumber()));
 
 	if (NewStaticMeshActor && CurrentStaticMesh)
 	{

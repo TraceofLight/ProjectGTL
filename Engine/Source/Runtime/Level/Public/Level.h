@@ -31,9 +31,13 @@ inline uint64 operator&(uint64 lhs, EEngineShowFlags rhs)
 	return lhs & static_cast<uint64>(rhs);
 }
 
+UCLASS()
 class ULevel :
 	public UObject
 {
+	GENERATED_BODY()
+	DECLARE_CLASS(ULevel, UObject)
+
 public:
 	ULevel();
 	ULevel(const FName& InName);
@@ -50,8 +54,8 @@ public:
 	TObjectPtr<T> SpawnActor(const FName& InName = "");
 
 	// Actor 삭제
-	bool DestroyActor(AActor* InActor);
-	void MarkActorForDeletion(AActor* InActor); // 지연 삭제를 위한 마킹
+	bool DestroyActor(TObjectPtr<AActor> InActor);
+	void MarkActorForDeletion(TObjectPtr<AActor> InActor); // 지연 삭제를 위한 마킹
 
 	void SetSelectedActor(AActor* InActor);
 	TObjectPtr<AActor> GetSelectedActor() const { return SelectedActor; }
@@ -67,7 +71,7 @@ private:
 	TArray<TObjectPtr<AActor>> LevelActors;
 
 	// 지연 삭제를 위한 리스트
-	TArray<AActor*> ActorsToDelete;
+	TArray<TObjectPtr<AActor>> ActorsToDelete;
 
 	TObjectPtr<AActor> SelectedActor = nullptr;
 	TObjectPtr<AGizmo> Gizmo = nullptr;

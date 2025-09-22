@@ -96,7 +96,6 @@ private: \
     } \
     TObjectPtr<UObject> ClassName::CreateDefaultObject##ClassName() \
     { \
-        ClassName::StaticClass()->IncrementGenNumber(); \
         return TObjectPtr<UObject>(new ClassName()); \
     } \
     uint32 ClassName::GetNextGenNumber() \

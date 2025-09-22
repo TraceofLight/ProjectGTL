@@ -9,7 +9,8 @@ IMPLEMENT_CLASS(AActor, UObject)
 
 AActor::AActor()
 {
-	BillBoardComponent = CreateDefaultSubobject<UBillBoardComponent>("BillBoardComponent");
+	BillBoardComponent = CreateDefaultSubobject<UBillBoardComponent>(FName::FName_None);
+	BillBoardComponent->SetDisplayName("BillBoardComponent_" + to_string(UBillBoardComponent::GetNextGenNumber()));
 }
 
 AActor::AActor(UObject* InOuter)

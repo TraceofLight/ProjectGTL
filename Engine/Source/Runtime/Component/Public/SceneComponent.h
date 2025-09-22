@@ -9,6 +9,7 @@ class USceneComponent : public UActorComponent
 
 public:
 	USceneComponent();
+	virtual ~USceneComponent();
 
 	void SetParentAttachment(USceneComponent* SceneComponent);
 	void RemoveChild(USceneComponent* ChildDeleted);

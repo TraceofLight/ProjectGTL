@@ -372,12 +372,12 @@ ID3D11ShaderResourceView* UAssetManager::CreateTextureFromMemory(const void* InD
 }
 
 // StaticMesh 관련 함수들
-UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
+TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 {
 	// 이미 로드된 StaticMesh인지 확인
-	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	for (TObjectIterator<UStaticMesh> Iter; Iter; ++Iter)
 	{
-		UStaticMesh* StaticMesh = *It;
+		TObjectPtr<UStaticMesh> StaticMesh = TObjectPtr(*Iter);
 		if (StaticMesh->GetAssetPathFileName() == InFilePath)
 		{
 			return StaticMesh;
@@ -385,7 +385,7 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 	}
 
 	// 새 StaticMesh 로드
-	UStaticMesh* NewStaticMesh = NewObject<UStaticMesh>();
+	TObjectPtr<UStaticMesh> NewStaticMesh = NewObject<UStaticMesh>();
 	if (!NewStaticMesh)
 	{
 		return nullptr;
@@ -587,12 +587,12 @@ UStaticMesh* UAssetManager::LoadStaticMesh(const FString& InFilePath)
 	}
 }
 
-UStaticMesh* UAssetManager::GetStaticMesh(const FString& InFilePath)
+TObjectPtr<UStaticMesh> UAssetManager::GetStaticMesh(const FString& InFilePath)
 {
 	// TObjectIterator를 사용하여 로드된 StaticMesh 검색
-	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	for (TObjectIterator<UStaticMesh> Iter; Iter; ++Iter)
 	{
-		UStaticMesh* StaticMesh = *It;
+		TObjectPtr<UStaticMesh> StaticMesh = TObjectPtr(*Iter);
 		if (StaticMesh->GetAssetPathFileName() == InFilePath)
 		{
 			return StaticMesh;

@@ -1,5 +1,7 @@
 #pragma once
 
+class UStaticMesh;
+
 /**
  * @brief 전역의 On-Memory Asset을 관리하는 매니저 클래스
  */
@@ -35,8 +37,8 @@ public:
 	static ID3D11ShaderResourceView* CreateTextureFromMemory(const void* InData, size_t InDataSize);
 
 	// StaticMesh 관련 함수들
-	class UStaticMesh* LoadStaticMesh(const FString& InFilePath);
-	class UStaticMesh* GetStaticMesh(const FString& InFilePath);
+	TObjectPtr<UStaticMesh> LoadStaticMesh(const FString& InFilePath);
+	TObjectPtr<UStaticMesh> GetStaticMesh(const FString& InFilePath);
 	void ReleaseStaticMesh(const FString& InFilePath);
 	bool HasStaticMesh(const FString& InFilePath) const;
 

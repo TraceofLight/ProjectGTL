@@ -10,6 +10,27 @@ USceneComponent::USceneComponent()
 	ComponentType = EComponentType::Scene;
 }
 
+USceneComponent::~USceneComponent()
+{
+	// 부모에서 자신을 제거
+	if (ParentAttachment != nullptr)
+	{
+		ParentAttachment->RemoveChild(this);
+		ParentAttachment = nullptr;
+	}
+
+	// 자식 컴포넌트들의 부모 참조 해제 및 삭제
+	for (USceneComponent* child : Children)
+	{
+		if (child != nullptr)
+		{
+			child->ParentAttachment = nullptr; // 부모 참조 해제
+			delete child;
+		}
+	}
+	Children.clear();
+}
+
 void USceneComponent::SetParentAttachment(USceneComponent* NewParent)
 {
 	if (NewParent == this)
@@ -44,7 +65,8 @@ void USceneComponent::SetParentAttachment(USceneComponent* NewParent)
 
 void USceneComponent::RemoveChild(USceneComponent* ChildDeleted)
 {
-	Children.erase(std::remove(Children.begin(), Children.end(), this), Children.end());
+	// 버그 수정: this가 아닌 ChildDeleted를 제거해야 함
+	Children.erase(std::remove(Children.begin(), Children.end(), ChildDeleted), Children.end());
 }
 
 void USceneComponent::MarkAsDirty()

@@ -3,6 +3,9 @@
 #include "Manager/Level/Public/LevelManager.h"
 #include "Editor/Public/Editor.h"
 #include "Runtime/Actor/Public/Actor.h"
+
+IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
+
 /**
  * @brief Level에서 각 Actor마다 가지고 있는 UUID를 출력해주기 위한 빌보드 클래스
  * Actor has a UBillBoardComponent
@@ -10,10 +13,7 @@
 UBillBoardComponent::UBillBoardComponent()
 {
 	Type = EPrimitiveType::BillBoard;
-}
-
-UBillBoardComponent::~UBillBoardComponent()
-{
+	UBillBoardComponent::GetClass()->IncrementGenNumber();
 }
 
 void UBillBoardComponent::UpdateRotationMatrix()

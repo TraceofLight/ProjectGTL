@@ -6,21 +6,35 @@
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Manager/Level/Public/LevelManager.h"
 
-ULevel::ULevel() = default;
+IMPLEMENT_CLASS(ULevel, UObject)
+
+ULevel::ULevel()
+{
+	ULevel::GetClass()->IncrementGenNumber();
+}
 
 ULevel::ULevel(const FName& InName)
 	: UObject(InName)
 {
+	ULevel::GetClass()->IncrementGenNumber();
 }
 
 ULevel::~ULevel()
 {
-	for (auto Actor : LevelActors)
+	// 지연 삭제 대기중인 Actor들 정리
+	for (auto Actor : ActorsToDelete)
 	{
-		SafeDelete(Actor);
+		delete Actor;
 	}
 
-	SafeDelete(CameraPtr);
+	// LevelActors 정리
+	for (auto Actor : LevelActors)
+	{
+		delete Actor;
+	}
+
+	ActorsToDelete.clear();
+	LevelActors.clear();
 }
 
 void ULevel::Init()
@@ -89,9 +103,9 @@ void ULevel::SetSelectedActor(AActor* InActor)
 }
 
 /**
- * @brief Level에서 Actor 제거하는 함수
+ * @brief Level에서 Actor를 제거하는 함수
  */
-bool ULevel::DestroyActor(AActor* InActor)
+bool ULevel::DestroyActor(TObjectPtr<AActor> InActor)
 {
 	if (!InActor)
 	{
@@ -124,7 +138,7 @@ bool ULevel::DestroyActor(AActor* InActor)
 /**
  * @brief Delete In Next Tick
  */
-void ULevel::MarkActorForDeletion(AActor* InActor)
+void ULevel::MarkActorForDeletion(TObjectPtr<AActor> InActor)
 {
 	if (!InActor)
 	{
@@ -133,7 +147,7 @@ void ULevel::MarkActorForDeletion(AActor* InActor)
 	}
 
 	// 이미 삭제 대기 중인지 확인
-	for (AActor* PendingActor : ActorsToDelete)
+	for (TObjectPtr<AActor> PendingActor : ActorsToDelete)
 	{
 		if (PendingActor == InActor)
 		{

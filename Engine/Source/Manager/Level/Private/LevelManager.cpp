@@ -50,10 +50,11 @@ void ULevelManager::LoadLevel(const FName& InName)
 
 void ULevelManager::Shutdown()
 {
-	for (auto& Level : Levels)
+	for (auto& LevelIter : Levels)
 	{
-		SafeDelete(Level.second);
+		delete LevelIter.second;
 	}
+
 	delete Editor;
 }
 
@@ -230,26 +231,31 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 }
 
 /**
- * @brief New Blank Level 생성
+ * @brief 새로운 빈 레벨을 생성해주는 함수
+ * Display Name을 항상동일하게 NewLevel로 표기한다
  */
-bool ULevelManager::CreateNewLevel(const FString& InLevelName)
+bool ULevelManager::CreateNewLevel()
 {
-	UE_LOG("LevelManager: Creating New Level: %s", InLevelName.c_str());
+	UE_LOG("LevelManager: 새로운 레벨을 생성 중...");
 
-	// 기존 레벨이 있다면 먼저 정리
-	ClearCurrentLevel();
+	// 기존 레벨이 있다면 먼저 정리 (Asset 포함)
+	UE_LOG("LevelManager: 기존 레벨 정리를 시도합니다");
+	ClearCurrentLevel();  // 이미 ForceReleaseAllStaticMeshes() 포함됨
 
-	// 새 레벨 생성
-	TObjectPtr<ULevel> NewLevel = TObjectPtr<ULevel>(new ULevel(InLevelName));
+	// 새 레벨 생성 (내부 Level 명칭은 다르게, 겉보기 이름은 동일하게 보이도록 처리)
+	TObjectPtr<ULevel> NewLevel = NewObject<ULevel>();
+	FName NewLevelName = "Level_" + to_string(ULevel::GetNextGenNumber());
+	NewLevel->SetName(NewLevelName);
+	// NewLevel->SetDisplayName("NewLevel");
+	UE_LOG_DEBUG("LevelManager: Internal Level Name: %s", NewLevelName.ToString().data());
 
 	// 레벨 등록 및 활성화
-	FName LevelName(InLevelName);
-	RegisterLevel(LevelName, NewLevel);
+	RegisterLevel(NewLevelName, NewLevel);
 
 	CurrentLevel = NewLevel;
 	CurrentLevel->Init();
 
-	UE_LOG("LevelManager: Successfully Created and Switched to New Level '%s'", InLevelName.c_str());
+	UE_LOG_SUCCESS("LevelManager: 새로운 레벨이 성공적으로 생성되었습니다");
 
 	return true;
 }
@@ -346,7 +352,7 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 	// Metadata의 각 Primitive를 Actor로 생성
 	for (const auto& [ID, PrimitiveMeta] : InMetadata.Primitives)
 	{
-		AActor* NewActor = nullptr;
+		TObjectPtr<AActor> NewActor = nullptr;
 
 		// 타입에 따라 적절한 액터 생성
 		switch (PrimitiveMeta.Type)
@@ -365,10 +371,10 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 			// StaticMeshActor의 경우 OBJ 파일 로드
 			if (PrimitiveMeta.Type == EPrimitiveType::StaticMeshComp)
 			{
-				if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(NewActor))
+				if (TObjectPtr<AStaticMeshActor> StaticMeshActor = Cast<AStaticMeshActor>(NewActor))
 				{
 					UAssetManager& AssetManager = UAssetManager::GetInstance();
-					UStaticMesh* PrimitiveMesh = AssetManager.LoadStaticMesh(PrimitiveMeta.ObjStaticMeshAsset);
+					TObjectPtr<UStaticMesh> PrimitiveMesh = AssetManager.LoadStaticMesh(PrimitiveMeta.ObjStaticMeshAsset);
 
 					if (PrimitiveMesh)
 					{
