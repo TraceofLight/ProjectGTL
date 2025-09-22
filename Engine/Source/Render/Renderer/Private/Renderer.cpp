@@ -33,6 +33,7 @@ void URenderer::Init(HWND InWindowHandle)
 	// 래스터라이저 상태 생성
 	CreateRasterizerState();
 	CreateDepthStencilState();
+	CreateSamplerState();
 	CreateDefaultShader();
 	CreateConstantBuffer();
 
@@ -50,6 +51,7 @@ void URenderer::Release()
 {
 	ReleaseConstantBuffer();
 	ReleaseDefaultShader();
+	ReleaseSamplerState();
 	ReleaseDepthStencilState();
 	ReleaseRasterizerState();
 
@@ -93,6 +95,22 @@ void URenderer::CreateDepthStencilState()
 	DisabledDescription.StencilEnable = FALSE;
 
 	GetDevice()->CreateDepthStencilState(&DisabledDescription, &DisabledDepthStencilState);
+}
+
+void URenderer::CreateSamplerState()
+{
+	// NOTE: Mipmap이 없는 텍스처 사용을 전제로 만들어짐.
+	// 추후 Mipmap 적용된 텍스처 사용하게 되면 수정 요망.
+	D3D11_SAMPLER_DESC SamplerDesc = {};
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.MipLODBias = 0.0f;
+	SamplerDesc.MaxAnisotropy = 1;
+	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+
+	GetDevice()->CreateSamplerState(&SamplerDesc, &DefaultSamplerState);
 }
 
 /**
@@ -167,6 +185,18 @@ void URenderer::ReleaseDefaultShader()
 	{
 		DefaultVertexShader->Release();
 		DefaultVertexShader = nullptr;
+	}
+}
+
+/**
+ * @brief Release Default Sampler State
+ */
+void URenderer::ReleaseSamplerState()
+{
+	if(DefaultSamplerState)
+	{
+		DefaultSamplerState->Release();
+		DefaultSamplerState = nullptr;
 	}
 }
 

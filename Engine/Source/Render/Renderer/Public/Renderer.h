@@ -48,18 +48,6 @@ public:
 	void Init(HWND InWindowHandle);
 	void Release();
 
-	// Initialize
-	void CreateRasterizerState();
-	void CreateDepthStencilState();
-	void CreateDefaultShader();
-	void CreateConstantBuffer();
-
-	// Release
-	void ReleaseConstantBuffer();
-	void ReleaseDefaultShader();
-	void ReleaseDepthStencilState();
-	void ReleaseRasterizerState();
-
 	// Render
 	void Update();
 	void RenderBegin() const;
@@ -113,11 +101,26 @@ public:
 	void SetIsResizing(bool isResizing) { bIsResizing = isResizing; }
 
 private:
+	// Internal Initialize
+	void CreateRasterizerState();
+	void CreateDepthStencilState();
+	void CreateSamplerState();
+	void CreateDefaultShader();
+	void CreateConstantBuffer();
+
+	// Internal Release
+	void ReleaseConstantBuffer();
+	void ReleaseDefaultShader();
+	void ReleaseSamplerState();
+	void ReleaseDepthStencilState();
+	void ReleaseRasterizerState();
+
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
 	UFontRenderer* FontRenderer = nullptr;
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
 
+	ID3D11SamplerState* DefaultSamplerState = nullptr;
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
 	ID3D11Buffer* ConstantBufferModels = nullptr;
@@ -165,7 +168,6 @@ private:
 	TMap<FRasterKey, ID3D11RasterizerState*, FRasterKeyHasher> RasterCache;
 
 	ID3D11RasterizerState* GetRasterizerState(const FRenderState& InRenderState);
-
 	bool bIsResizing = false;
 
 	///////////////////////////////////////////
