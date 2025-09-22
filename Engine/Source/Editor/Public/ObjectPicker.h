@@ -15,7 +15,7 @@ public:
 	// Assign camera to use for ray tests (per-frame/per-viewport)
 	void SetCamera(UCamera* InCamera) { Camera = InCamera; }
 	UPrimitiveComponent* PickPrimitive(const FRay& WorldRay, TArray<UPrimitiveComponent*> Candidate, float* Distance);
-	void PickGizmo(const FRay& WorldRay, UGizmo& Gizmo, FVector& CollisionPoint);
+	void PickGizmo(const FRay& WorldRay, UGizmo& Gizmo, FVector& CollisionPoint, float ViewportWidth = 0.0f, float ViewportHeight = 0.0f);
 	bool IsRayCollideWithPlane(const FRay& WorldRay, FVector PlanePoint, FVector Normal, FVector& PointOnPlane);
 
 private:

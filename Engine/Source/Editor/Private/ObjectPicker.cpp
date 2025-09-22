@@ -44,13 +44,23 @@ UPrimitiveComponent* UObjectPicker::PickPrimitive(const FRay& WorldRay, TArray<U
 	return ShortestPrimitive;
 }
 
-void UObjectPicker::PickGizmo( const FRay& WorldRay, UGizmo& Gizmo, FVector& CollisionPoint)
+void UObjectPicker::PickGizmo( const FRay& WorldRay, UGizmo& Gizmo, FVector& CollisionPoint, float ViewportWidth, float ViewportHeight)
 {
     if (!Camera || !Gizmo.GetSelectedActor())
     {
         Gizmo.SetGizmoDirection(EGizmoDirection::None);
         return;
     }
+
+    // 뷰포트 정보가 있으면 올바른 스케일 계산을 위해 기즈모 스케일 업데이트
+    if (ViewportWidth > 0.0f && ViewportHeight > 0.0f)
+    {
+        // 현재 뷰포트에 맞는 스케일 계산 후 기즈모에 적용
+        float CorrectScale = Gizmo.CalculateScreenSpaceScale(Camera->GetLocation(), Camera, ViewportWidth, ViewportHeight);
+        // 임시로 기즈모의 CurrentRenderScale을 업데이트 (피킹용)
+        Gizmo.SetCurrentRenderScaleForPicking(CorrectScale);
+    }
+
 	//Forward, Right, Up순으로 테스트할거임.
 	//원기둥 위의 한 점 P, 축 위의 임의의 점 A에(기즈모 포지션) 대해, AP벡터와 축 벡터 V와 피타고라스 정리를 적용해서 점 P의 축부터의 거리 r을 구할 수 있음.
 	//r이 원기둥의 반지름과 같다고 방정식을 세운 후 근의공식을 적용해서 충돌여부 파악하고 distance를 구할 수 있음.

@@ -7,6 +7,8 @@
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Window/Public/ViewportClient.h"
+#include "Window/Public/Viewport.h"
+#include "Render/Renderer/Public/Renderer.h"
 
 IMPLEMENT_CLASS(UEditor, UObject)
 
@@ -39,13 +41,53 @@ void UEditor::RenderEditor()
 	Axis.Render();
 
 	AActor* SelectedActor = ULevelManager::GetInstance().GetCurrentLevel()->GetSelectedActor();
-	if (UCamera* ActiveCam = GetActivePickingCamera())
+
+	// 렌더러에서 현재 렌더링 중인 뷰포트 인덱스를 가져와서 기즈모 크기 계산
+	auto& ViewportManager = UViewportManager::GetInstance();
+	auto& Renderer = URenderer::GetInstance();
+	const auto& Viewports = ViewportManager.GetViewports();
+	const auto& Clients = ViewportManager.GetClients();
+
+	// 렌더러에서 현재 렌더링 중인 뷰포트 인덱스 가져오기
+	int32 CurrentViewportIndex = Renderer.GetViewportIdx();
+
+	if (CurrentViewportIndex >= 0 && CurrentViewportIndex < static_cast<int32>(Viewports.size()) &&
+	    CurrentViewportIndex < static_cast<int32>(Clients.size()) &&
+	    Viewports[CurrentViewportIndex] && Clients[CurrentViewportIndex])
 	{
-		Gizmo.RenderGizmo(SelectedActor, ActiveCam->GetLocation());
+		// 현재 렌더링 중인 뷰포트의 카메라와 크기 정보 가져오기
+		FViewportClient* CurrentClient = Clients[CurrentViewportIndex];
+		FViewport* CurrentViewport = Viewports[CurrentViewportIndex];
+
+		UCamera* ViewportCamera = CurrentClient->IsOrtho() ?
+			CurrentClient->GetOrthoCamera() : CurrentClient->GetPerspectiveCamera();
+
+		if (ViewportCamera)
+		{
+			const FRect& ViewportRect = CurrentViewport->GetRect();
+			float ViewportWidth = static_cast<float>(ViewportRect.W);
+			float ViewportHeight = static_cast<float>(ViewportRect.H - CurrentViewport->GetToolbarHeight());
+
+			// 뷰포트별로 카메라 정보를 이용해 언리얼 방식으로 기즈모 크기 계산
+			Gizmo.RenderGizmo(SelectedActor, ViewportCamera->GetLocation(), ViewportCamera, ViewportWidth, ViewportHeight);
+		}
+		else
+		{
+			// 카메라 정보가 없으면 기본 방식 사용
+			Gizmo.RenderGizmo(SelectedActor, Camera.GetLocation());
+		}
 	}
 	else
 	{
-		Gizmo.RenderGizmo(SelectedActor, Camera.GetLocation());
+		// 뷰포트 인덱스가 유효하지 않으면 기본 방식 사용
+		if (UCamera* ActiveCam = GetActivePickingCamera())
+		{
+			Gizmo.RenderGizmo(SelectedActor, ActiveCam->GetLocation(), ActiveCam);
+		}
+		else
+		{
+			Gizmo.RenderGizmo(SelectedActor, Camera.GetLocation(), &Camera);
+		}
 	}
 }
 
@@ -228,7 +270,23 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 	FVector CollisionPoint;
 
 	// 기즈모의 상태를 먼저 업데이트
-	ObjectPicker.PickGizmo(InWorldRay, Gizmo, CollisionPoint);
+	// 현재 뷰포트 정보를 가져와서 올바른 피킹 범위 계산
+	auto& ViewportManager = UViewportManager::GetInstance();
+	int32 ViewportIndex = max(0, static_cast<int32>(ViewportManager.GetViewportIndexUnderMouse()));
+	float ViewportWidth = 0.0f, ViewportHeight = 0.0f;
+
+	if (ViewportIndex >= 0 && ViewportIndex < static_cast<int32>(ViewportManager.GetViewports().size()))
+	{
+		const auto& Viewports = ViewportManager.GetViewports();
+		if (Viewports[ViewportIndex])
+		{
+			const FRect& ViewportRect = Viewports[ViewportIndex]->GetRect();
+			ViewportWidth = static_cast<float>(ViewportRect.W);
+			ViewportHeight = static_cast<float>(ViewportRect.H - Viewports[ViewportIndex]->GetToolbarHeight());
+		}
+	}
+
+	ObjectPicker.PickGizmo(InWorldRay, Gizmo, CollisionPoint, ViewportWidth, ViewportHeight);
 
 	// 업데이트된 기즈모의 상태를 확인하여 상호작용 여부를 판단
 	if (Gizmo.GetGizmoDirection() != EGizmoDirection::None)
