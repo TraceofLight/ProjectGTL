@@ -59,6 +59,7 @@ public:
 
 	// 공통 렌더링 함수들
 	void RenderPrimitiveComponent(class UPrimitiveComponent* InPrimitiveComponent);
+	void RenderStaticMeshComponent(class UStaticMeshComponent* InStaticMeshComponent);
 	void SetupRenderPipeline(class UPrimitiveComponent* InPrimitiveComponent);
 	void RenderIndexed(class UPrimitiveComponent* InPrimitiveComponent);
 	void RenderDirect(class UPrimitiveComponent* InPrimitiveComponent);

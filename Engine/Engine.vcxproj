@@ -323,7 +323,7 @@
     <ClCompile Include="Source\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Runtime\Level\Private\Level.cpp" />
-    <ClCompile Include="Source\Manager\Asset\Private\AssetManger.cpp" />
+    <ClCompile Include="Source\Manager\Asset\Private\AssetManager.cpp" />
     <ClCompile Include="Source\Manager\Config\Private\ConfigManager.cpp" />
     <ClCompile Include="Source\Manager\Input\Private\InputManager.cpp" />
     <ClCompile Include="Source\Manager\Level\Private\LevelManager.cpp" />

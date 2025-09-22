@@ -415,6 +415,17 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 		return;
 	}
 
+	// StaticMesh 컴포넌트는 머터리얼 처리를 위해 전용 경로 사용
+	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMeshComp)
+	{
+		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(InPrimitiveComponent);
+		if (StaticMeshComponent)
+		{
+			RenderStaticMeshComponent(StaticMeshComponent);
+			return;
+		}
+	}
+
 	// 일반 프리미티브의 경우 기존 렌더링 방식 사용
 	// 공통 파이프라인 설정
 	SetupRenderPipeline(InPrimitiveComponent);
@@ -549,6 +560,64 @@ void URenderer::RenderDirect(UPrimitiveComponent* InPrimitiveComponent)
 
 	Pipeline->SetVertexBuffer(VertexBuffer, InPrimitiveComponent->GetRenderVertexStride());
 	Pipeline->Draw(InPrimitiveComponent->GetRenderVertexCount(), 0);
+}
+
+/**
+ * @brief StaticMeshComponent를 렌더링하는 함수. 머티리얼 등의 처리를 위해 별도 함수 사용.
+ * @param InStaticMeshComponent 렌더링할 스태틱 메시 컴포넌트
+ */
+void URenderer::RenderStaticMeshComponent(UStaticMeshComponent* InStaticMeshComponent)
+{
+	if (!InStaticMeshComponent || !InStaticMeshComponent->HasRenderData())
+	{
+		return;
+	}
+
+	UStaticMesh* StaticMesh = InStaticMeshComponent->GetStaticMesh();
+	if (!StaticMesh || !StaticMesh->IsValidMesh())
+	{
+		return;
+	}
+
+	SetupRenderPipeline(InStaticMeshComponent);
+
+	ID3D11Buffer* VertexBuffer = InStaticMeshComponent->GetRenderVertexBuffer();
+	if (!VertexBuffer)
+	{
+		return;
+	}
+
+	Pipeline->SetVertexBuffer(VertexBuffer, InStaticMeshComponent->GetRenderVertexStride());
+
+	ID3D11Buffer* IndexBuffer = InStaticMeshComponent->GetRenderIndexBuffer();
+	const bool bUseIndexedRendering = InStaticMeshComponent->UseIndexedRendering() && IndexBuffer != nullptr;
+
+	if (bUseIndexedRendering)
+	{
+		Pipeline->SetIndexBuffer(IndexBuffer, sizeof(uint32));
+
+		const TArray<FStaticMeshSection>& MeshSections = StaticMesh->GetStaticMeshData().Sections;
+		bool bDrewSection = false;
+		for (const FStaticMeshSection& Section : MeshSections)
+		{
+			if (Section.IndexCount <= 0)
+			{
+				continue;
+			}
+
+			Pipeline->DrawIndexed(static_cast<uint32>(Section.IndexCount), static_cast<uint32>(Section.StartIndex), 0);
+			bDrewSection = true;
+		}
+
+		if (!bDrewSection)
+		{
+			Pipeline->DrawIndexed(InStaticMeshComponent->GetRenderIndexCount(), 0, 0);
+		}
+	}
+	else
+	{
+		Pipeline->Draw(InStaticMeshComponent->GetRenderVertexCount(), 0);
+	}
 }
 
 /**
