@@ -43,7 +43,7 @@ public:
 	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
 	 * @return 전체 파이프라인 성공 시 true, 그렇지 않으면 false
 	 */
-	static bool ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh);
+	static bool ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh, TArray<FObjInfo>& OutObjectInfos);
 
 private:
 	/**

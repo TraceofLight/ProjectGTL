@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Asset/Public/ObjImporter.h"
+#include <algorithm>
+#include <utility>
 
 bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& OutObjectInfos)
 {
@@ -175,6 +177,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 
 	OutStaticMesh.Vertices.clear();
 	OutStaticMesh.Indices.clear();
+	OutStaticMesh.Sections.clear();
 
 	// 모든 객체를 하나의 스태틱 메시로 결합
 	for (const FObjInfo& ObjectInfo : InObjectInfos)
@@ -186,6 +189,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 
 		// 결합된 메시에 맞게 인덱스 조정
 		uint32 VertexOffset = static_cast<uint32>(OutStaticMesh.Vertices.size());
+		uint32 IndexOffset = static_cast<uint32>(OutStaticMesh.Indices.size());
 		for (uint32& Index : ObjectIndices)
 		{
 			Index += VertexOffset;
@@ -194,12 +198,49 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 		// 최종 메시에 추가
 		OutStaticMesh.Vertices.insert(OutStaticMesh.Vertices.end(), ObjectVertices.begin(), ObjectVertices.end());
 		OutStaticMesh.Indices.insert(OutStaticMesh.Indices.end(), ObjectIndices.begin(), ObjectIndices.end());
+
+		for (const FObjSectionInfo& SectionInfo : ObjectInfo.Sections)
+		{
+			if (SectionInfo.IndexCount <= 0)
+			{
+				continue;
+			}
+
+			int32 MaxCount = static_cast<int32>(ObjectIndices.size());
+			if (SectionInfo.StartIndex < 0 || SectionInfo.StartIndex >= MaxCount)
+			{
+				continue;
+			}
+
+			int32 ClampedCount = std::min(SectionInfo.IndexCount, MaxCount - SectionInfo.StartIndex);
+			if (ClampedCount <= 0)
+			{
+				continue;
+			}
+
+			FStaticMeshSection MeshSection;
+			MeshSection.StartIndex = IndexOffset + SectionInfo.StartIndex;
+			MeshSection.IndexCount = ClampedCount;
+			MeshSection.MaterialSlotIndex = -1;
+			MeshSection.MaterialName = SectionInfo.MaterialName;
+			OutStaticMesh.Sections.push_back(MeshSection);
+		}
+	}
+
+	if (OutStaticMesh.Sections.empty() && !OutStaticMesh.Indices.empty())
+	{
+		FStaticMeshSection DefaultSection;
+		DefaultSection.StartIndex = 0;
+		DefaultSection.IndexCount = static_cast<int32>(OutStaticMesh.Indices.size());
+		DefaultSection.MaterialSlotIndex = -1;
+		OutStaticMesh.Sections.push_back(DefaultSection);
 	}
 
 	return !OutStaticMesh.Vertices.empty() && !OutStaticMesh.Indices.empty();
 }
 
-bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh)
+
+bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh, TArray<FObjInfo>& OutObjectInfos)
 {
 	TArray<FObjInfo> ObjectInfos;
 
@@ -208,9 +249,12 @@ bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutS
 		return false;
 	}
 
+	OutObjectInfos = std::move(ObjectInfos);
+
 	OutStaticMesh.PathFileName = InFilePath;
-	return ConvertToStaticMesh(ObjectInfos, OutStaticMesh);
+	return ConvertToStaticMesh(OutObjectInfos, OutStaticMesh);
 }
+
 
 void FObjImporter::ParseOBJLine(const FString& Line,
 	FObjInfo& CurrentObject,

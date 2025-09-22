@@ -50,16 +50,6 @@ struct FObjSectionInfo
 };
 
 /**
-* @brief 다중 머터리얼 사용시 각 슬롯 정보
-* @note
-*/
-struct FMateiralSlot
-{
-	FName MaterialName; // 머터리얼 이름
-	UMaterialInterface* DefaultMaterial = nullptr; // 기본 머터리얼
-};
-
-/**
  * @brief 스태틱 메시 내의 단일 객체에 대한 원시 데이터 구조
  *
  * OBJ 파일에서 파싱된 각 데이터 유형에 대한 별도의 배열을 포함.
@@ -98,7 +88,8 @@ struct FStaticMeshSection
 {
 	int32 StartIndex = 0;   // 섹션의 시작 인덱스 (Indices 배열에서)
 	int32 IndexCount = 0;  // 섹션의 인덱스 개수
-	int32 MaterialSlotIndex = 0; // 슬롯은 UStaticMesh에서 관리
+	int32 MaterialSlotIndex = -1; // 슬롯은 UStaticMesh에서 관리
+	FString MaterialName; // 섹션에서 사용할 머티리얼 이름 (슬롯 매핑용)
 };
 
 /**
