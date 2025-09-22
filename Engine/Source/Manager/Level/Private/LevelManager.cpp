@@ -1,15 +1,17 @@
 #include "pch.h"
 #include "Manager/Level/Public/LevelManager.h"
-#include "Runtime/Level/Public/Level.h"
 #include "Manager/Path/Public/PathManager.h"
+#include "Manager/Asset/Public/AssetManager.h"
+#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Window/Public/ViewportClient.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Utility/Public/Metadata.h"
-#include "Editor/Public/Editor.h"
+#include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
-#include "Asset/Public/StaticMesh.h"
-#include "Manager/Asset/Public/AssetManager.h"
+#include "Editor/Public/Editor.h"
 #include "Editor/Public/Camera.h"
+#include "Asset/Public/StaticMesh.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(ULevelManager)
 
@@ -106,12 +108,21 @@ bool ULevelManager::SaveCurrentLevel(const FString& InFilePath) const
 		// 현재 레벨의 메타데이터 생성
 		FLevelMetadata Metadata = ConvertLevelToMetadata(CurrentLevel);
 
-		// TODO: Editor의 카메라 세팅도 Metadata에 포함시켜야 함
-		//Metadata.PerspectiveCamera.FarClip = Editor->GetCameraFarClip();
-		//Metadata.PerspectiveCamera.NearClip = Editor->GetCameraNearClip();
-		//Metadata.PerspectiveCamera.FOV = Editor->GetCameraFOV();
-		//Metadata.PerspectiveCamera.Location = Editor->GetCameraLocation();
-		//Metadata.PerspectiveCamera.Rotation = Editor->GetCameraRotation();
+		// 0번 ViewPort의 PerspectiveCamera 세팅을 Metadata에 포함
+		UViewportManager& ViewportManager = UViewportManager::GetInstance();
+		TArray<FViewportClient*>& Clients = ViewportManager.GetClients();
+		if (!Clients.empty() && Clients[0])
+		{
+			UCamera* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
+			if (PerspectiveCamera)
+			{
+				Metadata.PerspectiveCamera.FarClip = PerspectiveCamera->GetFarZ();
+				Metadata.PerspectiveCamera.NearClip = PerspectiveCamera->GetNearZ();
+				Metadata.PerspectiveCamera.FOV = PerspectiveCamera->GetFovY();
+				Metadata.PerspectiveCamera.Location = PerspectiveCamera->GetLocation();
+				Metadata.PerspectiveCamera.Rotation = PerspectiveCamera->GetRotation();
+			}
+		}
 
 		bool bSuccess = FJsonSerializer::SaveLevelToFile(Metadata, FilePath.string());
 
@@ -134,7 +145,7 @@ bool ULevelManager::SaveCurrentLevel(const FString& InFilePath) const
 }
 
 /**
- * @brief 지정된 파일로부터 Level Load & Register (2번 이상 LOAD하면 delete OldLevel;에서 터짐.)
+ * @brief 지정된 파일로부터 Level Load & Register
  */
 bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFilePath)
 {
@@ -407,28 +418,19 @@ void ULevelManager::ClearCurrentLevel()
  */
 void ULevelManager::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMetadata)
 {
-	if (Editor)
+	UViewportManager& ViewportManager = UViewportManager::GetInstance();
+	TArray<FViewportClient*>& Clients = ViewportManager.GetClients();
+	if (!Clients.empty() && Clients[0])
 	{
-		UCamera* Camera = Editor->GetCamera();
-		if (Camera)
+		UCamera* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
+		if (PerspectiveCamera)
 		{
-			Camera->SetLocation(InCameraMetadata.Location);
-			Camera->SetRotation(InCameraMetadata.Rotation);
-			Camera->SetFovY(InCameraMetadata.FOV);
-			Camera->SetNearZ(InCameraMetadata.NearClip);
-			Camera->SetFarZ(InCameraMetadata.FarClip);
-
-			UE_LOG("LevelManager: Camera restored - Location: (%.2f, %.2f, %.2f), FOV: %.1f",
-			       InCameraMetadata.Location.X, InCameraMetadata.Location.Y, InCameraMetadata.Location.Z,
-			       InCameraMetadata.FOV);
+			PerspectiveCamera->SetLocation(InCameraMetadata.Location);
+			PerspectiveCamera->SetRotation(InCameraMetadata.Rotation);
+			PerspectiveCamera->SetFovY(InCameraMetadata.FOV);
+			PerspectiveCamera->SetNearZ(InCameraMetadata.NearClip);
+			PerspectiveCamera->SetFarZ(InCameraMetadata.FarClip);
+			PerspectiveCamera->Update();
 		}
-		else
-		{
-			UE_LOG("LevelManager: Camera not found in Editor");
-		}
-	}
-	else
-	{
-		UE_LOG("LevelManager: Editor not available for camera restoration");
 	}
 }
