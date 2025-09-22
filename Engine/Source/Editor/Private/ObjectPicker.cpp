@@ -46,7 +46,7 @@ UPrimitiveComponent* UObjectPicker::PickPrimitive(const FRay& WorldRay, TArray<U
 
 void UObjectPicker::PickGizmo( const FRay& WorldRay, UGizmo& Gizmo, FVector& CollisionPoint)
 {
-    if (!Camera)
+    if (!Camera || !Gizmo.GetSelectedActor())
     {
         Gizmo.SetGizmoDirection(EGizmoDirection::None);
         return;

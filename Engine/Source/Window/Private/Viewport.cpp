@@ -65,8 +65,10 @@ void FViewport::PumpMouseFromInputManager()
     // 로컬 좌표계 변환
     const FPoint Local = ToLocal(Screen);
 
+    const LONG RenderAreaTop = Rect.Y + ToolBarLayPx;
+    const LONG RenderAreaBottom = Rect.Y + Rect.H;
     const bool inside = (Screen.X >= Rect.X) && (Screen.X < Rect.X + Rect.W) &&
-                        (Screen.Y >= Rect.Y) && (Screen.Y < Rect.Y + Rect.H);
+                        (Screen.Y >= RenderAreaTop) && (Screen.Y < RenderAreaBottom);
 
     // 버튼 상태 변화 감지 후 down/up 처리 (좌클릭 우선)
     if (Input.IsKeyPressed(EKeyInput::MouseLeft) && inside)

@@ -49,6 +49,7 @@ public:
 	~UGizmo() override;
 	void RenderGizmo(AActor* Actor, const FVector& CameraLocation);
 	void ChangeGizmoMode();
+	void ChangeGizmoMode(EGizmoMode InMode) { GizmoMode = InMode; }
 
 	/* *
 	* @brief Setter
