@@ -16,15 +16,15 @@ UBillBoardComponent::UBillBoardComponent()
 	UBillBoardComponent::GetClass()->IncrementGenNumber();
 }
 
-void UBillBoardComponent::UpdateRotationMatrix()
+void UBillBoardComponent::UpdateRotationMatrix(const FVector& InCameraLocation)
 {
-	const FVector& CameraLocation = ULevelManager::GetInstance().GetEditor()->GetCameraLocation();
     const FVector& OwnerActorLocation = GetOwner()->GetActorLocation();
 
-	FVector ToCamera = CameraLocation;
+	FVector ToCamera = InCameraLocation;
 	ToCamera.Normalize();
 
 	const FVector4 worldUp4 = FVector4(0, 0, 1, 1);
+
 	const FVector worldUp = { worldUp4.X, worldUp4.Y, worldUp4.Z };
 	FVector Right = worldUp.Cross(ToCamera);
 	Right.Normalize();

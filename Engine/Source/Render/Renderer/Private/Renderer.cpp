@@ -401,17 +401,45 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 		return;
 	}
 
+	ULevelManager& LevelManager = ULevelManager::GetInstance();
+	auto CurrentLevel = LevelManager.GetCurrentLevel();
+
 	// BillBoard 컴포넌트의 경우 특별 처리
 	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
 	{
-		UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
-		if (BillBoardComponent)
+		if (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_BillboardText)
 		{
-			// 매 프레임마다 카메라를 향하도록 RT 매트릭스 업데이트
-			BillBoardComponent->UpdateRotationMatrix();
+			UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
+			if (BillBoardComponent)
+			{
+				// ✅ 현재 타일(뷰포트)의 클라이언트/카메라 꺼내기
+				auto& Vpm = UViewportManager::GetInstance();
+				const auto& VPs = Vpm.GetViewports();
+				FViewport* VP = (ViewportIdx < VPs.size()) ? VPs[ViewportIdx] : nullptr;
+				FViewportClient* VC = VP ? VP->GetViewportClient() : nullptr;
 
-			// 직접 BillBoard 렌더링
-			RenderBillBoardDirect(BillBoardComponent);
+				if (!VC) return;
+
+				// 카메라 위치
+				FVector CamLoc;
+				FViewProjConstants VPC;
+				if (VC->GetViewType() == EViewType::Perspective)
+				{
+					CamLoc = VC->GetPerspectiveCamera()->GetLocation();
+					VPC = VC->GetPerspectiveViewProjConstData();
+				}
+				else
+				{
+					CamLoc = VC->GetOrthoCamera()->GetLocation();
+					VPC = VC->GetOrthoGraphicViewProjConstData();
+				}
+
+				// ✅ 현재 뷰포트 카메라 기준으로 billboard 회전행렬 갱신
+				BillBoardComponent->UpdateRotationMatrix(CamLoc);
+
+				// ✅ 현재 뷰포트의 View/Proj로 텍스트 그리기
+				RenderBillBoardDirect(BillBoardComponent, VPC);
+			}
 		}
 		return;
 	}
@@ -794,7 +822,7 @@ void URenderer::RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, cons
  * @brief BillBoard 직접 렌더링
  * @param InBillBoardComponent BillBoard 컴포넌트
  */
-void URenderer::RenderBillBoardDirect(UBillBoardComponent* InBillBoardComponent)
+void URenderer::RenderBillBoardDirect(UBillBoardComponent* InBillBoardComponent, const FViewProjConstants& InViewProj)
 {
 	if (!InBillBoardComponent || !FontRenderer)
 	{
@@ -806,14 +834,10 @@ void URenderer::RenderBillBoardDirect(UBillBoardComponent* InBillBoardComponent)
 
 	// Actor의 UUID를 표시 텍스트로 설정
 	FString DisplayText = "Unknown";
-	if (InBillBoardComponent->GetOwner())
-	{
-		DisplayText = "UUID:" + std::to_string(InBillBoardComponent->GetOwner()->GetUUID());
-	}
+	if (auto* Owner = InBillBoardComponent->GetOwner())
+		DisplayText = "UUID:" + std::to_string(Owner->GetUUID());
 
-	// FontRenderer를 통한 텍스트 렌더링
-	const FViewProjConstants& ViewProjConstData = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-	FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, ViewProjConstData);
+	FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, InViewProj);
 }
 
 /**
