@@ -12,7 +12,6 @@ public:
 	FViewportClient();
 	~FViewportClient();
 
-
 public:
 	// ---------- 구성/질의 ----------
 	void        SetViewType(EViewType InType) { ViewType = InType; }
@@ -24,22 +23,22 @@ public:
 
 	// 퍼스펙티브 카메라
 	void     SetPerspectiveCamera(UCamera* InPerspectiveCamera) { PerspectiveCamera = InPerspectiveCamera; }
-	UCamera* GetPerspectiveCamera() { return PerspectiveCamera; }
+	UCamera* GetPerspectiveCamera() const { return PerspectiveCamera; }
 
     // 오쏘 카메라 (뷰포트별)
     void     SetOrthoCamera(UCamera* InCamera) { OrthoGraphicCameras = InCamera; }
-    UCamera* GetOrthoCamera() { return OrthoGraphicCameras; }
+    UCamera* GetOrthoCamera() const { return OrthoGraphicCameras; }
 
 
 	bool        IsOrtho() const { return ViewType != EViewType::Perspective; }
 
 
 public:
-	void Tick(float InDeltaSeconds);
-	void Draw(FViewport* InViewport);
+	void Tick() const;
+	void Draw(const FViewport* InViewport) const;
 
 
-	void MouseMove(FViewport* /*Viewport*/, int32 /*X*/, int32 /*Y*/) {}
+	static void MouseMove(FViewport* /*Viewport*/, int32 /*X*/, int32 /*Y*/) {}
 	void CapturedMouseMove(FViewport* /*Viewport*/, int32 X, int32 Y)
 	{
 		LastDrag = { X, Y };
@@ -47,9 +46,9 @@ public:
 
 	// ---------- 리사이즈/포커스 ----------
 	void OnResize(const FPoint& InNewSize) { ViewSize = InNewSize; }
-	void OnGainFocus() {}
-	void OnLoseFocus() {}
-	void OnClose() {}
+	static void OnGainFocus() {}
+	static void OnLoseFocus() {}
+	static void OnClose() {}
 
 
     FViewProjConstants GetPerspectiveViewProjConstData() const { return PerspectiveCamera->GetFViewProjConstants(); }
