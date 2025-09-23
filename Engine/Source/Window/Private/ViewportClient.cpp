@@ -29,9 +29,7 @@ void FViewportClient::Draw(const FViewport* InViewport) const
 {
 	if (!InViewport) { return; }
 
-	// 리프 Rect 기준 Aspect 반영
 	const float Aspect = InViewport->GetAspect();
-	// FMatrix ViewMatrix, ProjMMatrix;
 
     if (IsOrtho())
     {
@@ -40,8 +38,6 @@ void FViewportClient::Draw(const FViewport* InViewport) const
             OrthoGraphicCameras->SetAspect(Aspect);
             OrthoGraphicCameras->SetCameraType(ECameraType::ECT_Orthographic);
             OrthoGraphicCameras->UpdateMatrixByOrth();
-            // ViewMatrix = OrthoGraphicCameras->GetFViewProjConstants().View;
-            // ProjMMatrix = OrthoGraphicCameras->GetFViewProjConstants().Projection;
         }
     }
     else if (PerspectiveCamera)
@@ -49,7 +45,5 @@ void FViewportClient::Draw(const FViewport* InViewport) const
         PerspectiveCamera->SetAspect(Aspect);
         PerspectiveCamera->SetCameraType(ECameraType::ECT_Perspective);
         PerspectiveCamera->UpdateMatrixByPers();
-        // ViewMatrix = PerspectiveCamera->GetFViewProjConstants().View;
-        // ProjMMatrix = PerspectiveCamera->GetFViewProjConstants().Projection;
     }
 }

@@ -96,16 +96,18 @@ private:
 	float SplitterValueV = 0.5f;
 	float SplitterValueH = 0.5f;
 
-	SSplitter* Left = nullptr;
-	SSplitter* Right = nullptr;
+
+	int32 LastPromotedIdx = -1;
+
+	//SSplitter* Left = nullptr;
+	//SSplitter* Right = nullptr;
 };
 
 // UE 스타일 아이콘 타입
 enum class EUEViewportIcon : uint8
 {
 	Single,
-	Quad,
-	Kebab // (옵션) 세 점
+	Quad
 };
 
 struct FUEImgui
@@ -168,21 +170,8 @@ struct FUEImgui
 				DL->AddRect(CMin, CMax, ic, 3.f, 0, 1.2f);
 			}
 			break;
-		case EUEViewportIcon::Kebab:
-			{
-				// 세로 점 3개
-				const float cx = (CMin.x + CMax.x) * 0.5f;
-				const float cy = (CMin.y + CMax.y) * 0.5f;
-				const float r = 1.5f;
-				const float dy = 5.0f;
-				DL->AddCircleFilled(ImVec2(cx, cy - dy), r, ic);
-				DL->AddCircleFilled(ImVec2(cx, cy), r, ic);
-				DL->AddCircleFilled(ImVec2(cx, cy + dy), r, ic);
-			}
-			break;
 		default: break;
 		}
-
 		ImGui::PopID();
 		return bPressed;
 	}
