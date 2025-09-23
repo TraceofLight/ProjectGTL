@@ -41,6 +41,7 @@ public:
 
 	// Material 관련 함수들
 	UMaterialInterface* GetDefaultMaterial() const;
+	UMaterialInterface* CreateMaterial(const FObjMaterialInfo& MaterialInfo) const;
 
 	// Create Texture
 	static ID3D11ShaderResourceView* CreateTextureFromFile(const path& InFilePath);
@@ -85,7 +86,6 @@ private:
 	// Material Helpers
 	void CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInfos, TArray<FString>& OutMaterialNames) const;
 	const FObjMaterialInfo* FindMaterialInfoByName(const TArray<FObjInfo>& ObjInfos, const FString& MaterialName) const;
-	UMaterialInterface* CreateMaterial(const FObjMaterialInfo& MaterialInfo) const;
 	void BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<UMaterialInterface*>& OutMaterialSlots, TMap<FString, int32>& OutMaterialNameToSlot);
 	void AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const;
 

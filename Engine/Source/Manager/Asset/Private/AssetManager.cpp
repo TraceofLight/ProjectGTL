@@ -62,7 +62,7 @@ void UAssetManager::Initialize()
 	InitializeDefaultMaterial();
 
 	// 모든 프리미티브 StaticMesh 로드
-	//InitializeBasicPrimitives();
+	InitializeBasicPrimitives();
 }
 
 void UAssetManager::Release()
@@ -487,24 +487,24 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 	UE_LOG_WARNING("현재 테스트를 위해 스태틱 메시 바이너리 캐시 파일을 이용한 로드가 비활성화 되어있습니다.(UAssetManager::LoadStaticMesh)");
 	// 바이너리 캐시가 유효한지 확인
-	//if (UStaticMesh::IsBinaryCacheValid(InFilePath))
-	//{
-	//	FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
-	//	UE_LOG("AssetManager: Loading from binary cache: %s", BinaryPath.c_str());
+	if (UStaticMesh::IsBinaryCacheValid(InFilePath))
+	{
+		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
+		UE_LOG("AssetManager: Loading from binary cache: %s", BinaryPath.c_str());
 
-	//	// 바이너리에서 로드 시도
-	//	bLoadSuccess = NewStaticMesh->LoadFromBinary(BinaryPath);
+		// 바이너리에서 로드 시도
+		bLoadSuccess = NewStaticMesh->LoadFromBinary(BinaryPath);
 
-	//	if (bLoadSuccess)
-	//	{
-	//		UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", InFilePath.c_str());
-	//		return NewStaticMesh;
-	//	}
-	//	else
-	//	{
-	//		UE_LOG("AssetManager: Binary cache load failed, falling back to OBJ parsing");
-	//	}
-	//}
+		if (bLoadSuccess)
+		{
+			UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", InFilePath.c_str());
+			return NewStaticMesh;
+		}
+		else
+		{
+			UE_LOG("AssetManager: Binary cache load failed, falling back to OBJ parsing");
+		}
+	}
 
 	// 바이너리 캐시가 없거나 실패한 경우 OBJ 파싱
 	UE_LOG("AssetManager: Parsing OBJ file: %s", InFilePath.c_str());
@@ -641,34 +641,6 @@ void UAssetManager::InitializeBasicPrimitives()
 {
 	// Data 폴더에서 모든 .mesh 바이너리 캐시 파일들을 찾아서 로드
 	TArray<FString> CachedMeshFiles;
-
-	try
-	{
-		std::filesystem::path dataPath("Data");
-		if (std::filesystem::exists(dataPath) && std::filesystem::is_directory(dataPath))
-		{
-			for (const auto& entry : std::filesystem::directory_iterator(dataPath))
-			{
-				if (entry.is_regular_file() && entry.path().extension() == ".mesh")
-				{
-					// .mesh 파일에서 원본 .obj 파일 경로 유추
-					std::filesystem::path objPath = entry.path();
-					objPath.replace_extension(".obj");
-
-					// .obj 파일이 존재하는지 확인
-					if (std::filesystem::exists(objPath))
-					{
-						CachedMeshFiles.push_back(objPath.string());
-						UE_LOG("AssetManager: Found cached mesh: %s", objPath.string().c_str());
-					}
-				}
-			}
-		}
-	}
-	catch (const std::filesystem::filesystem_error& e)
-	{
-		UE_LOG("AssetManager: Error scanning Data directory: %s", e.what());
-	}
 
 	// 기본 프리미티브들도 포함 (캐시에 없는 경우를 위해, 기본 프리미티브들은 무조건 불러와야함.)
 	TArray<FString> DefaultPrimitiveFilePaths =

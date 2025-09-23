@@ -2,6 +2,7 @@
 #include "Asset/Public/StaticMesh.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Utility/Public/Archive.h"
+#include "Manager/Asset/Public/AssetManager.h"
 
 IMPLEMENT_CLASS(UStaticMesh, UObject)
 
@@ -110,27 +111,56 @@ bool UStaticMesh::SaveToBinary(const FString& FilePath) const
 		Writer << MagicNumber;
 		Writer << Version;
 
-		// PathFileName 저장
+		// StaticMeshData -> PathFileName 저장
 		FString PathFileName = StaticMeshData.PathFileName;
 		Writer << PathFileName;
 
-		// Vertices 저장
+		// StaticMeshData -> Vertices 저장
 		uint32 VertexCount = static_cast<uint32>(StaticMeshData.Vertices.size());
 		Writer << VertexCount;
 		for (FVertex Vertex : StaticMeshData.Vertices)
 		{
 			Writer << Vertex.Position;
 			Writer << Vertex.Color;
-			Writer << Vertex.Normal;
 			Writer << Vertex.TextureCoord;
+			Writer << Vertex.Normal;
 		}
 
-		// Indices 저장
+		// StaticMeshData -> Indices 저장
 		uint32 IndexCount = static_cast<uint32>(StaticMeshData.Indices.size());
 		Writer << IndexCount;
 		for (uint32 Index : StaticMeshData.Indices)
 		{
 			Writer << Index;
+		}
+
+		// StaticMeshData -> Sections 저장
+		uint32 SectionCount = static_cast<uint32>(StaticMeshData.Sections.size());
+		Writer << SectionCount;
+		for (const FStaticMeshSection& Section : StaticMeshData.Sections)
+		{
+			Writer << (int32&)Section.StartIndex;
+			Writer << (int32&)Section.IndexCount;
+			Writer << (int32&)Section.MaterialSlotIndex;
+			Writer << (FString&)Section.MaterialName;
+		}
+
+		// MaterialSlots 저장
+		uint32 MaterialSlotCount = static_cast<uint32>(MaterialSlots.size());
+		Writer << MaterialSlotCount;
+		for(UMaterialInterface* MaterialInterface : MaterialSlots)
+		{
+			UMaterial* Material = Cast<UMaterial>(MaterialInterface);
+			const FObjMaterialInfo& MaterialInfo = Material ? Material->GetMaterialInfo() : FObjMaterialInfo();
+			Writer << (FString&)MaterialInfo.MaterialName;
+			Writer << (FString&)MaterialInfo.DiffuseTexturePath;
+			Writer << (FString&)MaterialInfo.NormalTexturePath;
+			Writer << (FString&)MaterialInfo.SpecularTexturePath;
+			Writer << (FVector&)MaterialInfo.AmbientColorScalar;
+			Writer << (FVector&)MaterialInfo.DiffuseColorScalar;
+			Writer << (FVector&)MaterialInfo.SpecularColorScalar;
+			Writer << (float&)MaterialInfo.ShininessScalar;
+			Writer << (float&)MaterialInfo.TransparencyScalar;
 		}
 
 		Writer.Close();
@@ -174,10 +204,10 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		// 기존 렌더 버퍼 해제
 		ReleaseRenderBuffers();
 
-		// PathFileName 로드
+		// StaticMeshData -> PathFileName 로드
 		Reader << StaticMeshData.PathFileName;
 
-		// Vertices 로드
+		// StaticMeshData -> Vertices 로드
 		uint32 VertexCount;
 		Reader << VertexCount;
 		StaticMeshData.Vertices.resize(VertexCount);
@@ -185,17 +215,58 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		{
 			Reader << StaticMeshData.Vertices[i].Position;
 			Reader << StaticMeshData.Vertices[i].Color;
-			Reader << StaticMeshData.Vertices[i].Normal;
 			Reader << StaticMeshData.Vertices[i].TextureCoord;
+			Reader << StaticMeshData.Vertices[i].Normal;
 		}
 
-		// Indices 로드
+		// StaticMeshData -> Indices 로드
 		uint32 IndexCount;
 		Reader << IndexCount;
 		StaticMeshData.Indices.resize(IndexCount);
 		for (uint32 i = 0; i < IndexCount; ++i)
 		{
 			Reader << StaticMeshData.Indices[i];
+		}
+
+		// StaticMeshData -> Sections 로드
+		uint32 SectionCount;
+		Reader << SectionCount;
+		StaticMeshData.Sections.resize(SectionCount);
+		for (uint32 i = 0; i < SectionCount; ++i)
+		{
+			FStaticMeshSection& Section = StaticMeshData.Sections[i];
+			Reader << (int32&)Section.StartIndex;
+			Reader << (int32&)Section.IndexCount;
+			Reader << (int32&)Section.MaterialSlotIndex;
+			Reader << (FString&)Section.MaterialName;
+		}
+
+		// MaterialSlots 로드
+		uint32 MaterialSlotCount;
+		Reader << MaterialSlotCount;
+		MaterialSlots.resize(MaterialSlotCount);
+		for (uint32 i = 0; i < MaterialSlotCount; ++i)
+		{
+			FObjMaterialInfo MaterialInfo;
+			Reader << (FString&)MaterialInfo.MaterialName;
+			Reader << (FString&)MaterialInfo.DiffuseTexturePath;
+			Reader << (FString&)MaterialInfo.NormalTexturePath;
+			Reader << (FString&)MaterialInfo.SpecularTexturePath;
+			Reader << (FVector&)MaterialInfo.AmbientColorScalar;
+			Reader << (FVector&)MaterialInfo.DiffuseColorScalar;
+			Reader << (FVector&)MaterialInfo.SpecularColorScalar;
+			Reader << (float&)MaterialInfo.ShininessScalar;
+			Reader << (float&)MaterialInfo.TransparencyScalar;
+			UMaterialInterface* Material = UAssetManager::GetInstance().CreateMaterial(MaterialInfo);
+			if (Material)
+			{
+				MaterialSlots[i] = Material;
+			}
+			else
+			{
+				UE_LOG("UStaticMesh: Failed to create material: %s", MaterialInfo.MaterialName.c_str());
+				MaterialSlots[i] = nullptr;
+			}
 		}
 
 		Reader.Close();
