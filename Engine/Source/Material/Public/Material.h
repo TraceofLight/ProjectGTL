@@ -14,6 +14,7 @@ class UMaterialInterface : public UObject
 	GENERATED_BODY()
 	DECLARE_CLASS(UMaterialInterface, UObject)
 public:
+	virtual const FString& GetMaterialName() const { return FString(); }
 	virtual FMaterialRenderProxy* GetRenderProxy() { return nullptr; } // GPU 바인딩용
 };
 
@@ -26,12 +27,14 @@ class UMaterial : public UMaterialInterface
 {
 	GENERATED_BODY()
 	DECLARE_CLASS(UMaterial, UMaterialInterface)
+
 public:
+	~UMaterial() override;
 	void SetMaterialInfo(const FObjMaterialInfo& InMaterialInfo);
 	const FObjMaterialInfo& GetMaterialInfo() const;
 
 	void ImportAllTextures();
-	const FString& GetMaterialName() const { return MaterialInfo.MaterialName; }
+	const FString& GetMaterialName() const override { return MaterialInfo.MaterialName; }
 
 	void SetDiffuseTexture(ID3D11ShaderResourceView* InTexture);
 	ID3D11ShaderResourceView* GetDiffuseTexture() const;

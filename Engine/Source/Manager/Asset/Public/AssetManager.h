@@ -37,6 +37,10 @@ public:
 	ComPtr<ID3D11ShaderResourceView> GetTexture(const FString& InFilePath);
 	void ReleaseTexture(const FString& InFilePath);
 	bool HasTexture(const FString& InFilePath) const;
+	ID3D11ShaderResourceView* GetDefaultTexture() const;
+
+	// Material 관련 함수들
+	UMaterialInterface* GetDefaultMaterial() const;
 
 	// Create Texture
 	static ID3D11ShaderResourceView* CreateTextureFromFile(const path& InFilePath);
@@ -62,6 +66,15 @@ private:
 	// Texture Resource
 	TMap<FString, ID3D11ShaderResourceView*> TextureCache;
 
+	// Default Resources
+	ComPtr<ID3D11ShaderResourceView> DefaultTexture = nullptr;
+	UMaterialInterface* DefaultMaterial = nullptr;
+
+	void InitializeDefaultTexture();
+	void InitializeDefaultMaterial();
+	void ReleaseDefaultTexture();
+	void ReleaseDefaultMaterial();
+
 	// Release Functions
 	void ReleaseAllTextures();
 
@@ -75,4 +88,7 @@ private:
 	UMaterialInterface* CreateMaterial(const FObjMaterialInfo& MaterialInfo) const;
 	void BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<UMaterialInterface*>& OutMaterialSlots, TMap<FString, int32>& OutMaterialNameToSlot);
 	void AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const;
+
+	bool CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& Sections) const;
+	void InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots);
 };

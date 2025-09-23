@@ -57,8 +57,12 @@ void UAssetManager::Initialize()
 	// StaticMesh 셰이더 로드
 	LoadStaticMeshShaders();
 
+	// 기본 애셋 로드
+	InitializeDefaultTexture();
+	InitializeDefaultMaterial();
+
 	// 모든 프리미티브 StaticMesh 로드
-	InitializeBasicPrimitives();
+	//InitializeBasicPrimitives();
 }
 
 void UAssetManager::Release()
@@ -72,7 +76,10 @@ void UAssetManager::Release()
 	// TMap.Empty()
 	Vertexbuffers.clear();
 
+	ReleaseDefaultMaterial();
+
 	// Texture Resource 해제
+	ReleaseDefaultTexture();
 	ReleaseAllTextures();
 
 	// StaticMesh 애셋 해제 - TObjectIterator를 사용하여 모든 StaticMesh 삭제
@@ -187,6 +194,44 @@ void UAssetManager::ReleaseTexture(const FString& InFilePath)
 bool UAssetManager::HasTexture(const FString& InFilePath) const
 {
 	return TextureCache.find(InFilePath) != TextureCache.end();
+}
+
+ID3D11ShaderResourceView* UAssetManager::GetDefaultTexture() const
+{
+	return DefaultTexture.Get();
+}
+
+void UAssetManager::InitializeDefaultTexture()
+{
+	if (DefaultTexture)
+	{
+		return;
+	}
+
+	const FString DefaultTexturePath = "Data\\Texture\\DefaultTexture.png";
+	DefaultTexture = LoadTexture(DefaultTexturePath);
+
+	if (!DefaultTexture)
+	{
+		UE_LOG_ERROR("AssetManager: 기본 텍스처 로드 실패 - %s", DefaultTexturePath.c_str());
+	}
+}
+
+void UAssetManager::ReleaseDefaultTexture()
+{
+	if (!DefaultTexture)
+	{
+		return;
+	}
+
+	const FString DefaultTexturePath = "Data\\Texture\\DefaultTexture.png";
+	auto Iter = TextureCache.find(DefaultTexturePath);
+	if (Iter != TextureCache.end())
+	{
+		TextureCache.erase(Iter);
+	}
+
+	DefaultTexture.Reset();
 }
 
 /**
@@ -372,6 +417,52 @@ ID3D11ShaderResourceView* UAssetManager::CreateTextureFromMemory(const void* InD
 	return SUCCEEDED(ResultHandle) ? TextureSRV : nullptr;
 }
 
+void UAssetManager::InitializeDefaultMaterial()
+{
+	if( DefaultMaterial)
+	{
+		return;
+	}
+
+	FObjMaterialInfo DefaultMaterialInfo(FString("DefaultMaterial"));
+	DefaultMaterialInfo.DiffuseTexturePath = "Data\\Texture\\DefaultTexture.png";
+	UMaterial* MaterialAsset = NewObject<UMaterial>();
+	if (MaterialAsset == nullptr)
+	{
+		UE_LOG_ERROR("AssetManager: 기본 머티리얼 생성 실패");
+		return;
+	}
+
+	MaterialAsset->SetMaterialInfo(DefaultMaterialInfo);
+	if(DefaultTexture.Get())
+	{
+		MaterialAsset->SetDiffuseTexture(DefaultTexture.Get());
+	}
+	else
+	{
+		MaterialAsset->ImportAllTextures(); // DefaultTexture가 없으면 텍스처 임포트 시도
+		ID3D11ShaderResourceView* DiffuseTex = MaterialAsset->GetDiffuseTexture();
+		if(DiffuseTex)
+		{
+			DefaultTexture = DiffuseTex;
+		}
+	}
+	DefaultMaterial = MaterialAsset;
+}
+
+UMaterialInterface* UAssetManager::GetDefaultMaterial() const
+{
+	return DefaultMaterial;
+}
+
+void UAssetManager::ReleaseDefaultMaterial()
+{
+	if (DefaultMaterial)
+	{
+		SafeDelete(DefaultMaterial);
+	}
+}
+
 // StaticMesh 관련 함수들
 TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 {
@@ -428,6 +519,8 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 		BuildMaterialSlots(ObjInfos, MaterialSlots, MaterialNameToSlot);
 		AssignSectionMaterialSlots(StaticMeshData, MaterialNameToSlot);
+
+		InsertDefaultMaterial(StaticMeshData, MaterialSlots);
 
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
 		NewStaticMesh->SetMaterialSlots(MaterialSlots);
@@ -752,3 +845,55 @@ void UAssetManager::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, cons
 	}
 }
 
+/**
+* @brief StaticMesh의 섹션들 중 머티리얼을 사용하고 있지 않은 섹션이 있는지 검사
+* @param Sections 검사할 FStaticMeshSection 배열
+* @return 머티리얼 없는 섹션이 하나라도 있으면 true, 모두 머티리얼 있으면 false
+*/
+bool UAssetManager::CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& Sections) const
+{
+	for(const FStaticMeshSection& Section : Sections)
+	{
+		if (Section.MaterialSlotIndex == -1)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void UAssetManager::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots)
+{
+	size_t MatNums = InMaterialSlots.size();
+	// 머티리얼 아예 없는 경우 -> default material 넣고 섹션에 할당
+	if (MatNums == 0)
+	{
+		InMaterialSlots.push_back(DefaultMaterial);
+		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
+		{
+			if (Section.MaterialSlotIndex == -1)
+			{
+				Section.MaterialName = DefaultMaterial->GetMaterialName();
+				Section.MaterialSlotIndex = 0;
+			}
+		}
+	}
+	// 머티리얼에 하나 이상 있는 경우 -> 0번 머티리얼을 끝으로 보내고 0번에 default material 넣기
+	else if (MatNums > 0 && InMaterialSlots[0] != DefaultMaterial)
+	{
+		InMaterialSlots.push_back(InMaterialSlots[0]);
+		InMaterialSlots.insert(InMaterialSlots.begin(), DefaultMaterial);
+		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
+		{
+			if (Section.MaterialSlotIndex == 0)
+			{
+				Section.MaterialSlotIndex = (int32)MatNums;
+			}
+			else if (Section.MaterialSlotIndex == -1)
+			{
+				Section.MaterialName = DefaultMaterial->GetMaterialName();
+				Section.MaterialSlotIndex = 0;
+			}
+		}
+	}
+}
