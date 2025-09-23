@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Material/Public/Material.h"
+#include "Manager/Asset/Public/AssetManager.h"
 
 IMPLEMENT_CLASS(UMaterialInterface, UObject)
 IMPLEMENT_CLASS(UMaterial, UMaterialInterface)
@@ -13,6 +14,31 @@ void UMaterial::SetMaterialInfo(const FObjMaterialInfo& InMaterialInfo)
 const FObjMaterialInfo& UMaterial::GetMaterialInfo() const
 {
 	return MaterialInfo;
+}
+
+void UMaterial::ImportAllTextures()
+{
+	UAssetManager& AssetManager = UAssetManager::GetInstance();
+
+	const auto ImportTexture = [&](const FString& TexturePath, void (UMaterial::*Setter)(ID3D11ShaderResourceView*))
+	{
+		if (TexturePath.empty())
+		{
+			return;
+		}
+
+		ComPtr<ID3D11ShaderResourceView> Texture = AssetManager.LoadTexture(TexturePath);
+		if (!Texture)
+		{
+			return;
+		}
+
+		(this->*Setter)(Texture.Get());
+	};
+
+	ImportTexture(MaterialInfo.DiffuseTexturePath, &UMaterial::SetDiffuseTexture);
+	ImportTexture(MaterialInfo.NormalTexturePath, &UMaterial::SetNormalTexture);
+	ImportTexture(MaterialInfo.SpecularTexturePath, &UMaterial::SetSpecularTexture);
 }
 
 void UMaterial::SetDiffuseTexture(ID3D11ShaderResourceView* InTexture)
@@ -44,3 +70,4 @@ ID3D11ShaderResourceView* UMaterial::GetSpecularTexture() const
 {
 	return SpecularTexture;
 }
+

@@ -29,6 +29,8 @@ class UMaterial : public UMaterialInterface
 public:
 	void SetMaterialInfo(const FObjMaterialInfo& InMaterialInfo);
 	const FObjMaterialInfo& GetMaterialInfo() const;
+
+	void ImportAllTextures();
 	const FString& GetMaterialName() const { return MaterialInfo.MaterialName; }
 
 	void SetDiffuseTexture(ID3D11ShaderResourceView* InTexture);

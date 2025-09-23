@@ -79,8 +79,7 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 	return true;
 }
 
-
-bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FObjMaterialInfo>& OutMaterials)
+bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TMap<FString, FObjMaterialInfo>& OutMaterialLibrary)
 {
 	std::ifstream File(InMTLFilePath.c_str());
 	if (!File.is_open())
@@ -88,7 +87,6 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FOb
 		return false;
 	}
 	UE_LOG_WARNING("Loading MTL file: %s", InMTLFilePath.c_str());
-	OutMaterials.clear();
 	FObjMaterialInfo* CurrentMaterial = nullptr;
 
 	std::string Line;
@@ -112,8 +110,8 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FOb
 		if (Tokens[0] == "newmtl" && Tokens.size() > 1)
 		{
 			// 새 재질
-			OutMaterials.emplace_back(Tokens[1]);
-			CurrentMaterial = &OutMaterials.back();
+			OutMaterialLibrary[Tokens[1]] = FObjMaterialInfo(Tokens[1]);
+			CurrentMaterial = &OutMaterialLibrary[Tokens[1]];
 		}
 		else if (CurrentMaterial != nullptr)
 		{
@@ -400,15 +398,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 		{
 			LibraryPath = ObjDirectory + LibraryName;
 		}
-
-		TArray<FObjMaterialInfo> ParsedMaterials;
-		if (ParseMaterialLibrary(LibraryPath, ParsedMaterials))
-		{
-			for (const FObjMaterialInfo& Material : ParsedMaterials)
-			{
-				MaterialLibrary[Material.MaterialName] = Material;
-			}
-		}
+		ParseMaterialLibrary(LibraryPath, MaterialLibrary);
 	}
 	else if (Tokens[0] == "usemtl" && Tokens.size() > 1)
 	{
@@ -416,11 +406,11 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 		auto MaterialIt = MaterialLibrary.find(CurrentMaterialName);
 		if (MaterialIt != MaterialLibrary.end())
 		{
-			CurrentObject.Materials[CurrentMaterialName] = MaterialIt->second;
+			CurrentObject.MaterialInfos[CurrentMaterialName] = MaterialIt->second;
 		}
 		else
 		{
-			CurrentObject.Materials[CurrentMaterialName] = FObjMaterialInfo(CurrentMaterialName);
+			CurrentObject.MaterialInfos[CurrentMaterialName] = FObjMaterialInfo(CurrentMaterialName);
 		}
 
 		bool bCreateNewSection = false;
