@@ -3,6 +3,7 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Utility/Public/Archive.h"
 #include "Manager/Asset/Public/AssetManager.h"
+#include "Runtime/Core/Public/ObjectIterator.h"
 
 IMPLEMENT_CLASS(UStaticMesh, UObject)
 
@@ -257,15 +258,32 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 			Reader << (FVector&)MaterialInfo.SpecularColorScalar;
 			Reader << (float&)MaterialInfo.ShininessScalar;
 			Reader << (float&)MaterialInfo.TransparencyScalar;
-			UMaterialInterface* Material = UAssetManager::GetInstance().CreateMaterial(MaterialInfo);
-			if (Material)
+
+			// 먼저 기존 머티리얼 중에서 이름이 같은 것이 있는지 확인
+			bool bFound = false;
+			for (UMaterial* Material : MakeObjectRange<UMaterial>())
 			{
-				MaterialSlots[i] = Material;
+				if (Material->GetMaterialName() == MaterialInfo.MaterialName)
+				{
+					MaterialSlots[i] = Material;
+					bFound = true;
+					break;
+				}
 			}
-			else
+
+			// 기존 머티리얼 중 없으면 새로 만들어 적용
+			if(!bFound)
 			{
-				UE_LOG("UStaticMesh: Failed to create material: %s", MaterialInfo.MaterialName.c_str());
-				MaterialSlots[i] = nullptr;
+				UMaterialInterface* Material = UAssetManager::GetInstance().CreateMaterial(MaterialInfo);
+				if (Material)
+				{
+					MaterialSlots[i] = Material;
+				}
+				else
+				{
+					UE_LOG("UStaticMesh: Failed to create material: %s", MaterialInfo.MaterialName.c_str());
+					MaterialSlots[i] = nullptr;
+				}
 			}
 		}
 
