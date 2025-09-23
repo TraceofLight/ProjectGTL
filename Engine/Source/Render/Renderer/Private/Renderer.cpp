@@ -278,19 +278,21 @@ void URenderer::Update()
                 {
                     FViewport* VpObj = VPs[ViewportIdx];
                     FViewportClient* VC = VpObj->GetViewportClient();
-                    if (VC)
-                    {
-                        if (VC->GetViewType() == EViewType::Perspective)
-                        {
-                            const FViewProjConstants& VPC = VC->GetPerspectiveViewProjConstData();
-                            UpdateConstant(VPC);
-                        }
-                        else
-                        {
-                            const FViewProjConstants& VPC = VC->GetOrthoGraphicViewProjConstData();
-                            UpdateConstant(VPC);
-                        }
-                    }
+					if (VC->GetViewType() == EViewType::Perspective) {
+						if (auto* Cam = VC->GetPerspectiveCamera()) {
+							Cam->SetAspect(vp.Width / max(1.f, vp.Height));
+							// 입력/움직임 갱신은 그대로 두고, 투영만 즉시 갱신하고 싶으면:
+							Cam->UpdateMatrixByPers(); // 또는 필요 시 Cam->Update() 호출
+							UpdateConstant(Cam->GetFViewProjConstants());
+						}
+					}
+					else {
+						if (auto* Cam = VC->GetOrthoCamera()) {
+							Cam->SetAspect(vp.Width / max(1.f, vp.Height));
+							Cam->UpdateMatrixByOrth(); // 또는 Cam->Update()
+							UpdateConstant(Cam->GetFViewProjConstants());
+						}
+					}
                 }
             }
 
@@ -301,25 +303,6 @@ void URenderer::Update()
             ViewportIdx++;
         }
 
-		//for (const FRect& r : ViewRects)
-		//{
-		//	D3D11_VIEWPORT vp{};
-		//	vp.TopLeftX = (FLOAT)r.X; vp.TopLeftY = (FLOAT)r.Y;
-		//	vp.Width = (FLOAT)max(0L, r.W); vp.Height = (FLOAT)max(0L, r.H);
-		//
-		//	// Skip degenerate rects
-		//	if (vp.Width <= 0.0f || vp.Height <= 0.0f) continue;
-		//
-		//	vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
-		//	ctx->RSSetViewports(1, &vp);
-		//	D3D11_RECT sc{};
-		//	sc.left = r.X; sc.top = r.Y; sc.right = r.X + r.W; sc.bottom = r.Y + r.H;
-		//	ctx->RSSetScissorRects(1, &sc);
-		//
-		//	RenderLevel();
-		//	ULevelManager::GetInstance().GetEditor()->RenderEditor();
-		//}
-		// Restore full viewport/scissor for UI
 		ctx->RSSetViewports(1, &fullVP); 
 		D3D11_RECT scFull{};
 		scFull.left = (LONG)fullVP.TopLeftX; scFull.top = (LONG)fullVP.TopLeftY;

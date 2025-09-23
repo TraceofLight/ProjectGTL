@@ -32,27 +32,6 @@ void UCameraControlWidget::Initialize()
  */
 void UCameraControlWidget::Update()
 {
-	auto& ViewportManager = UViewportManager::GetInstance();
-	int8 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
-
-	if (ViewportIndex == -1)
-	{
-		Camera = nullptr;
-	}
-	else
-	{
-		auto Client = ViewportManager.GetViewports()[ViewportIndex]->GetViewportClient();
-		if (Client->IsOrtho())
-		{
-			Camera = Client->GetOrthoCamera();
-		}
-		else
-		{
-			Camera = Client->GetPerspectiveCamera();
-		}
-	}
-
-	//SyncFromCamera();
 }
 
 void UCameraControlWidget::RenderWidget()

@@ -96,6 +96,9 @@ private:
 	float SplitterValueV = 0.5f;
 	float SplitterValueH = 0.5f;
 
+
+	int32 LastPromotedIdx = -1;
+
 	//SSplitter* Left = nullptr;
 	//SSplitter* Right = nullptr;
 };

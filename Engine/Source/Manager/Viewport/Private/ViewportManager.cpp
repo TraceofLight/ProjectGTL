@@ -103,6 +103,11 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 	{
 		std::swap(Viewports[0], Viewports[PromoteIdx]);
 		std::swap(Clients[0], Clients[PromoteIdx]);
+		LastPromotedIdx = PromoteIdx;   
+	}
+	else
+	{
+		LastPromotedIdx = -1;
 	}
 
 	// 1) 윈도우 크기 읽기
@@ -131,6 +136,13 @@ void UViewportManager::BuildFourSplitLayout()
 	{
 		return;
 	}
+
+	if (LastPromotedIdx > 0 && LastPromotedIdx < (int32)Viewports.size())
+	{
+		std::swap(Viewports[0], Viewports[LastPromotedIdx]);
+		std::swap(Clients[0], Clients[LastPromotedIdx]);
+	}
+	LastPromotedIdx = -1;
 
 	Capture = nullptr;
 	DestroyTree(Root);
@@ -887,8 +899,8 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 	Reposition(1, FVector(0, 0, 1)); // Bottom
 	Reposition(2, FVector(0, -1, 0)); // Left
 	Reposition(3, FVector(0, 1, 0)); // Right
-	Reposition(4, FVector(1, 0, 0)); // Front
-	Reposition(5, FVector(-1, 0, 0)); // Back
+	Reposition(4, FVector(-1, 0, 0)); // Front
+	Reposition(5, FVector(1, 0, 0)); // Back
 
 	// 4) 드래그 대상 초기화
 	ActiveRmbViewportIdx = -1;
