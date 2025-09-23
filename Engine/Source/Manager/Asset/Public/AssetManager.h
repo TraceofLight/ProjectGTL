@@ -90,4 +90,5 @@ private:
 	void AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const;
 
 	bool CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& Sections) const;
+	void InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots);
 };

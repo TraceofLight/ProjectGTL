@@ -520,11 +520,7 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 		BuildMaterialSlots(ObjInfos, MaterialSlots, MaterialNameToSlot);
 		AssignSectionMaterialSlots(StaticMeshData, MaterialNameToSlot);
 
-		// StaticMeshData.Sections의 각 원소를 봤을 때 MaterialSlotIndex == -1인 섹션은 머티리얼 없는 섹션
-		// 머티리얼 없는 섹션이 하나라도 감지될 경우 아래 동작 수행
-		// 1. MaterialSlots 크기를 하나 늘린 후 모든 값을 한 칸씩 뒤로 이동
-		// 2. 빈 0번 인덱스에 DefaultMaterial 주소 넣기
-		// 3. StaticMeshData.Sections 순회하면 각 원소의 MaterialSlotIndex 1씩 증가
+		InsertDefaultMaterial(StaticMeshData, MaterialSlots);
 
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
 		NewStaticMesh->SetMaterialSlots(MaterialSlots);
@@ -866,4 +862,38 @@ bool UAssetManager::CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& Se
 	return false;
 }
 
-
+void UAssetManager::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots)
+{
+	size_t MatNums = InMaterialSlots.size();
+	// 머티리얼 아예 없는 경우 -> default material 넣고 섹션에 할당
+	if (MatNums == 0)
+	{
+		InMaterialSlots.push_back(DefaultMaterial);
+		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
+		{
+			if (Section.MaterialSlotIndex == -1)
+			{
+				Section.MaterialName = DefaultMaterial->GetMaterialName();
+				Section.MaterialSlotIndex = 0;
+			}
+		}
+	}
+	// 머티리얼에 하나 이상 있는 경우 -> 0번 머티리얼을 끝으로 보내고 0번에 default material 넣기
+	else if (MatNums > 0 && InMaterialSlots[0] != DefaultMaterial)
+	{
+		InMaterialSlots.push_back(InMaterialSlots[0]);
+		InMaterialSlots.insert(InMaterialSlots.begin(), DefaultMaterial);
+		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
+		{
+			if (Section.MaterialSlotIndex == 0)
+			{
+				Section.MaterialSlotIndex = (int32)MatNums;
+			}
+			else if (Section.MaterialSlotIndex == -1)
+			{
+				Section.MaterialName = DefaultMaterial->GetMaterialName();
+				Section.MaterialSlotIndex = 0;
+			}
+		}
+	}
+}
