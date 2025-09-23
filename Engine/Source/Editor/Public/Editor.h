@@ -57,8 +57,13 @@ private:
 	static TArray<UPrimitiveComponent*> FindCandidateActors(const ULevel* InLevel);
 
 	FVector GetGizmoDragLocation(const FRay& InWorldRay, UCamera& InCamera);
+	FVector GetGizmoDragLocationForPerspective(const FRay& InWorldRay, UCamera& InCamera);
+	FVector GetGizmoDragLocationForOrthographic(const UCamera& InCamera);
 	FVector GetGizmoDragRotation(const FRay& InWorldRay);
 	FVector GetGizmoDragScale(const FRay& InWorldRay, UCamera& InCamera);
+
+	// View Type에 따른 기저 변환
+	static void CalculateBasisVectorsForViewType(EViewType InViewType, FVector& OutForward, FVector& OutRight, FVector& OutUp);
 
 	static UCamera* GetActivePickingCamera();
 };

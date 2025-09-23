@@ -360,11 +360,26 @@ TArray<UPrimitiveComponent*> UEditor::FindCandidateActors(const ULevel* InLevel)
 
 /**
  * @brief 마우스 입력을 기반으로 기즈모를 드래그할 때의 새로운 월드 위치를 계산하는 함수
+ * 현재는 각 카메라 타입에 맞는 함수로 반환하도록 처리
  * @param InWorldRay 마우스 커서의 위치에서 월드 공간으로 쏘는 Ray
  * @param InCamera 현재 에디터의 뷰포트 카메라
  * @return 계산된 기즈모의 새로운 월드 공간 위치 벡터
  */
 FVector UEditor::GetGizmoDragLocation(const FRay& InWorldRay, UCamera& InCamera)
+{
+	// Orthographic
+	if (InCamera.GetCameraType() == ECameraType::ECT_Orthographic)
+	{
+		return GetGizmoDragLocationForOrthographic(InCamera);
+	}
+	// Perspective
+	else
+	{
+		return GetGizmoDragLocationForPerspective(InWorldRay, InCamera);
+	}
+}
+
+FVector UEditor::GetGizmoDragLocationForPerspective(const FRay& InWorldRay, UCamera& InCamera)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{Gizmo.GetGizmoLocation()};
@@ -388,6 +403,172 @@ FVector UEditor::GetGizmoDragLocation(const FRay& InWorldRay, UCamera& InCamera)
 		// 드래그 실패 시 현재 위치 반환
 		return Gizmo.GetGizmoLocation();
 	}
+}
+
+/**
+ * @brief Orthographic 카메라에서 기즈모 드래그 위치 계산하는 함수
+ * @param InCamera 현재 카메라
+ * @return 계산된 새로운 위치
+ */
+FVector UEditor::GetGizmoDragLocationForOrthographic(const UCamera& InCamera)
+{
+	// 현재 뷰포트 정보 가져오기
+	auto& ViewportManager = UViewportManager::GetInstance();
+	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	if (ViewportIndex < 0)
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+	const auto& Clients = ViewportManager.GetClients();
+	if (ViewportIndex >= static_cast<int32>(Clients.size()))
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+	FViewportClient* ViewportClient = Clients[ViewportIndex];
+	if (!ViewportClient)
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+	const EViewType ViewType = ViewportClient->GetViewType();
+	if (ViewType == EViewType::Perspective)
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+
+	// 뷰포트 크기 정보 가져오기
+	const auto& Viewports = ViewportManager.GetViewports();
+	if (ViewportIndex >= static_cast<int32>(Viewports.size()))
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+
+	FViewport* Viewport = Viewports[ViewportIndex];
+	if (!Viewport)
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+
+	const FRect& Rect = Viewport->GetRect();
+	const int32 ToolH = Viewport->GetToolbarHeight();
+	const float Width = static_cast<float>(Rect.W);
+	const float Height = static_cast<float>(max<LONG>(0, Rect.H - ToolH));
+	if (Width <= 0.0f || Height <= 0.0f)
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+
+	// 뷰포트 타입에 따른 기저 벡터 계산
+	FVector Fwd, Right, Up;
+	CalculateBasisVectorsForViewType(ViewType, Fwd, Right, Up);
+
+	// 마우스 델타 가져오기
+	const auto& InputManager = UInputManager::GetInstance();
+	const FVector& MouseDelta = InputManager.GetMouseDelta();
+	if (MouseDelta.X == 0.0f && MouseDelta.Y == 0.0f)
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+
+	// NDC 델타 계산 (ViewportManager와 동일한 방식)
+	const float Aspect = (Height > 0.f) ? (Width / Height) : 1.0f;
+	const float Rad = FVector::GetDegreeToRadian(InCamera.GetFovY());
+	const float OrthoWidth = 2.0f * std::tanf(Rad * 0.5f);
+	const float OrthoHeight = (Aspect > 0.0f) ? (OrthoWidth / Aspect) : OrthoWidth;
+
+	// 화면 기준 드래그 비율 기본 부호
+	float sX = -1.0f;
+	float sY = 1.0f;
+
+	// 카메라에 따라 추가 보정
+	if (ViewType != EViewType::OrthoTop && ViewType != EViewType::OrthoBottom)
+	{
+		sX *= -1.0f;
+		sY *= -1.0f;
+	}
+
+	// NDC 델타 계산
+	const float NdcDX = sX * (MouseDelta.X / Width) * 2.0f;
+	const float NdcDY = sY * (MouseDelta.Y / Height) * 2.0f;
+
+	// 월드 델타 계산
+	const FVector WorldDelta = Right * (NdcDX * (OrthoWidth * 0.5f)) + Up * (NdcDY * (OrthoHeight * 0.5f));
+
+	// 뷰포트별 기즈모 방향에 따른 축 계산
+	EGizmoDirection CurrentDirection = Gizmo.GetGizmoDirectionForViewport(ViewportIndex);
+	if (CurrentDirection == EGizmoDirection::None) return Gizmo.GetGizmoLocation();
+
+	// 방향에 따른 축 벡터 계산
+	FVector GizmoAxis;
+	switch (CurrentDirection)
+	{
+	// X축
+	case EGizmoDirection::Forward:
+		GizmoAxis = FVector(1, 0, 0);
+		break;
+	// Y축
+	case EGizmoDirection::Right:
+		GizmoAxis = FVector(0, 1, 0);
+		break;
+	// Z축
+	case EGizmoDirection::Up:
+		GizmoAxis = FVector(0, 0, 1);
+		break;
+	default:
+		return Gizmo.GetGizmoLocation();
+	}
+
+	if (!Gizmo.IsWorldMode())
+	{
+		FVector4 GizmoAxis4{GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z, 0.0f};
+		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetActorRotation());
+		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
+	}
+
+	// 축 방향 성분만 추출
+	float AxisMovement = WorldDelta.Dot(GizmoAxis);
+	return Gizmo.GetGizmoLocation() + GizmoAxis * AxisMovement;
+}
+
+
+/**
+ * @brief 뷰포트 타입에 따른 기저 벡터 계산 헬퍼 함수 (ViewportManager 로직 참고)
+ * @param InViewType 뷰포트 타입
+ * @param OutForward Forward 벡터
+ * @param OutRight Right 벡터
+ * @param OutUp Up 벡터
+ */
+void UEditor::CalculateBasisVectorsForViewType(EViewType InViewType, FVector& OutForward, FVector& OutRight,
+											   FVector& OutUp)
+{
+	// ViewportManager::UpdateOrthoGraphicCameraPoint의 로직 참고
+	switch (InViewType)
+	{
+	case EViewType::OrthoTop: OutForward = FVector(0, 0, -1);
+		break;
+	case EViewType::OrthoBottom: OutForward = FVector(0, 0, 1);
+		break;
+	case EViewType::OrthoFront: OutForward = FVector(-1, 0, 0);
+		break;
+	case EViewType::OrthoBack: OutForward = FVector(1, 0, 0);
+		break;
+	case EViewType::OrthoRight: OutForward = FVector(0, 1, 0);
+		break;
+	case EViewType::OrthoLeft: OutForward = FVector(0, -1, 0);
+		break;
+	default: OutForward = FVector(1, 0, 0);
+		break; // Perspective 등 기본값
+	}
+	OutForward.Normalize();
+
+	// Up 레퍼런스 벡터 계산 (ViewportManager 로직과 동일)
+	FVector UpRef(0, 0, 1);
+	if (std::fabs(OutForward.Dot(UpRef)) > 0.999f) UpRef = FVector(1, 0, 0);
+
+	// 기저 벡터 계산
+	OutRight = OutForward.Cross(UpRef);
+	OutRight.Normalize();
+	OutUp = OutRight.Cross(OutForward);
+	OutUp.Normalize();
 }
 
 /**
