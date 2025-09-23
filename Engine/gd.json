@@ -1,0 +1,48 @@
+{
+  "NextUUID" : 6,
+  "PerspectiveCamera" : {
+    "FOV" : 90.000000,
+    "FarClip" : 1000.000000,
+    "Location" : [-15.252435, -3.190390, 10.000000],
+    "NearClip" : 0.100000,
+    "Rotation" : [0.000000, 17.350019, -4.449999]
+  },
+  "Primitives" : {
+    "1" : {
+      "Location" : [-4.987487, 0.635853, -3.066957],
+      "ObjStaticMeshAsset" : "Data\\cube-tex.obj",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.713111, 1.713111, 1.713111],
+      "Type" : "StaticMeshComp"
+    },
+    "2" : {
+      "Location" : [0.850093, -0.201270, -1.497085],
+      "ObjStaticMeshAsset" : "Data\\cube-tex.obj",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.843944, 1.843944, 1.843944],
+      "Type" : "StaticMeshComp"
+    },
+    "3" : {
+      "Location" : [3.228400, 2.466048, -3.258919],
+      "ObjStaticMeshAsset" : "Data\\cube-tex.obj",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.788415, 1.788415, 1.788415],
+      "Type" : "StaticMeshComp"
+    },
+    "4" : {
+      "Location" : [2.105014, 0.135350, -1.960051],
+      "ObjStaticMeshAsset" : "Data\\cube-tex.obj",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [0.522477, 0.522477, 0.522477],
+      "Type" : "StaticMeshComp"
+    },
+    "5" : {
+      "Location" : [-4.085971, -1.355480, -3.526871],
+      "ObjStaticMeshAsset" : "Data\\cube-tex.obj",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [0.748848, 0.748848, 0.748848],
+      "Type" : "StaticMeshComp"
+    }
+  },
+  "Version" : 1
+}

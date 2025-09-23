@@ -58,6 +58,11 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	// 바인드
 	BindOrthoGraphicCameraToClient();
 
+	IniSaveSharedV = UConfigManager::GetInstance().GetSplitV();
+	IniSaveSharedH = UConfigManager::GetInstance().GetSplitH();
+
+	SplitterValueV = IniSaveSharedV;
+	SplitterValueH = IniSaveSharedH;
 }
 
 void UViewportManager::SetRoot(SWindow* InRoot)
@@ -124,15 +129,17 @@ void UViewportManager::BuildFourSplitLayout()
 
 	// 4-way splitter tree
 	SSplitter* RootSplit = new SSplitterV();
-	RootSplit->Ratio = 0.5f;
+	RootSplit->Ratio = IniSaveSharedV;
 
-	static float SharedY = 0.5f;
-	SSplitter* Left = new SSplitterH();
-	Left->SetSharedRatio(&SharedY);
-	Left->Ratio = SharedY;
-	SSplitter* Right = new SSplitterH();
-	Right->SetSharedRatio(&SharedY);
-	Right->Ratio = SharedY;
+	//SharedY = 0.5f;
+	Left = new SSplitterH();
+	Right = new SSplitterH();
+
+	Left->Ratio = IniSaveSharedH;
+	Right->Ratio = IniSaveSharedH;
+
+	Left->SetSharedRatio(&IniSaveSharedH);
+	Right->SetSharedRatio(&IniSaveSharedH);
 
 	RootSplit->SetChildren(Left, Right);
 
@@ -166,6 +173,7 @@ void UViewportManager::BuildFourSplitLayout()
 	}
 
 	ForceRefreshOrthoViewsAfterLayoutChange();
+
 }
 
 void UViewportManager::GetLeafRects(TArray<FRect>& OutRects)
@@ -335,6 +343,13 @@ void UViewportManager::Update()
 	{
 		Clients[i]->Draw(Viewports[i]);
 	}
+	//if (ViewportChange == EViewportChange::Quad)
+	//{
+	//	//SaveSplitterH = SharedY;
+	//	IniSaveSharedV = static_cast<SSplitter*>(Root)->Ratio;
+	//	IniSaveSharedH = Left->Ratio;
+	//}
+	//UE_LOG("%f %f", IniSaveSharedV, IniSaveSharedH);
 }
 
 void UViewportManager::RenderOverlay()
@@ -531,6 +546,8 @@ void UViewportManager::RenderOverlay()
 				{
 					CurrentLayout = ELayout::Single;
 					ViewportChange = EViewportChange::Single;
+
+					PersistSplitterRatios();
 					BuildSingleLayout(i);
 				}
 			}
@@ -854,6 +871,19 @@ void UViewportManager::ApplySharedOrthoCenterToAllCameras()
 		Cam->SetLocation(OrthoGraphicCamerapoint - fwd * dist);
 		Cam->Update();
 	}
+}
+
+void UViewportManager::PersistSplitterRatios()
+{
+	if (!Root) return;
+	// 세로
+	IniSaveSharedV = static_cast<SSplitter*>(Root)->Ratio;
+	if (Left) IniSaveSharedH = IniSaveSharedH;
+
+	auto& CFG = UConfigManager::GetInstance();
+	CFG.SetSplitV(IniSaveSharedV);
+	CFG.SetSplitH(IniSaveSharedH);
+	CFG.SaveEditorSetting();
 }
 
 void UViewportManager::TickInput()

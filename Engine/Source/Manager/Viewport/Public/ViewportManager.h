@@ -64,6 +64,8 @@ private:
 
 	void ApplySharedOrthoCenterToAllCameras();
 
+	void PersistSplitterRatios();
+
 private:
     SWindow* Root = nullptr;
     SWindow* Capture = nullptr;
@@ -88,7 +90,16 @@ private:
 	EViewportChange ViewportChange = EViewportChange::Single;
 
 	float SharedFovY = 150.0f;
+	float SharedY = 0.5f;
 
+	float IniSaveSharedV = 0.5f;
+	float IniSaveSharedH = 0.5f;
+
+	float SplitterValueV = 0.5f;
+	float SplitterValueH = 0.5f;
+
+	SSplitter* Left = nullptr;
+	SSplitter* Right = nullptr;
 };
 
 

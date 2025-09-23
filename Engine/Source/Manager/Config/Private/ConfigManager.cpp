@@ -23,6 +23,8 @@ void UConfigManager::SaveEditorSetting()
 	{
 		ofs << "CellSize=" << CellSize << "\n";
 		ofs << "CameraSensitivity=" << CameraSensitivity << "\n";
+		ofs << "SplitV=" << SplitV << "\n";   
+		ofs << "SplitH=" << SplitH << "\n";   
 	}
 }
 
@@ -34,19 +36,21 @@ void UConfigManager::LoadEditorSetting()
 	{
 		CellSize = 1.0f;
 		CameraSensitivity = UCamera::DEFAULT_SPEED;
-		return; // 파일이 없으면 기본값 유지
+		SplitV = 0.5f;   // ▼ 기본값
+		SplitH = 0.5f;   // ▼ 기본값
+		return;
 	}
 
 	std::string line;
 	while (std::getline(ifs, line))
 	{
 		if (line.rfind("CellSize=", 0) == 0)
-		{
 			CellSize = std::stof(line.substr(9));
-		}
 		else if (line.rfind("CameraSensitivity=", 0) == 0)
-		{
 			CameraSensitivity = std::stof(line.substr(18));
-		}
+		else if (line.rfind("SplitV=", 0) == 0)         
+			SplitV = std::stof(line.substr(7));
+		else if (line.rfind("SplitH=", 0) == 0)         
+			SplitH = std::stof(line.substr(7));
 	}
 }
