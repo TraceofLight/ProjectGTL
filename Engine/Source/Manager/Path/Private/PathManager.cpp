@@ -22,7 +22,7 @@ void UPathManager::Init()
 }
 
 /**
- * @brief 프로그램 실행 파일을 기반으로 Root Path 세팅하는 함수
+ * @brief 프로그램 실행 파일을 기반으로 Root Path 세팅하는 함수 (실행 파일이 있는 디렉토리를 절대경로로)
  */
 void UPathManager::InitializeRootPath()
 {

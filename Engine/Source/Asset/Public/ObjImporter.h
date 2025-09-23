@@ -22,12 +22,12 @@ public:
 	static bool ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& OutObjectInfos);
 
 	/**
-	 * @brief 재질 라이브러리 파일(.mtl)을 파싱
+	 * @brief 머티리얼 라이브러리 파일(.mtl)을 파싱
 	 * @param MTLFilePath MTL 파일의 경로
-	 * @param OutMaterials 파싱된 재질 정보 배열
+	 * @param OutMaterialLibrary 파싱된 머터리얼 정보 맵 (머터리얼 이름을 키로 사용)
 	 * @return 파싱 성공 시 true, 그렇지 않으면 false
 	 */
-	static bool ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FObjMaterialInfo>& OutMaterials);
+	static bool ParseMaterialLibrary(const FString& InMTLFilePath, TMap<FString, FObjMaterialInfo>& OutMaterialLibrary);
 
 	/**
 	 * @brief 원시 객체 데이터를 쿠킹된 스태틱 메시 데이터로 변환
@@ -41,6 +41,7 @@ public:
 	 * @brief 전체 임포트 파이프라인: OBJ → 원시 데이터 → 쿠킹된 데이터
 	 * @param FilePath 임포트할 OBJ 파일의 경로
 	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
+	 * @param OutObjectInfos 머터리얼 로드를 위해 원시 객체 데이터도 반환
 	 * @return 전체 파이프라인 성공 시 true, 그렇지 않으면 false
 	 */
 	static bool ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh, TArray<FObjInfo>& OutObjectInfos);

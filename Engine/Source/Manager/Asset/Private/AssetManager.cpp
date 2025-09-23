@@ -7,6 +7,7 @@
 #include "Runtime/Component/Mesh/Public/VertexDatas.h"
 #include "Asset/Public/ObjImporter.h"
 #include "Asset/Public/StaticMesh.h"
+#include "Material/Public/Material.h"
 #include "Factory/Public/NewObject.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
 #include "Utility/Public/Archive.h"
@@ -57,7 +58,7 @@ void UAssetManager::Initialize()
 	LoadStaticMeshShaders();
 
 	// 모든 프리미티브 StaticMesh 로드
-	//InitializeBasicPrimitives();
+	InitializeBasicPrimitives();
 }
 
 void UAssetManager::Release()
@@ -425,143 +426,8 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 		TArray<UMaterialInterface*> MaterialSlots;
 		TMap<FString, int32> MaterialNameToSlot;
 
-		FString ObjDirectory;
-		size_t LastSlash = InFilePath.find_last_of("/");
-		if (LastSlash != FString::npos)
-		{
-			ObjDirectory = InFilePath.substr(0, LastSlash + 1);
-		}
-
-		auto ResolveTexturePath = [&](const FString& RelativePath) -> FString
-		{
-			if (RelativePath.empty())
-			{
-				return FString();
-			}
-
-			bool bIsAbsolute = (RelativePath.find(':') != FString::npos) ||
-				(!RelativePath.empty() && (RelativePath[0] == '/' || RelativePath[0] == '\\'));
-			if (bIsAbsolute)
-			{
-				return RelativePath;
-			}
-
-			return ObjDirectory + RelativePath;
-		};
-
-		auto FindMaterialInfo = [&](const FString& MaterialName) -> const FObjMaterialInfo*
-		{
-			for (const FObjInfo& Info : ObjInfos)
-			{
-				auto MaterialIt = Info.Materials.find(MaterialName);
-				if (MaterialIt != Info.Materials.end())
-				{
-					return &MaterialIt->second;
-				}
-			}
-
-			return nullptr;
-		};
-
-		auto EnsureMaterialSlot = [&](const FString& MaterialName) -> int32
-		{
-			auto ExistingSlot = MaterialNameToSlot.find(MaterialName);
-			if (ExistingSlot != MaterialNameToSlot.end())
-			{
-				return ExistingSlot->second;
-			}
-
-			const FObjMaterialInfo* MaterialInfoPtr = FindMaterialInfo(MaterialName);
-			FObjMaterialInfo MaterialInfo = MaterialInfoPtr ? *MaterialInfoPtr : FObjMaterialInfo(MaterialName);
-
-			UMaterial* MaterialAsset = NewObject<UMaterial>();
-			if (MaterialAsset)
-			{
-				MaterialAsset->SetMaterialInfo(MaterialInfo);
-
-				if (!MaterialInfo.DiffuseTexturePath.empty())
-				{
-					FString TexturePath = ResolveTexturePath(MaterialInfo.DiffuseTexturePath);
-					if (!TexturePath.empty())
-					{
-						ComPtr<ID3D11ShaderResourceView> Texture = LoadTexture(TexturePath);
-						if (Texture)
-						{
-							MaterialAsset->SetDiffuseTexture(Texture.Get());
-						}
-					}
-				}
-
-				if (!MaterialInfo.NormalTexturePath.empty())
-				{
-					FString TexturePath = ResolveTexturePath(MaterialInfo.NormalTexturePath);
-					if (!TexturePath.empty())
-					{
-						ComPtr<ID3D11ShaderResourceView> Texture = LoadTexture(TexturePath);
-						if (Texture)
-						{
-							MaterialAsset->SetNormalTexture(Texture.Get());
-						}
-					}
-				}
-
-				if (!MaterialInfo.SpecularTexturePath.empty())
-				{
-					FString TexturePath = ResolveTexturePath(MaterialInfo.SpecularTexturePath);
-					if (!TexturePath.empty())
-					{
-						ComPtr<ID3D11ShaderResourceView> Texture = LoadTexture(TexturePath);
-						if (Texture)
-						{
-							MaterialAsset->SetSpecularTexture(Texture.Get());
-						}
-					}
-				}
-			}
-
-			int32 SlotIndex = static_cast<int32>(MaterialSlots.size());
-			MaterialSlots.push_back(MaterialAsset);
-			MaterialNameToSlot.emplace(MaterialName, SlotIndex);
-			return SlotIndex;
-		};
-
-		for (const FObjInfo& ObjInfo : ObjInfos)
-		{
-			for (const FObjSectionInfo& SectionInfo : ObjInfo.Sections)
-			{
-				if (SectionInfo.IndexCount <= 0)
-				{
-					continue;
-				}
-
-				if (SectionInfo.MaterialName.empty())
-				{
-					continue;
-				}
-
-				EnsureMaterialSlot(SectionInfo.MaterialName);
-			}
-		}
-
-		for (FStaticMeshSection& Section : StaticMeshData.Sections)
-		{
-			if (!Section.MaterialName.empty())
-			{
-				auto SlotIt = MaterialNameToSlot.find(Section.MaterialName);
-				if (SlotIt != MaterialNameToSlot.end())
-				{
-					Section.MaterialSlotIndex = SlotIt->second;
-				}
-				else
-				{
-					Section.MaterialSlotIndex = -1;
-				}
-			}
-			else
-			{
-				Section.MaterialSlotIndex = -1;
-			}
-		}
+		BuildMaterialSlots(ObjInfos, MaterialSlots, MaterialNameToSlot);
+		AssignSectionMaterialSlots(StaticMeshData, MaterialNameToSlot);
 
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
 		NewStaticMesh->SetMaterialSlots(MaterialSlots);
@@ -760,3 +626,129 @@ void UAssetManager::InitializeBasicPrimitives()
 
 	UE_LOG("AssetManager: Initialization complete. Loaded meshes available through ObjectIterator.");
 }
+
+
+void UAssetManager::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInfos, TArray<FString>& OutMaterialNames) const
+{
+	OutMaterialNames.clear();
+
+	TMap<FString, bool> RegisteredNames;
+
+	for (const FObjInfo& ObjInfo : ObjInfos)
+	{
+		for (const FObjSectionInfo& Section : ObjInfo.Sections)
+		{
+			if (Section.IndexCount <= 0)
+			{
+				continue;
+			}
+
+			if (Section.MaterialName.empty())
+			{
+				continue;
+			}
+
+			if (RegisteredNames.find(Section.MaterialName) != RegisteredNames.end())
+			{
+				continue;
+			}
+
+			RegisteredNames.emplace(Section.MaterialName, true);
+			OutMaterialNames.push_back(Section.MaterialName);
+		}
+	}
+}
+
+const FObjMaterialInfo* UAssetManager::FindMaterialInfoByName(const TArray<FObjInfo>& ObjInfos, const FString& MaterialName) const
+{
+	for (const FObjInfo& Info : ObjInfos)
+	{
+		auto MaterialIt = Info.MaterialInfos.find(MaterialName);
+		if (MaterialIt != Info.MaterialInfos.end())
+		{
+			return &MaterialIt->second;
+		}
+	}
+
+	return nullptr;
+}
+
+UMaterialInterface* UAssetManager::CreateMaterial(const FObjMaterialInfo& MaterialInfo) const
+{
+	UMaterial* MaterialAsset = NewObject<UMaterial>();
+	if (!MaterialAsset)
+	{
+		return nullptr;
+	}
+
+	MaterialAsset->SetMaterialInfo(MaterialInfo);
+	MaterialAsset->ImportAllTextures();
+
+	return MaterialAsset;
+}
+
+/**
+* @brief ObjInfos를 이루는 모든 FObjInfo 객체의 Section에서 사용된 머티리얼들을 모아 MaterialSlots 배열과 MaterialNameToSlot 맵 생성
+* @param ObjInfos 대상 FObjInfo 배열
+* @param OutMaterialSlots 생성된 머티리얼 슬롯 배열
+* @param OutMaterialNameToSlot 머티리얼 이름 - 슬롯 인덱스 매핑
+*/
+void UAssetManager::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<UMaterialInterface*>& OutMaterialSlots, TMap<FString, int32>& OutMaterialNameToSlot)
+{
+	OutMaterialSlots.clear();
+	OutMaterialNameToSlot.clear();
+
+	// ObjInfos를 이루는 각 FObjInfo 객체에 명시된 머티리얼 전부 모아 저장
+	TArray<FString> MaterialNames; 
+	CollectSectionMaterialNames(ObjInfos, MaterialNames);
+
+	for (const FString& MaterialName : MaterialNames)
+	{
+		// 이미 등록된 머티리얼인지 확인
+		if (OutMaterialNameToSlot.find(MaterialName) != OutMaterialNameToSlot.end())
+		{
+			continue;
+		}
+
+		// 아직 등록 안 된 머티리얼이면 새로 생성
+		const FObjMaterialInfo* MaterialInfoPtr = FindMaterialInfoByName(ObjInfos, MaterialName);
+		FObjMaterialInfo MaterialInfo = MaterialInfoPtr ? *MaterialInfoPtr : FObjMaterialInfo(MaterialName);
+
+		if (UMaterialInterface* MaterialAsset = CreateMaterial(MaterialInfo))
+		{
+			int32 SlotIndex = static_cast<int32>(OutMaterialSlots.size());
+			OutMaterialSlots.push_back(MaterialAsset);
+			OutMaterialNameToSlot.emplace(MaterialName, SlotIndex);
+		}
+	}
+}
+
+/**
+* @brief FStaticMesh 데이터 내 Section 순회하며 MaterialSlotIndex 설정
+* @param StaticMeshData 대상 FStaticMesh 데이터. 내부에 Section 데이터 포함
+* @param MaterialNameToSlot 머티리얼 이름 - 슬롯 인덱스 매핑
+*/ 
+void UAssetManager::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const
+{
+	TArray<FStaticMeshSection>& Sections = StaticMeshData.Sections;
+	for (FStaticMeshSection& Section : Sections)
+	{
+		if (!Section.MaterialName.empty())
+		{
+			auto SlotIt = MaterialNameToSlot.find(Section.MaterialName);
+			if (SlotIt != MaterialNameToSlot.end())
+			{
+				Section.MaterialSlotIndex = SlotIt->second;
+			}
+			else
+			{
+				Section.MaterialSlotIndex = -1;
+			}
+		}
+		else
+		{
+			Section.MaterialSlotIndex = -1;
+		}
+	}
+}
+

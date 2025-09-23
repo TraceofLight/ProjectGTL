@@ -1,5 +1,11 @@
 #pragma once
 
+struct FObjInfo;
+struct FObjMaterialInfo;
+struct FStaticMeshSection;
+class UMaterialInterface;
+
+struct FStaticMesh;
 class UStaticMesh;
 
 /**
@@ -62,4 +68,11 @@ private:
 	// Initialize Functions
 	void InitializeBasicPrimitives();	// 기본 도형 버퍼 생성 (Cube, Sphere, Plane, ...)
 	void LoadStaticMeshShaders();
+
+	// Material Helpers
+	void CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInfos, TArray<FString>& OutMaterialNames) const;
+	const FObjMaterialInfo* FindMaterialInfoByName(const TArray<FObjInfo>& ObjInfos, const FString& MaterialName) const;
+	UMaterialInterface* CreateMaterial(const FObjMaterialInfo& MaterialInfo) const;
+	void BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<UMaterialInterface*>& OutMaterialSlots, TMap<FString, int32>& OutMaterialNameToSlot);
+	void AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const;
 };
