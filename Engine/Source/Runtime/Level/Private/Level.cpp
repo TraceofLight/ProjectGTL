@@ -21,20 +21,28 @@ ULevel::ULevel(const FName& InName)
 
 ULevel::~ULevel()
 {
-	// 지연 삭제 대기중인 Actor들 정리
-	for (auto Actor : ActorsToDelete)
+	// Actor들의 Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+	for (auto& Actor : ActorsToDelete)
 	{
-		delete Actor;
+		if (Actor)
+		{
+			Actor->SetOuter(nullptr);
+		}
 	}
 
-	// LevelActors 정리
-	for (auto Actor : LevelActors)
+	for (auto& Actor : LevelActors)
 	{
-		delete Actor;
+		if (Actor)
+		{
+			Actor->SetOuter(nullptr);
+		}
 	}
 
 	ActorsToDelete.clear();
 	LevelActors.clear();
+
+	UE_LOG_SYSTEM("Level: GUObjectArray에 존재하는 제거된 객체들을 정리합니다");
+	CleanupGUObjectArray();
 }
 
 void ULevel::Init()
@@ -128,8 +136,8 @@ bool ULevel::DestroyActor(TObjectPtr<AActor> InActor)
 		SelectedActor = nullptr;
 	}
 
-	// Remove
-	delete InActor;
+	// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+	InActor->SetOuter(nullptr);
 
 	UE_LOG("Level: Actor Destroyed Successfully");
 	return true;
@@ -180,8 +188,8 @@ void ULevel::ProcessPendingDeletions()
 
 	UE_LOG("Level: %zu개의 객체 지연 삭제 프로세스 처리 시작", ActorsToDelete.size());
 
-	// 대기 중인 액터들을 삭제
-	for (AActor* ActorToDelete : ActorsToDelete)
+	// 대기 중인 액터들의 Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+	for (auto& ActorToDelete : ActorsToDelete)
 	{
 		if (!ActorToDelete)
 			continue;
@@ -204,9 +212,9 @@ void ULevel::ProcessPendingDeletions()
 
 		FName DeletedActorName = ActorToDelete->GetName();
 
-		// Release Memory
-		delete ActorToDelete;
-		UE_LOG("Level: Actor 제거: %s (%p)", DeletedActorName.ToString().data(), static_cast<void*>(ActorToDelete));
+		// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+		ActorToDelete->SetOuter(nullptr);
+		UE_LOG("Level: Actor 제거 마킹: %s", DeletedActorName.ToString().data());
 	}
 
 	// Clear TArray

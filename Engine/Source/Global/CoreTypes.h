@@ -27,8 +27,8 @@ struct FVertex
 {
 	FVector Position;
 	FVector4 Color;
-	FVector Normal;
 	FVector2 TextureCoord;
+	FVector Normal;
 
 	FVertex() = default;
 

@@ -144,7 +144,7 @@
     <ClCompile Include="Source\Manager\Viewport\Private\ViewportManager.cpp">
       <Filter>Source\Manager\Viewport\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Manager\Asset\Private\AssetManger.cpp">
+    <ClCompile Include="Source\Manager\Asset\Private\AssetManager.cpp">
       <Filter>Source\Manager\Asset\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Manager\Config\Private\ConfigManager.cpp">

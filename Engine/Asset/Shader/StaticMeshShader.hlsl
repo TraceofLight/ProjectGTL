@@ -14,8 +14,8 @@ cbuffer PerFrame : register(b1)
 
 cbuffer Material : register(b2)
 {
-	float4 DiffuseColor;    // 디퓨즈 색상
-	float3 padding2;
+	float4 DiffuseColor;	// 디퓨즈 색상
+	float4 MaterialUsage;	// x: 버텍스 컬러 사용 여부, y: 디퓨즈 텍스처 사용 여부
 }
 
 // 텍스처 및 샘플러
@@ -57,13 +57,24 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
-	// 디퓨즈 텍스처 샘플링
-	float4 diffuseTexColor = DiffuseTexture.Sample(DefaultSampler, input.TexCoord);
+	const float bUseVertexColor = MaterialUsage.x;
+	const float bUseDiffuseTexture = MaterialUsage.y;
 
-	// 정점 색상과 디퓨즈 색상 결합
-	float4 finalColor = diffuseTexColor * DiffuseColor * input.Color;
-	//float4 finalColor = input.Color;
+	float4 finalColor = DiffuseColor;
 
-	return float4(1, 1, 1, 1);
+	if (bUseDiffuseTexture > 0.5f)
+	{
+		const float4 diffuseTexColor = DiffuseTexture.Sample(DefaultSampler, input.TexCoord);
+		finalColor = diffuseTexColor;
+	}
+	
+	if (bUseVertexColor > 0.5f)
+	{
+		finalColor = input.Color;
+	}
 
+	
+
+	return finalColor;
 }
+

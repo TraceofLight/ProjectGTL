@@ -19,10 +19,10 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 	TArray<FVector> GlobalNormals;
 
 	FString ObjDirectory;
-	size_t LastSlash = InFilePath.find_last_of("/");
+	size_t LastSlash = InFilePath.find_last_of("/\\");
 	if (LastSlash != FString::npos)
 	{
-		ObjDirectory = InFilePath.substr(0, LastSlash + 1);
+		ObjDirectory = InFilePath.substr(0, LastSlash + 1); // 마지막 역슬래시까지 포함
 	}
 
 	TMap<FString, FObjMaterialInfo> MaterialLibrary;
@@ -87,7 +87,7 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TArray<FOb
 	{
 		return false;
 	}
-
+	UE_LOG_WARNING("Loading MTL file: %s", InMTLFilePath.c_str());
 	OutMaterials.clear();
 	FObjMaterialInfo* CurrentMaterial = nullptr;
 

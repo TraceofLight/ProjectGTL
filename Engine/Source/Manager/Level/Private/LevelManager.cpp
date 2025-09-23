@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Manager/Level/Public/LevelManager.h"
-#include "Manager/Path/Public/PathManager.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Window/Public/ViewportClient.h"
@@ -48,12 +47,23 @@ void ULevelManager::LoadLevel(const FName& InName)
 	CurrentLevel->Init();
 }
 
+/**
+ * @brief LevelManager의 정리 함수
+ * Outer 끊어주면 GC에서 수거하는 방향을 고려하여 구현됨
+ * GC는 현재 없으나 마지막 Engine 종료에서 UClass 객체 전부 지워주고 있으므로 오류 없이 모든 Level이 정상 제거됨
+ */
 void ULevelManager::Shutdown()
 {
-	for (auto& LevelIter : Levels)
+	for (auto& Level : Levels)
 	{
-		delete LevelIter.second;
+		if (Level.second)
+		{
+			Level.second->SetOuter(nullptr);
+		}
 	}
+
+	Levels.clear();
+	CurrentLevel = nullptr;
 
 	delete Editor;
 }
@@ -64,8 +74,13 @@ void ULevelManager::Shutdown()
  */
 void ULevelManager::CreateDefaultLevel()
 {
-	Levels[FName("Untitled")] = new ULevel("Untitled");
-	LoadLevel(FName("Untitled"));
+	TObjectPtr<ULevel> Level = NewObject<ULevel>();
+	Level->SetDisplayName("NewLevel");
+	// LevelManager를 Outer로 설정하여 생명주기 관리
+	Level->SetOuter(this);
+
+	Levels[FName("NewLevel")] = Level;
+	LoadLevel(FName("NewLevel"));
 }
 
 void ULevelManager::Update() const
@@ -156,7 +171,10 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 	ClearCurrentLevel();
 
 	// Make New Level
-	TObjectPtr<ULevel> NewLevel = TObjectPtr<ULevel>(new ULevel(InLevelName));
+	TObjectPtr<ULevel> NewLevel = NewObject<ULevel>();
+	NewLevel->SetDisplayName(InLevelName);
+	// LevelManager를 Outer로 설정하여 생명주기 관리
+	NewLevel->SetOuter(this);
 	FLevelMetadata Metadata;
 
 	// 직접 LevelSerializer를 사용하여 로드
@@ -166,7 +184,8 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!bLoadSuccess)
 		{
 			UE_LOG("LevelManager: Failed To Load Level From: %s", InFilePath.c_str());
-			delete NewLevel;
+			// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+			NewLevel->SetOuter(nullptr);
 			return false;
 		}
 
@@ -175,7 +194,8 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!FJsonSerializer::ValidateLevelData(Metadata, ErrorMessage))
 		{
 			UE_LOG("LevelManager: Level Validation Failed: %s", ErrorMessage.c_str());
-			delete NewLevel;
+			// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+			NewLevel->SetOuter(nullptr);
 			return false;
 		}
 
@@ -185,14 +205,16 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!bSuccess)
 		{
 			UE_LOG("LevelManager: Failed To Create Level From Metadata");
-			delete NewLevel;
+			// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+			NewLevel->SetOuter(nullptr);
 			return false;
 		}
 	}
 	catch (const exception& InException)
 	{
 		UE_LOG("LevelManager: Exception During Load: %s", InException.what());
-		delete NewLevel;
+		// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+		NewLevel->SetOuter(nullptr);
 		return false;
 	}
 
@@ -222,8 +244,8 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 	}
 	else
 	{
-		// 로드 실패 시 정리
-		delete NewLevel;
+		// 로드 실패 시 정리 - Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+		NewLevel->SetOuter(nullptr);
 		UE_LOG("LevelManager: 파일로부터 Level을 로드하는 데에 실패했습니다");
 	}
 
@@ -240,14 +262,15 @@ bool ULevelManager::CreateNewLevel()
 
 	// 기존 레벨이 있다면 먼저 정리 (Asset 포함)
 	UE_LOG("LevelManager: 기존 레벨 정리를 시도합니다");
-	ClearCurrentLevel();  // 이미 ForceReleaseAllStaticMeshes() 포함됨
+	ClearCurrentLevel();
 
-	// 새 레벨 생성 (내부 Level 명칭은 다르게, 겉보기 이름은 동일하게 보이도록 처리)
+	// 새 레벨 생성 (내부 Level 명칭은 다르게, 겨보기 이름은 동일하게 보이도록 처리)
 	TObjectPtr<ULevel> NewLevel = NewObject<ULevel>();
 	FName NewLevelName = "Level_" + to_string(ULevel::GetNextGenNumber());
 	NewLevel->SetName(NewLevelName);
-	// NewLevel->SetDisplayName("NewLevel");
-	UE_LOG_DEBUG("LevelManager: Internal Level Name: %s", NewLevelName.ToString().data());
+	NewLevel->SetDisplayName("NewLevel");
+	// LevelManager를 Outer로 설정하여 생명주기 관리
+	NewLevel->SetOuter(this);
 
 	// 레벨 등록 및 활성화
 	RegisterLevel(NewLevelName, NewLevel);
@@ -412,7 +435,8 @@ void ULevelManager::ClearCurrentLevel()
 {
 	if (CurrentLevel)
 	{
-		delete CurrentLevel;
+		// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
+		CurrentLevel->SetOuter(nullptr);
 		CurrentLevel = nullptr;
 		UE_LOG("LevelManager: Current level cleared successfully");
 	}

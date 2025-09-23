@@ -57,7 +57,7 @@ void UAssetManager::Initialize()
 	LoadStaticMeshShaders();
 
 	// 모든 프리미티브 StaticMesh 로드
-	InitializeBasicPrimitives();
+	//InitializeBasicPrimitives();
 }
 
 void UAssetManager::Release()
@@ -393,25 +393,26 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 	bool bLoadSuccess = false;
 
+	UE_LOG_WARNING("현재 테스트를 위해 스태틱 메시 바이너리 캐시 파일을 이용한 로드가 비활성화 되어있습니다.(UAssetManager::LoadStaticMesh)");
 	// 바이너리 캐시가 유효한지 확인
-	if (UStaticMesh::IsBinaryCacheValid(InFilePath))
-	{
-		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
-		UE_LOG("AssetManager: Loading from binary cache: %s", BinaryPath.c_str());
+	//if (UStaticMesh::IsBinaryCacheValid(InFilePath))
+	//{
+	//	FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
+	//	UE_LOG("AssetManager: Loading from binary cache: %s", BinaryPath.c_str());
 
-		// 바이너리에서 로드 시도
-		bLoadSuccess = NewStaticMesh->LoadFromBinary(BinaryPath);
+	//	// 바이너리에서 로드 시도
+	//	bLoadSuccess = NewStaticMesh->LoadFromBinary(BinaryPath);
 
-		if (bLoadSuccess)
-		{
-			UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", InFilePath.c_str());
-			return NewStaticMesh;
-		}
-		else
-		{
-			UE_LOG("AssetManager: Binary cache load failed, falling back to OBJ parsing");
-		}
-	}
+	//	if (bLoadSuccess)
+	//	{
+	//		UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", InFilePath.c_str());
+	//		return NewStaticMesh;
+	//	}
+	//	else
+	//	{
+	//		UE_LOG("AssetManager: Binary cache load failed, falling back to OBJ parsing");
+	//	}
+	//}
 
 	// 바이너리 캐시가 없거나 실패한 경우 OBJ 파싱
 	UE_LOG("AssetManager: Parsing OBJ file: %s", InFilePath.c_str());

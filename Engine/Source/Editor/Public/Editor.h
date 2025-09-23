@@ -14,11 +14,16 @@ enum class EViewModeIndex : uint32
 	VMI_Wireframe,
 };
 
-class UEditor : public UObject
+UCLASS()
+class UEditor :
+	public UObject
 {
+	GENERATED_BODY()
+	DECLARE_CLASS(UEditor, UObject)
+
 public:
 	UEditor();
-	~UEditor() = default;
+	~UEditor() override;
 
 	void Update();
 	void RenderEditor();
@@ -29,22 +34,9 @@ public:
 	FVector& GetCameraLocation() { return Camera.GetLocation(); }
 	FViewProjConstants GetViewProjConstData() const { return Camera.GetFViewProjConstants(); }
 
-	UCamera* GetCamera()
-	{
-		return &Camera;
-	}
+	UCamera* GetCamera() { return &Camera; }
 
 private:
-	void ProcessMouseInput(ULevel* InLevel);
-	TArray<UPrimitiveComponent*> FindCandidatePrimitives(ULevel* InLevel);
-
-	FVector GetGizmoDragLocation(FRay& WorldRay, UCamera& Camera);
-	FVector GetGizmoDragRotation(FRay& WorldRay, UCamera& Camera);
-	FVector GetGizmoDragScale(FRay& WorldRay, UCamera& Camera);
-
-	// 현재 마우스가 위치한 뷰포트(없으면 0)의 카메라를 반환
-	UCamera* GetActivePickingCamera();
-
 	UCamera Camera; // legacy editor camera (not used for picking)
 	UObjectPicker ObjectPicker;
 
@@ -52,7 +44,21 @@ private:
 	UGizmo Gizmo;
 	UAxis Axis;
 	UBatchLines BatchLines;
-	//UGrid Grid;
 
 	EViewModeIndex CurrentViewMode = EViewModeIndex::VMI_Lit;
+
+	// Viewport Interaction
+	void HandleViewportInteraction();
+	void UpdateSelectionBounds();
+	void HandleGlobalShortcuts();
+	static FRay CreateWorldRayFromMouse(const UCamera* InPickingCamera);
+	void UpdateGizmoDrag(const FRay& InWorldRay, UCamera& InPickingCamera);
+	void HandleNewInteraction(const FRay& InWorldRay);
+	static TArray<UPrimitiveComponent*> FindCandidateActors(const ULevel* InLevel);
+
+	FVector GetGizmoDragLocation(const FRay& InWorldRay, UCamera& InCamera);
+	FVector GetGizmoDragRotation(const FRay& InWorldRay);
+	FVector GetGizmoDragScale(const FRay& InWorldRay, UCamera& InCamera);
+
+	static UCamera* GetActivePickingCamera();
 };

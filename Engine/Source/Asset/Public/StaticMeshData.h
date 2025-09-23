@@ -16,7 +16,7 @@ struct FObjMaterialInfo
 	FString NormalTexturePath;
 	FString SpecularTexturePath;
 	FVector AmbientColorScalar = FVector(0.2f, 0.2f, 0.2f);
-	FVector DiffuseColorScalar = FVector(0.8f, 0.8f, 0.8f);
+	FVector DiffuseColorScalar = FVector(1.0f, 1.0f, 1.0f); 
 	FVector SpecularColorScalar = FVector(1.0f, 1.0f, 1.0f);
 	float ShininessScalar = 32.0f;
 	float TransparencyScalar = 1.0f;
