@@ -68,7 +68,7 @@ public:
 	void RenderDirect(class UPrimitiveComponent* InPrimitiveComponent);
 
 	void RenderWithSceneProxy(class FPrimitiveSceneProxy* InSceneProxy);
-	void RenderBillBoardDirect(class UBillBoardComponent* InBillBoardComponent);
+	void RenderBillBoardDirect(class UBillBoardComponent* InBillBoardComponent, const FViewProjConstants& InViewProj);
 
 	void OnResize(uint32 Inwidth = 0, uint32 InHeight = 0) const;
 

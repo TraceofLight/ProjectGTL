@@ -15,7 +15,7 @@ public:
 	UBillBoardComponent();
 	~UBillBoardComponent() override = default;
 
-	void UpdateRotationMatrix();
+	void UpdateRotationMatrix(const FVector& InCameraLocation);
 
 	FMatrix GetRTMatrix() const { return RTMatrix; }
 
