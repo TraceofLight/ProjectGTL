@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
+#include "Material/Public/Material.h"
 
 IMPLEMENT_CLASS(UStaticMeshComponent, UMeshComponent)
 
@@ -17,6 +18,7 @@ void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
 	if (StaticMesh && StaticMesh->IsValidMesh())
 	{
 		InitializeMeshRenderData();
+		MaterialOverrideMap.clear(); // 스태틱메시 바뀌었으므로 머티리얼 오버라이드 맵 초기화
 	}
 }
 
@@ -164,10 +166,50 @@ void UStaticMeshComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax) const
 			OutMax.Z = std::max(OutMax.Z, TransformedCorner.Z);
 		}
 	}
-	else
+    
+    else
 	{
 		// 유효한 메시가 없으면 빈 박스 반환
 		OutMin = FVector(0.0f, 0.0f, 0.0f);
 		OutMax = FVector(0.0f, 0.0f, 0.0f);
 	}
+}
+
+// Material Override 관련 메서드 구현
+void UStaticMeshComponent::SetMaterialOverride(int32 SlotIndex, UMaterialInterface* Material)
+{
+	if (SlotIndex < 0)
+	{
+		return;
+	}
+
+	if (Material)
+	{
+		MaterialOverrideMap[SlotIndex] = Material;
+	}
+	else
+	{
+		// nullptr이 전달되면 오버라이드 제거
+		RemoveMaterialOverride(SlotIndex);
+	}
+}
+
+UMaterialInterface* UStaticMeshComponent::GetMaterialOverride(int32 SlotIndex) const
+{
+	auto It = MaterialOverrideMap.find(SlotIndex);
+	if (It != MaterialOverrideMap.end())
+	{
+		return It->second;
+	}
+	return nullptr;
+}
+
+void UStaticMeshComponent::RemoveMaterialOverride(int32 SlotIndex)
+{
+	MaterialOverrideMap.erase(SlotIndex);
+}
+
+void UStaticMeshComponent::ClearMaterialOverrides()
+{
+	MaterialOverrideMap.clear();
 }
