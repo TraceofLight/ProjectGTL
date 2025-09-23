@@ -15,40 +15,39 @@ class UViewportManager : public UObject
 	DECLARE_SINGLETON_CLASS(UViewportManager, UObject)
 
 public:
-    void Initialize(FAppWindow* InWindow);
-    void Update();
-    void RenderOverlay();
+	void Initialize(FAppWindow* InWindow);
+	void Update();
+	void RenderOverlay();
 
-    // 마우스 입력을 스플리터/윈도우 트리에 라우팅 (드래그/리사이즈 처리)
-    void TickInput();
+	// 마우스 입력을 스플리터/윈도우 트리에 라우팅 (드래그/리사이즈 처리)
+	void TickInput();
 
 	// 레이아웃
-    void BuildSingleLayout(int32 PromoteIdx = -1);
-    void BuildFourSplitLayout();
+	void BuildSingleLayout(int32 PromoteIdx = -1);
+	void BuildFourSplitLayout();
 
 	// 루트 접근
-    void SetRoot(SWindow* InRoot);
-    SWindow* GetRoot();
+	void SetRoot(SWindow* InRoot) { Root = InRoot; }
+	SWindow* GetRoot() const { return Root; }
 
 	// 리프 Rect 수집
-    void GetLeafRects(TArray<FRect>& OutRects);
+	void GetLeafRects(TArray<FRect>& OutRects) const;
 
-    // 현재 마우스가 위치한 뷰포트 인덱스(-1이면 없음)
-    int8 GetViewportIndexUnderMouse() const;
+	// 현재 마우스가 위치한 뷰포트 인덱스(-1이면 없음)
+	int32 GetViewportIndexUnderMouse() const;
 
-    // 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
-    bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;
+	// 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
+	bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;
 
-    TArray<FViewport*>& GetViewports() { return Viewports; }
-    TArray<FViewportClient*>& GetClients() { return Clients; }
+	TArray<FViewport*>& GetViewports() { return Viewports; }
+	TArray<FViewportClient*>& GetClients() { return Clients; }
 
 private:
 	// 내부 유틸
-    void SyncRectsToViewports();                   // 리프Rect → Viewport.Rect
-    void PumpAllViewportInput();                   // 각 뷰포트 → 클라 입력 전달
-    void TickCameras(float InDeltaSeconds);          // 카메라 업데이트 일원화(공유 오쏘 1회)
-    void UpdateActiveRmbViewportIndex();            // 우클릭 드래그 대상 뷰포트 인덱스 계산
-
+	void SyncRectsToViewports() const; // 리프Rect → Viewport.Rect
+	void PumpAllViewportInput() const; // 각 뷰포트 → 클라 입력 전달
+	void TickCameras() const; // 카메라 업데이트 일원화(공유 오쏘 1회)
+	void UpdateActiveRmbViewportIndex(); // 우클릭 드래그 대상 뷰포트 인덱스 계산
 
 	void InitializeViewportAndClient();
 	void InitializeOrthoGraphicCamera();
@@ -56,36 +55,35 @@ private:
 
 	void UpdateOrthoGraphicCameraPoint();
 
-	void UpdateOrthoGraphicCameraFov();
+	void UpdateOrthoGraphicCameraFov() const;
 
-	void BindOrthoGraphicCameraToClient();
+	void BindOrthoGraphicCameraToClient() const;
 
 	void ForceRefreshOrthoViewsAfterLayoutChange();
 
-	void ApplySharedOrthoCenterToAllCameras();
+	void ApplySharedOrthoCenterToAllCameras() const;
 
 	void PersistSplitterRatios();
 
 private:
-    SWindow* Root = nullptr;
-    SWindow* Capture = nullptr;
+	SWindow* Root = nullptr;
+	SWindow* Capture = nullptr;
 
-    // App main window for querying current client size each frame
-    FAppWindow* AppWindow = nullptr;
+	// App main window for querying current client size each frame
+	FAppWindow* AppWindow = nullptr;
 
-	TArray<FViewport*>       Viewports;
+	TArray<FViewport*> Viewports;
 	TArray<FViewportClient*> Clients;
-
 
 	TArray<UCamera*> OrthoGraphicCameras;
 	TArray<UCamera*> PerspectiveCameras;
 
 	TArray<FVector> InitialOffsets;
 
-	FVector OrthoGraphicCamerapoint{ 0.0f,0.0f,0.0f };
+	FVector OrthoGraphicCamerapoint{0.0f, 0.0f, 0.0f};
 
-    // 현재 우클릭(카메라 제어) 입력이 적용될 뷰포트 인덱스 (-1이면 없음)
-    int32 ActiveRmbViewportIdx = -1;
+	// 현재 우클릭(카메라 제어) 입력이 적용될 뷰포트 인덱스 (-1이면 없음)
+	int32 ActiveRmbViewportIdx = -1;
 
 	EViewportChange ViewportChange = EViewportChange::Single;
 
@@ -101,8 +99,6 @@ private:
 	SSplitter* Left = nullptr;
 	SSplitter* Right = nullptr;
 };
-
-
 
 // UE 스타일 아이콘 타입
 enum class EUEViewportIcon : uint8
@@ -125,7 +121,7 @@ struct FUEImgui
 
 	// 언리얼풍 툴바 아이콘 버튼
 	static bool ToolbarIconButton(const char* InId, EUEViewportIcon InIcon, bool bInActive,
-		const ImVec2& InSize = ImVec2(32.f, 22.f), float InRounding = 6.f)
+	                              const ImVec2& InSize = ImVec2(32.f, 22.f), float InRounding = 6.f)
 	{
 		ImGui::PushID(InId);
 		ImGui::InvisibleButton("##btn", InSize);
@@ -156,34 +152,34 @@ struct FUEImgui
 		switch (InIcon)
 		{
 		case EUEViewportIcon::Single:
-		{
-			// 안쪽 얇은 사각 (언리얼 뷰포트 단일 레이아웃 아이콘 느낌)
-			const float r = 3.f;
-			DL->AddRect(CMin, CMax, ic, r, 0, 1.5f);
-		}
-		break;
+			{
+				// 안쪽 얇은 사각 (언리얼 뷰포트 단일 레이아웃 아이콘 느낌)
+				const float r = 3.f;
+				DL->AddRect(CMin, CMax, ic, r, 0, 1.5f);
+			}
+			break;
 		case EUEViewportIcon::Quad:
-		{
-			// 2x2 그리드
-			ImVec2 C = ImVec2((CMin.x + CMax.x) * 0.5f, (CMin.y + CMax.y) * 0.5f);
-			DL->AddLine(ImVec2(CMin.x, C.y), ImVec2(CMax.x, C.y), ic, 1.2f);
-			DL->AddLine(ImVec2(C.x, CMin.y), ImVec2(C.x, CMax.y), ic, 1.2f);
-			// 바깥 테두리도 살짝
-			DL->AddRect(CMin, CMax, ic, 3.f, 0, 1.2f);
-		}
-		break;
+			{
+				// 2x2 그리드
+				ImVec2 C = ImVec2((CMin.x + CMax.x) * 0.5f, (CMin.y + CMax.y) * 0.5f);
+				DL->AddLine(ImVec2(CMin.x, C.y), ImVec2(CMax.x, C.y), ic, 1.2f);
+				DL->AddLine(ImVec2(C.x, CMin.y), ImVec2(C.x, CMax.y), ic, 1.2f);
+				// 바깥 테두리도 살짝
+				DL->AddRect(CMin, CMax, ic, 3.f, 0, 1.2f);
+			}
+			break;
 		case EUEViewportIcon::Kebab:
-		{
-			// 세로 점 3개
-			const float cx = (CMin.x + CMax.x) * 0.5f;
-			const float cy = (CMin.y + CMax.y) * 0.5f;
-			const float r = 1.5f;
-			const float dy = 5.0f;
-			DL->AddCircleFilled(ImVec2(cx, cy - dy), r, ic);
-			DL->AddCircleFilled(ImVec2(cx, cy), r, ic);
-			DL->AddCircleFilled(ImVec2(cx, cy + dy), r, ic);
-		}
-		break;
+			{
+				// 세로 점 3개
+				const float cx = (CMin.x + CMax.x) * 0.5f;
+				const float cy = (CMin.y + CMax.y) * 0.5f;
+				const float r = 1.5f;
+				const float dy = 5.0f;
+				DL->AddCircleFilled(ImVec2(cx, cy - dy), r, ic);
+				DL->AddCircleFilled(ImVec2(cx, cy), r, ic);
+				DL->AddCircleFilled(ImVec2(cx, cy + dy), r, ic);
+			}
+			break;
 		default: break;
 		}
 
