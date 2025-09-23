@@ -6,6 +6,23 @@ IMPLEMENT_CLASS(UMaterialInterface, UObject)
 IMPLEMENT_CLASS(UMaterial, UMaterialInterface)
 IMPLEMENT_CLASS(UMaterialInstance, UMaterialInterface)
 
+UMaterial::~UMaterial()
+{
+	SafeDelete(RenderProxy);
+	if (DiffuseTexture)
+	{
+		DiffuseTexture->Release();
+	}
+	if (NormalTexture)
+	{
+		NormalTexture->Release();
+	}
+	if (SpecularTexture)
+	{
+		SpecularTexture->Release();
+	}
+}
+
 void UMaterial::SetMaterialInfo(const FObjMaterialInfo& InMaterialInfo)
 {
 	MaterialInfo = InMaterialInfo;

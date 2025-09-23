@@ -26,7 +26,9 @@ class UMaterial : public UMaterialInterface
 {
 	GENERATED_BODY()
 	DECLARE_CLASS(UMaterial, UMaterialInterface)
+
 public:
+	~UMaterial() override;
 	void SetMaterialInfo(const FObjMaterialInfo& InMaterialInfo);
 	const FObjMaterialInfo& GetMaterialInfo() const;
 
