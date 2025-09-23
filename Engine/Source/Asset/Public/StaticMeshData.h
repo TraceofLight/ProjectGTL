@@ -66,7 +66,7 @@ struct FObjInfo
 	TArray<uint32> UVIndexList;					// OBJ 'f' 명령어의 UV 인덱스 (UVList 참조)
 	TArray<uint32> NormalIndexList;			// OBJ 'f' 명령어의 노멀 인덱스 (NormalList 참조)
 	TArray<FObjSectionInfo> Sections;		// OBJ 그룹과 머티리얼을 위한 섹션 정보
-	TMap<FString, FObjMaterialInfo> Materials;	// 이 객체에서 참조하는 머티리얼 정보
+	TMap<FString, FObjMaterialInfo> MaterialInfos;	// 이 객체에서 참조하는 머티리얼 정보
 
 	FObjInfo() = default;
 

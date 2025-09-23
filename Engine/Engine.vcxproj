@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Source\Manager\Path\Public\PathManager.h" />
     <ClInclude Include="Source\Runtime\Actor\Public\Actor.h" />
     <ClInclude Include="Source\Runtime\Actor\Public\StaticMeshActor.h" />
     <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
@@ -276,6 +277,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source\Manager\Path\Private\PathManager.cpp" />
     <ClCompile Include="Source\Material\Private\Material.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\Actor.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\StaticMeshActor.cpp" />
