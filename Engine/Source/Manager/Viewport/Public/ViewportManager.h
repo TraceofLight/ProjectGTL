@@ -78,6 +78,8 @@ private:
 	TArray<UCamera*> OrthoGraphicCameras;
 	TArray<UCamera*> PerspectiveCameras;
 
+	TArray<FVector> InitialOffsets;
+
 	FVector OrthoGraphicCamerapoint{ 0.0f,0.0f,0.0f };
 
     // 현재 우클릭(카메라 제어) 입력이 적용될 뷰포트 인덱스 (-1이면 없음)

@@ -53,7 +53,7 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	InitializePerspectiveCamera();
 
 	// 직교 카메라 중점 업데이트
-	//UpdateOrthoGraphicCameraPoint();
+	UpdateOrthoGraphicCameraPoint();
 
 	// 바인드
 	BindOrthoGraphicCameraToClient();
@@ -320,7 +320,7 @@ void UViewportManager::Update()
 
 	UpdateOrthoGraphicCameraFov();
 
-	ApplySharedOrthoCenterToAllCameras();
+	//ApplySharedOrthoCenterToAllCameras();
 
 	// 3) 카메라 업데이트 (공유 오쏘 1회, 퍼스펙티브는 각자)
 	TickCameras(DT);
@@ -603,6 +603,15 @@ void UViewportManager::InitializeOrthoGraphicCamera()
 	OrthoGraphicCameras[5]->SetRotation(FVector(0.0f, 0.0f, 0.0f));
 	OrthoGraphicCameras[5]->SetCameraType(ECameraType::ECT_Orthographic);
 	OrthoGraphicCameras[5]->SetFarZ(150.0f);
+
+
+
+	InitialOffsets.push_back(FVector(0.0f, 0.0f, 100.0f));
+	InitialOffsets.push_back(FVector(0.0f, 0.0f, -100.0f));
+	InitialOffsets.push_back(FVector(0.0f, 100.0f, 0.0f));
+	InitialOffsets.push_back(FVector(0.0f, -100.0f, 0.0f));
+	InitialOffsets.push_back(FVector(100.0f, 0.0f, 0.0f));
+	InitialOffsets.push_back(FVector(-100.0f, 0.0f, 0.0f));
 }
 
 void UViewportManager::InitializePerspectiveCamera()
@@ -660,8 +669,11 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 	}
 	Fwd.Normalize();
 
+	
 	FVector UpRef(0, 0, 1);
 	if (std::fabs(Fwd.Dot(UpRef)) > 0.999f) UpRef = FVector(1, 0, 0);
+
+
 
 	FVector Right = Fwd.Cross(UpRef); Right.Normalize();
 	FVector Up = Right.Cross(Fwd);  Up.Normalize();
@@ -670,38 +682,50 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 	const FVector& d = Input.GetMouseDelta();
 	if (d.X == 0.0f && d.Y == 0.0f) return;
 
-	UE_LOG("%f %f", -d.X, d.Y);
+	//UE_LOG("%f %f", -d.X, d.Y);
 
 	const float Aspect = (Height > 0.f) ? (Width / Height) : 1.0f;
 	const float Rad = FVector::GetDegreeToRadian(OrthoCam->GetFovY());
 	const float OrthoWidth = 2.0f * std::tanf(Rad * 0.5f);
 	const float OrthoHeight = (Aspect > 0.0f) ? (OrthoWidth / Aspect) : OrthoWidth;
 
-	// 화면 기준 오른쪽(+), 위쪽(-) → NDC 변환
-	const float NdcDX = (-d.X / Width) * 2.0f;
-	const float NdcDY = (-d.Y / Height) * 2.0f;
+	// 화면 기준 드래그 비율(NDC 스케일) 기본 부호
+	float sX = -1.0f;
+	float sY = 1.0f;
+
+	// Top/Bottom은 화면 축이 180° 뒤집혀 보이므로 둘 다 반전
+	if (ViewType == EViewType::OrthoTop || ViewType == EViewType::OrthoBottom)
+	{
+		sX *= -1.0f;
+		sY *= -1.0f;
+	}
+
+	// NDC 델타 (마우스 픽셀 → -1..+1)
+	const float NdcDX = sX * (d.X / Width) * 2.0f;
+	const float NdcDY = sY * (d.Y / Height) * 2.0f;
 
 	const FVector WorldDelta = Right * (NdcDX * (OrthoWidth * 0.5f)) + Up * (NdcDY * (OrthoHeight * 0.5f));
 
-	// 공유 중심점 갱신
-	OrthoGraphicCamerapoint.X += WorldDelta.X;
-	OrthoGraphicCamerapoint.Y += WorldDelta.Y;
-	OrthoGraphicCamerapoint.Z += WorldDelta.Z;
+	// 공유 중심 누적 이동
+	OrthoGraphicCamerapoint += WorldDelta;
 
-	// 6방향 오쏘 카메라를 중심점 기준으로 재배치 (각 카메라의 '거리' 유지)
-	auto Reposition = [&](int CamIndex, const FVector& CamFwd)
+	UE_LOG("%f %f %f", WorldDelta.X, WorldDelta.Y, WorldDelta.Z);
+
+	for (int32 i = 0; i < (int32)OrthoGraphicCameras.size(); ++i)
+	{
+		if (UCamera* Cam = OrthoGraphicCameras[i])
 		{
-			if (CamIndex < 0 || CamIndex >= (int)OrthoGraphicCameras.size()) return;
-			if (UCamera* Cam = OrthoGraphicCameras[CamIndex])
-			{
-				const FVector Loc = Cam->GetLocation();
-				const FVector ToC = Loc - OrthoGraphicCamerapoint;
-				const float   Dist = std::fabs(ToC.Dot(CamFwd)); // 현재 중심까지의 전방거리 유지
-				Cam->SetLocation(OrthoGraphicCamerapoint - CamFwd * Dist);
-				Cam->Update(); // 뷰/투영 상수 갱신
-			}
-		};
+			Cam->SetLocation(OrthoGraphicCamerapoint + InitialOffsets[i]);
+			Cam->Update();
+		}
+	}
 
+	//OrthoGraphicCameras[0]->SetLocation(FVector(0.0f, 0.0f, 100.0f) + OrthoGraphicCamerapoint);
+	//OrthoGraphicCameras[1]->SetLocation(FVector(0.0f, 0.0f, -100.0f) + OrthoGraphicCamerapoint);
+	//OrthoGraphicCameras[2]->SetLocation(FVector(0.0f, 100.0f, 0.0f) + OrthoGraphicCamerapoint);
+	//OrthoGraphicCameras[3]->SetLocation(FVector(0.0f, -100.0f, 0.0f) + OrthoGraphicCamerapoint);
+	//OrthoGraphicCameras[4]->SetLocation(FVector(100.0f, 0.0f, 0.0f) + OrthoGraphicCamerapoint);
+	//OrthoGraphicCameras[5]->SetLocation(FVector(-100.0f, 0.0f, 0.0f) + OrthoGraphicCamerapoint);
 
 	//UE_LOG("%f %f %f", OrthoGraphicCamerapoint.X, OrthoGraphicCamerapoint.Y, OrthoGraphicCamerapoint.Z);
 }
