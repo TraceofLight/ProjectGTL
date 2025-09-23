@@ -23,7 +23,7 @@ public:
     void TickInput();
 
 	// 레이아웃
-    void BuildSingleLayout();
+    void BuildSingleLayout(int32 PromoteIdx = -1);
     void BuildFourSplitLayout();
 
 	// 루트 접근

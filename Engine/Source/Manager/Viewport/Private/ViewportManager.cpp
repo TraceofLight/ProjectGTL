@@ -70,11 +70,14 @@ SWindow* UViewportManager::GetRoot()
 	return Root;
 }
 
-void UViewportManager::BuildSingleLayout()
+void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 {
 	if (!Root) return;
 	// 0) 싱글로 전환하기 전에 "어떤 뷰포트가 메인으로 갈지" 결정
-	int32 PromoteIdx = (int32)GetViewportIndexUnderMouse(); // 마우스 아래 인덱스
+	//PromoteIdx = (int32)GetViewportIndexUnderMouse(); // 마우스 아래 인덱스
+
+	UE_LOG("%d", PromoteIdx);
+
 	if (PromoteIdx < 0 || PromoteIdx >= (int32)Viewports.size())
 	{
 		// 우클릭 드래그 중인 뷰가 있으면 그걸 우선, 없으면 0번 유지
@@ -528,7 +531,7 @@ void UViewportManager::RenderOverlay()
 				{
 					CurrentLayout = ELayout::Single;
 					ViewportChange = EViewportChange::Single;
-					BuildSingleLayout();
+					BuildSingleLayout(i);
 				}
 			}
 		}
