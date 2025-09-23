@@ -185,3 +185,9 @@ enum class EViewType : uint8
 	OrthoFront,
 	OrthoBack
 };
+
+enum class EViewportChange : uint8
+{
+	Single,
+	Quad
+};

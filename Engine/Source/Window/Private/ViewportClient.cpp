@@ -18,11 +18,9 @@ void FViewportClient::Tick(float InDeltaSeconds)
 	// 카메라 입력은 UCamera::Update()가 UInputManager를 직접 읽는 구조라면 여기서 호출만 하면 됨.
     if (IsOrtho())
     {
-        if (OrthoGraphicCamera)
+        if (OrthoGraphicCameras)
         {
-            ApplyOrthoBasisForViewType(*OrthoGraphicCamera);  // Top/Front/Right 등 기준 축 세팅
-           // OrthoGraphicCamera->SetCameraType(ECameraType::ECT_Orthographic);
-            OrthoGraphicCamera->Update();                     // 내부에서 입력 처리 + View/Proj 갱신
+            OrthoGraphicCameras->Update();                     // 내부에서 입력 처리 + View/Proj 갱신
         }
     }
     else if (PerspectiveCamera)
@@ -42,13 +40,13 @@ void FViewportClient::Draw(FViewport* InViewport)
 
     if (IsOrtho())
     {
-        if (OrthoGraphicCamera)
+        if (OrthoGraphicCameras)
         {
-            OrthoGraphicCamera->SetAspect(Aspect);
-            OrthoGraphicCamera->SetCameraType(ECameraType::ECT_Orthographic);
-            OrthoGraphicCamera->UpdateMatrixByOrth();
-            ViewMatrix = OrthoGraphicCamera->GetFViewProjConstants().View;
-            ProjMMatrix = OrthoGraphicCamera->GetFViewProjConstants().Projection;
+            OrthoGraphicCameras->SetAspect(Aspect);
+            OrthoGraphicCameras->SetCameraType(ECameraType::ECT_Orthographic);
+            OrthoGraphicCameras->UpdateMatrixByOrth();
+            ViewMatrix = OrthoGraphicCameras->GetFViewProjConstants().View;
+            ProjMMatrix = OrthoGraphicCameras->GetFViewProjConstants().Projection;
         }
     }
     else if (PerspectiveCamera)
@@ -59,25 +57,4 @@ void FViewportClient::Draw(FViewport* InViewport)
         ViewMatrix = PerspectiveCamera->GetFViewProjConstants().View;
         ProjMMatrix = PerspectiveCamera->GetFViewProjConstants().Projection;
     }
-
-	// 렌더러에 바인딩 (프로젝트의 렌더 경로에 맞춰 호출)
-	//SetViewProjection(ViewMatrix, ProjM);
-	//RenderWorld();
-	//RenderEditorOverlays();
-}
-
-void FViewportClient::ApplyOrthoBasisForViewType(UCamera& OutCamera)
-{
-	// 카메라의 Forward / Up / Right를 뷰 타입 평면에 맞춰 잡아준다.
-	// (Top=+Z에서 내려다봄, Bottom=-Z에서 올려봄, Front=+Y에서 -Y로, Back=-Y에서 +Y로, Right=+X, Left=-X)
-	switch (ViewType)
-	{
-		case EViewType::OrthoTop:     OutCamera.GetRotation() = FVector(0, -90, 0); break; // Pitch -90 (Z-로 바라봄)
-		case EViewType::OrthoBottom:  OutCamera.GetRotation() = FVector(0, 90, 0); break; // Pitch +90 (Z+로 바라봄)
-		case EViewType::OrthoFront:   OutCamera.GetRotation() = FVector(0, 0, 0); break; // Y-쪽을 Forward로 쓰는 좌표계면 여기 보정
-		case EViewType::OrthoBack:    OutCamera.GetRotation() = FVector(0, 0, 180); break;
-		case EViewType::OrthoRight:   OutCamera.GetRotation() = FVector(0, 0, 90); break;
-		case EViewType::OrthoLeft:    OutCamera.GetRotation() = FVector(0, 0, -90); break;
-	default: break;
-	}
 }

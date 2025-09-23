@@ -30,9 +30,9 @@ void USceneHierarchyWidget::Update()
 		auto& ViewportManager = UViewportManager::GetInstance();
 
 		// Update orthogonal camera
-		TObjectPtr<UCamera> OrthogonalCamera = TObjectPtr(ViewportManager.GetOrthographicCamera());
-		UpdateCameraAnimation(OrthogonalCamera);
-
+		//TObjectPtr<UCamera> OrthogonalCamera = TObjectPtr(ViewportManager.GetOrthographicCamera());
+		//UpdateCameraAnimation(OrthogonalCamera);
+		//
 		// Update perspective camera
 		for (FViewportClient* Client : ViewportManager.GetClients())
 		{

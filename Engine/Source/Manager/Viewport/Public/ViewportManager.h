@@ -23,7 +23,7 @@ public:
     void TickInput();
 
 	// 레이아웃
-    void BuildSingleLayout();
+    void BuildSingleLayout(int32 PromoteIdx = -1);
     void BuildFourSplitLayout();
 
 	// 루트 접근
@@ -39,25 +39,34 @@ public:
     // 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
     bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;
 
-	// 공유 오쏘 카메라(읽기 전용 포인터를 클라에 주입)
-    UCamera* GetOrthographicCamera() const { return OrthographicCamera; }
-
     TArray<FViewport*>& GetViewports() { return Viewports; }
     TArray<FViewportClient*>& GetClients() { return Clients; }
 
 private:
 	// 내부 유틸
-    void CreateViewportsAndClients(int32 InCount); // 싱글(1) 또는 쿼드(4)
     void SyncRectsToViewports();                   // 리프Rect → Viewport.Rect
     void PumpAllViewportInput();                   // 각 뷰포트 → 클라 입력 전달
     void TickCameras(float InDeltaSeconds);          // 카메라 업데이트 일원화(공유 오쏘 1회)
     void UpdateActiveRmbViewportIndex();            // 우클릭 드래그 대상 뷰포트 인덱스 계산
-    void SyncOrthographicSharedState(int32 SourceIdx); // 오쏘 공유 상태를 모든 오쏘 뷰포트에 반영
+
+
+	void InitializeViewportAndClient();
+	void InitializeOrthoGraphicCamera();
+	void InitializePerspectiveCamera();
+
+	void UpdateOrthoGraphicCameraPoint();
+
+	void UpdateOrthoGraphicCameraFov();
+
+	void BindOrthoGraphicCameraToClient();
+
+	void ForceRefreshOrthoViewsAfterLayoutChange();
+
+	void ApplySharedOrthoCenterToAllCameras();
 
 private:
     SWindow* Root = nullptr;
     SWindow* Capture = nullptr;
-    bool bFourSplitActive = false;
 
     // App main window for querying current client size each frame
     FAppWindow* AppWindow = nullptr;
@@ -65,20 +74,109 @@ private:
 	TArray<FViewport*>       Viewports;
 	TArray<FViewportClient*> Clients;
 
-    TObjectPtr<UCamera> OrthographicCamera = nullptr;
 
-    // 프레임 타이밍
-    double LastTime = 0.0;
+	TArray<UCamera*> OrthoGraphicCameras;
+	TArray<UCamera*> PerspectiveCameras;
+
+	TArray<FVector> InitialOffsets;
+
+	FVector OrthoGraphicCamerapoint{ 0.0f,0.0f,0.0f };
 
     // 현재 우클릭(카메라 제어) 입력이 적용될 뷰포트 인덱스 (-1이면 없음)
     int32 ActiveRmbViewportIdx = -1;
 
-    // Shared orthographic state (center & zoom)
-    bool  bOrthoSharedInit = false;
-    FVector OrthoSharedCenter{ 0,0,0 };
-    float OrthoSharedFovY = 160.0f; // default wide view
+	EViewportChange ViewportChange = EViewportChange::Single;
 
-    // Pending view type changes from toolbar (applied at start of Update before rendering)
-    TArray<bool>      PendingTypeDirty;
-    TArray<EViewType> PendingTypeValue;
+	float SharedFovY = 150.0f;
+
+};
+
+
+
+// UE 스타일 아이콘 타입
+enum class EUEViewportIcon : uint8
+{
+	Single,
+	Quad,
+	Kebab // (옵션) 세 점
+};
+
+struct FUEImgui
+{
+	// 팔레트 (언리얼 톤 느낌)
+	static ImU32 ColBG() { return IM_COL32(45, 45, 45, 255); }
+	static ImU32 ColBGHover() { return IM_COL32(58, 58, 58, 255); }
+	static ImU32 ColBGActive() { return IM_COL32(74, 74, 74, 255); }
+	static ImU32 ColBorder() { return IM_COL32(96, 96, 96, 255); }
+	static ImU32 ColBorderHot() { return IM_COL32(110, 110, 110, 255); }
+	static ImU32 ColIcon() { return IM_COL32(205, 205, 205, 255); }
+	static ImU32 ColIconActive() { return IM_COL32(46, 163, 255, 255); } // 액티브 포커스 블루
+
+	// 언리얼풍 툴바 아이콘 버튼
+	static bool ToolbarIconButton(const char* InId, EUEViewportIcon InIcon, bool bInActive,
+		const ImVec2& InSize = ImVec2(32.f, 22.f), float InRounding = 6.f)
+	{
+		ImGui::PushID(InId);
+		ImGui::InvisibleButton("##btn", InSize);
+		bool bPressed = ImGui::IsItemClicked();
+		bool bHovered = ImGui::IsItemHovered();
+
+		ImDrawList* DL = ImGui::GetForegroundDrawList();
+		ImVec2 Min = ImGui::GetItemRectMin();
+		ImVec2 Max = ImGui::GetItemRectMax();
+
+		// 배경
+		ImU32 bg = bInActive ? ColBGActive() : (bHovered ? ColBGHover() : ColBG());
+		DL->AddRectFilled(Min, Max, bg, InRounding);
+
+		// 외곽 테두리
+		ImU32 bd = bHovered ? ColBorderHot() : ColBorder();
+		DL->AddRect(Min, Max, bd, InRounding, 0, 1.0f);
+
+		// 콘텐츠 패딩
+		const float Pad = 5.f;
+		ImVec2 CMin = ImVec2(Min.x + Pad, Min.y + Pad);
+		ImVec2 CMax = ImVec2(Max.x - Pad, Max.y - Pad);
+
+		// 아이콘 색
+		ImU32 ic = bInActive ? ColIconActive() : ColIcon();
+
+		// 아이콘 그리기
+		switch (InIcon)
+		{
+		case EUEViewportIcon::Single:
+		{
+			// 안쪽 얇은 사각 (언리얼 뷰포트 단일 레이아웃 아이콘 느낌)
+			const float r = 3.f;
+			DL->AddRect(CMin, CMax, ic, r, 0, 1.5f);
+		}
+		break;
+		case EUEViewportIcon::Quad:
+		{
+			// 2x2 그리드
+			ImVec2 C = ImVec2((CMin.x + CMax.x) * 0.5f, (CMin.y + CMax.y) * 0.5f);
+			DL->AddLine(ImVec2(CMin.x, C.y), ImVec2(CMax.x, C.y), ic, 1.2f);
+			DL->AddLine(ImVec2(C.x, CMin.y), ImVec2(C.x, CMax.y), ic, 1.2f);
+			// 바깥 테두리도 살짝
+			DL->AddRect(CMin, CMax, ic, 3.f, 0, 1.2f);
+		}
+		break;
+		case EUEViewportIcon::Kebab:
+		{
+			// 세로 점 3개
+			const float cx = (CMin.x + CMax.x) * 0.5f;
+			const float cy = (CMin.y + CMax.y) * 0.5f;
+			const float r = 1.5f;
+			const float dy = 5.0f;
+			DL->AddCircleFilled(ImVec2(cx, cy - dy), r, ic);
+			DL->AddCircleFilled(ImVec2(cx, cy), r, ic);
+			DL->AddCircleFilled(ImVec2(cx, cy + dy), r, ic);
+		}
+		break;
+		default: break;
+		}
+
+		ImGui::PopID();
+		return bPressed;
+	}
 };

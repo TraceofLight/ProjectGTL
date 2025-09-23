@@ -27,8 +27,8 @@ public:
 	UCamera* GetPerspectiveCamera() { return PerspectiveCamera; }
 
     // 오쏘 카메라 (뷰포트별)
-    void     SetOrthoCamera(UCamera* InCamera) { OrthoGraphicCamera = InCamera; }
-    UCamera* GetOrthoCamera() { return OrthoGraphicCamera; }
+    void     SetOrthoCamera(UCamera* InCamera) { OrthoGraphicCameras = InCamera; }
+    UCamera* GetOrthoCamera() { return OrthoGraphicCameras; }
 
 
 	bool        IsOrtho() const { return ViewType != EViewType::Perspective; }
@@ -51,12 +51,9 @@ public:
 	void OnLoseFocus() {}
 	void OnClose() {}
 
-	// ---------- 유틸 ----------
-	// 현재 뷰 타입에 맞는 월드 기준 축을 카메라(Right/Up/Forward)로 세팅
-	void ApplyOrthoBasisForViewType(UCamera& OutCamera);
 
     FViewProjConstants GetPerspectiveViewProjConstData() const { return PerspectiveCamera->GetFViewProjConstants(); }
-    FViewProjConstants GetOrthoGraphicViewProjConstData() const { return OrthoGraphicCamera->GetFViewProjConstants(); }
+    FViewProjConstants GetOrthoGraphicViewProjConstData() const { return OrthoGraphicCameras->GetFViewProjConstants(); }
 private:
 
 private:
@@ -65,7 +62,7 @@ private:
 	EViewMode   ViewMode = EViewMode::Lit;
 
     TObjectPtr<UCamera> PerspectiveCamera = nullptr;
-    TObjectPtr<UCamera> OrthoGraphicCamera = nullptr;
+    TObjectPtr<UCamera> OrthoGraphicCameras = nullptr;
 
 
 	// 뷰/입력 상태
