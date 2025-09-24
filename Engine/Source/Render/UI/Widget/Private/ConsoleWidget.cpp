@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ConsoleWidget.h"
-
+#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 #include "Utility/Public/UELogParser.h"
 
 IMPLEMENT_SINGLETON_CLASS(UConsoleWidget, UWidget)
@@ -449,6 +449,12 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 		AddLog(ELogType::Debug, "    혼합형: UE_LOG(\"Player %%s has %%d points\", \"Alice\", 1500)");
 		AddLog(ELogType::Debug, "    다중 인자: UE_LOG(\"Score: %%d, Lives: %%d\", 2500, 3)");
 		AddLog(ELogType::Info, "");
+		AddLog(ELogType::System, "Overlay Commands:");
+		AddLog(ELogType::Info, "  STAT FPS - Show FPS overlay");
+		AddLog(ELogType::Info, "  STAT MEMORY - Show Memory overlay");
+		AddLog(ELogType::Info, "  STAT ALL - Show all overlays");
+		AddLog(ELogType::Info, "  STAT NONE - Hide all overlays");
+		AddLog(ELogType::Info, "");
 		AddLog(ELogType::System, "Camera Controls:");
 		AddLog(ELogType::Info, "  우클릭 + WASD - 카메라 이동");
 		AddLog(ELogType::Info, "  우클릭 + Q/E - 위/아래 이동");
@@ -457,6 +463,23 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 		AddLog(ELogType::Info, "");
 		AddLog(ELogType::System, "Terminal Commands:");
 		AddLog(ELogType::Info, "  Any Windows command will be executed directly");
+	}
+
+	// stat 명령어 입력
+	// 오버레이 매니저 서브시스템 가져와서 처리
+	else if (FString CommandLower = InCommand;
+		transform(CommandLower.begin(), CommandLower.end(), CommandLower.begin(), ::tolower),
+		CommandLower.substr(0, 4) == "stat")
+	{
+		if (auto* OverlayManager = GEngine->GetEngineSubsystem<UOverlayManagerSubsystem>())
+		{
+			OverlayManager->ProcessStatCommand(CommandLower);
+			AddLog(ELogType::Success, "OverlayManagerSubsystem: Command processed: %s", InCommand);
+		}
+		else
+		{
+			AddLog(ELogType::Error, "OverlayManagerSubsystem: Not available");
+		}
 	}
 	else
 	{

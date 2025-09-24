@@ -255,6 +255,7 @@
     <ClInclude Include="Source\Runtime\Subsystem\Public\Subsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\SubsystemCollection.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\EngineSubsystem.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\OverlayManagerSubsystem.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Engine.h" />
     <ClInclude Include="Source\Runtime\Core\Public\EngineEditor.h" />
     <ClInclude Include="Source\Runtime\Core\Public\GameInstance.h" />
@@ -330,6 +331,7 @@
     <ClCompile Include="Source\Manager\Input\Private\InputManager.cpp" />
     <ClCompile Include="Source\Manager\Level\Private\LevelManager.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\PathSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\OverlayManagerSubsystem.cpp" />
     <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\DeviceResources.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\Pipeline.cpp" />

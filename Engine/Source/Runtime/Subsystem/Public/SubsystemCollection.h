@@ -6,6 +6,7 @@
 #include "GameInstanceSubsystem.h"
 #include "LocalPlayerSubsystem.h"
 #include "PathSubsystem.h"
+#include "OverlayManagerSubsystem.h"
 
 /**
  * @brief 특정 타입의 서브시스템들을 담아서 생명주기를 관리하는 컨테이너 클래스
@@ -152,6 +153,11 @@ void FSubsystemCollection<TBaseSubsystem>::CreateAndInitializeSubsystems(TObject
 				if (ClassTypeName == "UPathSubsystem")
 				{
 					NewSubsystem = TObjectPtr<TBaseSubsystem>(reinterpret_cast<TBaseSubsystem*>(new UPathSubsystem()));
+				}
+				else if (ClassTypeName == "UOverlayManagerSubsystem")
+				{
+					NewSubsystem = TObjectPtr<TBaseSubsystem>(
+						reinterpret_cast<TBaseSubsystem*>(new UOverlayManagerSubsystem()));
 				}
 				// 다른 서브시스템 타입들도 여기에 추가
 

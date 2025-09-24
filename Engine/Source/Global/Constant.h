@@ -14,8 +14,11 @@ namespace Time
 }
 
 constexpr float PI = 3.141592f;
+
 constexpr uint64 KILO = 1024;
-constexpr uint64 MEGA = 1024 * 1024;
+constexpr uint64 MEGA = KILO * 1024;
+constexpr SIZE_T GIGA = MEGA * 1024;
+
 constexpr float MATH_EPSILON = 1e-6f;
 constexpr float ToRad = PI / 180.0f;
 constexpr float ToDeg = 180.0f / PI;
