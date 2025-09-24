@@ -36,7 +36,6 @@ static void DestroyTree(SWindow*& Node)
 	Node = nullptr;
 }
 
-
 void UViewportManager::Initialize(FAppWindow* InWindow)
 {
 	// 밖에서 윈도우를 가져와 크기를 가져온다
@@ -49,7 +48,6 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	AppWindow = InWindow;
 
 	// 루트 윈도우에 새로운 윈도우를 할당합니다.
-
 	SWindow* Window = new SWindow();
 	Window->OnResize({ 0, 0, Width, Height });
 
@@ -87,14 +85,10 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 	Capture = nullptr;
 	DestroyTree(Root);
 
-	// UE_LOG_DEBUG("ViewportManager: PromoteIdx: %d", PromoteIdx);
-
 	if (PromoteIdx < 0 || PromoteIdx >= static_cast<int32>(Viewports.size()))
 	{
 		// 우클릭 드래그 중인 뷰가 있으면 그걸 우선, 없으면 0번 유지
-		PromoteIdx = (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < static_cast<int32>(Viewports.size()))
-			             ? ActiveRmbViewportIdx
-			             : 0;
+		PromoteIdx = (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < static_cast<int32>(Viewports.size())) ? ActiveRmbViewportIdx : 0;
 	}
 
 	// 0.5) 선택된 인덱스를 0번으로 올리기(뷰포트/클라이언트 페어 동기 스왑)
@@ -414,23 +408,23 @@ void UViewportManager::RenderOverlay()
 	}
 	for (int32 i = 0; i < N; ++i)
 	{
-		const FRect& r = Viewports[i]->GetRect();
-		if (r.W <= 0 || r.H <= 0) continue;
+		const FRect& Rect = Viewports[i]->GetRect();
+		if (Rect.W <= 0 || Rect.H <= 0) continue;
 
 		const int ToolbarH = Viewports[i]->GetToolbarHeight();
-		const ImVec2 a{static_cast<float>(r.X), static_cast<float>(r.Y)};
-		const ImVec2 b{static_cast<float>(r.X + r.W), static_cast<float>(r.Y + ToolbarH)};
+		const ImVec2 Vec1{static_cast<float>(Rect.X), static_cast<float>(Rect.Y)};
+		const ImVec2 Vec2{static_cast<float>(Rect.X + Rect.W), static_cast<float>(Rect.Y + ToolbarH)};
 
 		// 1) 1안처럼 오버레이 배경/보더 그리기
-		ImDrawList* dl = ImGui::GetForegroundDrawList();
-		dl->AddRectFilled(a, b, IM_COL32(30, 30, 30, 100));
-		dl->AddLine(ImVec2(a.x, b.y), ImVec2(b.x, b.y), IM_COL32(70, 70, 70, 120), 1.0f);
+		ImDrawList* DrawLine = ImGui::GetForegroundDrawList();
+		DrawLine->AddRectFilled(Vec1, Vec2, IM_COL32(30, 30, 30, 100));
+		DrawLine->AddLine(ImVec2(Vec1.x, Vec2.y), ImVec2(Vec2.x, Vec2.y), IM_COL32(70, 70, 70, 120), 1.0f);
 
 		// 2) 같은 영역에 "배경 없는" 작은 윈도우를 띄워 콤보/버튼 UI 배치 (2안의 핵심)
 		ImGui::PushID(i);
 
-		ImGui::SetNextWindowPos(ImVec2(a.x, a.y));
-		ImGui::SetNextWindowSize(ImVec2(b.x - a.x, b.y - a.y));
+		ImGui::SetNextWindowPos(ImVec2(Vec1.x, Vec1.y));
+		ImGui::SetNextWindowSize(ImVec2(Vec2.x - Vec1.x, Vec2.y - Vec1.y));
 
 		ImGuiWindowFlags flags =
 			ImGuiWindowFlags_NoDecoration |
@@ -447,10 +441,10 @@ void UViewportManager::RenderOverlay()
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.f, 0.f));
 
 		// 윈도우 이름은 뷰포트마다 고유해야 함
-		char winName[64];
-		(void)snprintf(winName, sizeof(winName), "ViewportToolbar##%d", i);
+		char WinName[64];
+		(void)snprintf(WinName, sizeof(WinName), "ViewportToolbar##%d", i);
 
-		if (ImGui::Begin(winName, nullptr, flags))
+		if (ImGui::Begin(WinName, nullptr, flags))
 		{
 			EViewMode CurrentMode = Clients[i]->GetViewMode();
 			int32 CurrentModeIndex = 0;
@@ -478,67 +472,66 @@ void UViewportManager::RenderOverlay()
 
 			// ViewType 콤보 (2안처럼 정상 동작)
 			// 현재 타입을 인덱스로 변환
-			EViewType curType = Clients[i]->GetViewType();
-			int curIdx = 0;
+			EViewType CurType = Clients[i]->GetViewType();
+			int CurrentIdx = 0;
 			for (int k = 0; k < IM_ARRAYSIZE(IndexToViewType); ++k)
 			{
-				if (IndexToViewType[k] == curType)
+				if (IndexToViewType[k] == CurType)
 				{
-					curIdx = k;
+					CurrentIdx = k;
 					break;
 				}
 			}
 
 			ImGui::SetNextItemWidth(140.0f);
-			if (ImGui::Combo("##ViewType", &curIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
+			if (ImGui::Combo("##ViewType", &CurrentIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
 			{
-				if (curIdx >= 0 && curIdx < IM_ARRAYSIZE(IndexToViewType))
+				if (CurrentIdx >= 0 && CurrentIdx < IM_ARRAYSIZE(IndexToViewType))
 				{
-					EViewType NewType = IndexToViewType[curIdx];
+					EViewType NewType = IndexToViewType[CurrentIdx];
 					Clients[i]->SetViewType(NewType);
 
-					// Apply camera basis + refresh immediately so toolbar change takes effect without RMB
 					if (NewType == EViewType::Perspective)
 					{
 						// 퍼스펙티브 바인딩
-						if (UCamera* Cam = PerspectiveCameras[i])
+						if (UCamera* Camera = PerspectiveCameras[i])
 						{
-							Clients[i]->SetPerspectiveCamera(Cam);
+							Clients[i]->SetPerspectiveCamera(Camera);
 							Clients[i]->SetViewType(EViewType::Perspective);
-							Cam->SetCameraType(ECameraType::ECT_Perspective);
-							Cam->Update();
+							Camera->SetCameraType(ECameraType::ECT_Perspective);
+							Camera->Update();
 						}
 					}
 					else
 					{
-						const int OrthoIdx = curIdx - 1;
+						const int OrthoIdx = CurrentIdx - 1;
 
 						if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.size()))
 						{
-							UCamera* Cam = OrthoGraphicCameras[OrthoIdx];
-							Clients[i]->SetOrthoCamera(Cam);
-							Clients[i]->SetViewType(static_cast<EViewType>(curIdx));
-							Cam->SetCameraType(ECameraType::ECT_Orthographic);
-							Cam->Update();
+							UCamera* Camera = OrthoGraphicCameras[OrthoIdx];
+							Clients[i]->SetOrthoCamera(Camera);
+							Clients[i]->SetViewType(static_cast<EViewType>(CurrentIdx));
+							Camera->SetCameraType(ECameraType::ECT_Orthographic);
+							Camera->Update();
 						}
 					}
 				}
 			}
 
 			{
-				constexpr float kRightPadding = 6.0f;
-				constexpr float btnW = 24.0f;
+				constexpr float RightPadding = 6.0f;
+				constexpr float BetweenWidth = 24.0f;
 
 				// 현재 윈도우의 컨텐츠 우측 x좌표
-				const float contentRight = ImGui::GetWindowContentRegionMax().x;
+				const float ContentRight = ImGui::GetWindowContentRegionMax().x;
 				// 현재 커서 y는 유지하고, x만 우측으로 점프
-				float targetX = contentRight - kRightPadding - btnW;
+				float TargetX = ContentRight - RightPadding - BetweenWidth;
 				// 혹시 앞의 위젯이 너무 오른쪽까지 차지했다면 음수되지 않도록 보정
-				targetX = std::max(targetX, ImGui::GetCursorPosX());
+				TargetX = std::max(TargetX, ImGui::GetCursorPosX());
 
 				// 같은 줄 유지 후 커서 이동
 				ImGui::SameLine();
-				ImGui::SetCursorPosX(targetX);
+				ImGui::SetCursorPosX(TargetX);
 			}
 
 			// 현재 레이아웃 상태 보관
@@ -556,8 +549,7 @@ void UViewportManager::RenderOverlay()
 			}
 			if (ViewportChange == EViewportChange::Quad)
 			{
-				if (FUEImgui::ToolbarIconButton("LayoutSingle", EUEViewportIcon::Single,
-				                                CurrentLayout == ELayout::Single))
+				if (FUEImgui::ToolbarIconButton("LayoutSingle", EUEViewportIcon::Single, CurrentLayout == ELayout::Single))
 				{
 					CurrentLayout = ELayout::Single;
 					ViewportChange = EViewportChange::Single;
@@ -567,9 +559,7 @@ void UViewportManager::RenderOverlay()
 				}
 			}
 		}
-
 		ImGui::End();
-
 		ImGui::PopStyleVar(3);
 		ImGui::PopID();
 	}
@@ -659,11 +649,10 @@ void UViewportManager::InitializePerspectiveCamera()
 {
 	for (int i = 0; i < 4; ++i)
 	{
-		UCamera* Cam = NewObject<UCamera>();
-		Cam->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
-		PerspectiveCameras.push_back(Cam);
-
-		Clients[i]->SetPerspectiveCamera(Cam);
+		UCamera* Camera = NewObject<UCamera>();
+		Camera->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
+		PerspectiveCameras.push_back(Camera);
+		Clients[i]->SetPerspectiveCamera(Camera);
 	}
 }
 
@@ -680,7 +669,6 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 
 	// 오른쪽 클릭을 했을 때, 인덱스를 가져옵니다.
 	const int32 Index = ActiveRmbViewportIdx;
-	// UE_LOG_DEBUG("ViewportManager: Get Index: %d", Index);
 
 	// 인덱스가 범위 밖이라면 리턴합니다
 	if (Index < 0 || Index >= static_cast<int32>(Clients.size()))
@@ -751,10 +739,8 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 	FVector Up = Right.Cross(OrthoCameraFoward);
 
 	// 마우스 델타(px) → NDC 델타 → 월드 델타
-	const FVector& d = Input.GetMouseDelta();
-	if (d.X == 0.0f && d.Y == 0.0f) return;
-
-	//UE_LOG("ViewportManager: %f %f", -d.X, d.Y);
+	const FVector& Delta = Input.GetMouseDelta();
+	if (Delta.X == 0.0f && Delta.Y == 0.0f) return;
 
 	const float Aspect = (Height > 0.f) ? (Width / Height) : 1.0f;
 	const float Rad = FVector::GetDegreeToRadian(OrthoCam->GetFovY());
@@ -765,41 +751,21 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 	float sX = -1.0f;
 	float sY = 1.0f;
 
-	// Top/Bottom은 화면 축이 180° 뒤집혀 보이므로 둘 다 반전
-	//if (ViewType == EViewType::OrthoTop || ViewType == EViewType::OrthoBottom)
-	//{
-	//	sX *= -1.0f;
-	//	sY *= -1.0f;
-	//}
-
 	// NDC 델타 (마우스 픽셀 → -1..+1)
-	const float NdcDX = sX * (d.X / Width) * 2.0f;
-	const float NdcDY = sY * (d.Y / Height) * 2.0f;
-
+	const float NdcDX = sX * (Delta.X / Width) * 2.0f;
+	const float NdcDY = sY * (Delta.Y / Height) * 2.0f;
 	const FVector WorldDelta = Right * (NdcDX * (OrthoWidth * 0.5f)) + Up * (NdcDY * (OrthoHeight * 0.5f));
 
 	// 공유 중심 누적 이동
 	OrthoGraphicCamerapoint += WorldDelta;
-
-	// UE_LOG("ViewportManager: %f %f %f", WorldDelta.X, WorldDelta.Y, WorldDelta.Z);
 
 	for (int32 i = 0; i < static_cast<int32>(OrthoGraphicCameras.size()); ++i)
 	{
 		if (UCamera* Cam = OrthoGraphicCameras[i])
 		{
 			Cam->SetLocation(OrthoGraphicCamerapoint + InitialOffsets[i]);
-			//Cam->Update();
 		}
 	}
-
-	//OrthoGraphicCameras[0]->SetLocation(FVector(0.0f, 0.0f, 100.0f) + OrthoGraphicCamerapoint);
-	//OrthoGraphicCameras[1]->SetLocation(FVector(0.0f, 0.0f, -100.0f) + OrthoGraphicCamerapoint);
-	//OrthoGraphicCameras[2]->SetLocation(FVector(0.0f, 100.0f, 0.0f) + OrthoGraphicCamerapoint);
-	//OrthoGraphicCameras[3]->SetLocation(FVector(0.0f, -100.0f, 0.0f) + OrthoGraphicCamerapoint);
-	//OrthoGraphicCameras[4]->SetLocation(FVector(100.0f, 0.0f, 0.0f) + OrthoGraphicCamerapoint);
-	//OrthoGraphicCameras[5]->SetLocation(FVector(-100.0f, 0.0f, 0.0f) + OrthoGraphicCamerapoint);
-
-	//UE_LOG("ViewportManager: %f %f %f", OrthoGraphicCamerapoint.X, OrthoGraphicCamerapoint.Y, OrthoGraphicCamerapoint.Z);
 }
 
 void UViewportManager::UpdateOrthoGraphicCameraFov() const
@@ -831,16 +797,16 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 	const int32 N = static_cast<int32>(Clients.size());
 	for (int32 i = 0; i < N; ++i)
 	{
-		FViewportClient* C = Clients[i];
-		if (!C) continue;
+		FViewportClient* Client = Clients[i];
+		if (!Client) continue;
 
-		const EViewType VT = C->GetViewType();
-		if (VT == EViewType::Perspective)
+		const EViewType Viewport = Client->GetViewType();
+		if (Viewport == EViewType::Perspective)
 		{
 			// 퍼스펙티브는 자신 카메라 보장
 			if (i < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[i])
 			{
-				C->SetPerspectiveCamera(PerspectiveCameras[i]);
+				Client->SetPerspectiveCamera(PerspectiveCameras[i]);
 				PerspectiveCameras[i]->SetCameraType(ECameraType::ECT_Perspective);
 				PerspectiveCameras[i]->Update();
 			}
@@ -849,7 +815,7 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 		{
 			// 오쏘: ViewType → 6방향 인덱스 매핑
 			int OrthoIdx = -1;
-			switch (VT)
+			switch (Viewport)
 			{
 			case EViewType::OrthoTop: OrthoIdx = 0;
 				break;
@@ -868,29 +834,29 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 
 			if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.size()))
 			{
-				UCamera* Cam = OrthoGraphicCameras[OrthoIdx];
-				C->SetOrthoCamera(Cam);
-				Cam->Update();
+				UCamera* Camera = OrthoGraphicCameras[OrthoIdx];
+				Client->SetOrthoCamera(Camera);
+				Camera->Update();
 			}
 		}
 
 		// 크기 반영(툴바 높이 포함) — 깜빡임/툴바 좌표 안정화
-		const FRect& R = Viewports[i]->GetRect();
+		const FRect& Rect = Viewports[i]->GetRect();
 		Viewports[i]->SetToolbarHeight(24);
-		C->OnResize({R.W, R.H});
+		Client->OnResize({Rect.W, Rect.H});
 	}
 
 	// 3) 오쏘 6방향 카메라를 공유 중심점에 맞춰 정렬만 수행(이동 입력 없이)
-	auto Reposition = [&](int CamIndex, const FVector& CamFwd)
+	auto Reposition = [&](int InCamIndex, const FVector& InCamFwd)
 	{
-		if (CamIndex < 0 || CamIndex >= static_cast<int>(OrthoGraphicCameras.size())) return;
-		if (UCamera* Cam = OrthoGraphicCameras[CamIndex])
+		if (InCamIndex < 0 || InCamIndex >= static_cast<int>(OrthoGraphicCameras.size())) return;
+		if (UCamera* Camera = OrthoGraphicCameras[InCamIndex])
 		{
-			const FVector Loc = Cam->GetLocation();
+			const FVector Loc = Camera->GetLocation();
 			const FVector ToC = Loc - OrthoGraphicCamerapoint;
-			const float Dist = std::fabs(ToC.Dot(CamFwd));
-			Cam->SetLocation(OrthoGraphicCamerapoint - CamFwd * Dist);
-			Cam->Update();
+			const float Dist = std::fabs(ToC.Dot(InCamFwd));
+			Camera->SetLocation(OrthoGraphicCamerapoint - InCamFwd * Dist);
+			Camera->Update();
 		}
 	};
 
@@ -908,25 +874,25 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 void UViewportManager::ApplySharedOrthoCenterToAllCameras() const
 {
 	// OrthoGraphicCamerapoint 기준으로 6개 오쏘 카메라 위치 갱신
-	for (UCamera* Cam : OrthoGraphicCameras)
+	for (UCamera* Camera : OrthoGraphicCameras)
 	{
-		if (!Cam) continue;
+		if (!Camera) continue;
 
 		// 카메라 '전방'을 "센터 - 카메라 위치"로 잡으면, Top/Right/... 어떤 회전이라도 일관되게 작동
-		FVector fwd = (OrthoGraphicCamerapoint - Cam->GetLocation()).Normalized();
+		FVector Forward = (OrthoGraphicCamerapoint - Camera->GetLocation()).Normalized();
 
 		// 특이 케이스 보호: fwd가 0이면 월드 Z를 피벗으로 대체
-		if (fwd.IsNearlyZero())
+		if (Forward.IsNearlyZero())
 		{
-			fwd = FVector(0, 0, -1); // 아무거나 기본값
+			Forward = FVector(0, 0, -1); // 아무거나 기본값
 		}
 
 		// 현재 센터까지의 전방 거리 유지
-		const FVector toC = Cam->GetLocation() - OrthoGraphicCamerapoint;
-		const float dist = std::fabs(toC.Dot(fwd));
+		const FVector toC = Camera->GetLocation() - OrthoGraphicCamerapoint;
+		const float Dist = std::fabs(toC.Dot(Forward));
 
-		Cam->SetLocation(OrthoGraphicCamerapoint - fwd * dist);
-		Cam->Update();
+		Camera->SetLocation(OrthoGraphicCamerapoint - Forward * Dist);
+		Camera->Update();
 	}
 }
 
@@ -940,10 +906,10 @@ void UViewportManager::PersistSplitterRatios()
 	// 세로
 	IniSaveSharedV = static_cast<SSplitter*>(Root)->Ratio;
 
-	auto& CFG = UConfigManager::GetInstance();
-	CFG.SetSplitV(IniSaveSharedV);
-	CFG.SetSplitH(IniSaveSharedH);
-	CFG.SaveEditorSetting();
+	auto& Config = UConfigManager::GetInstance();
+	Config.SetSplitV(IniSaveSharedV);
+	Config.SetSplitH(IniSaveSharedH);
+	Config.SaveEditorSetting();
 }
 
 void UViewportManager::TickInput()
@@ -970,7 +936,6 @@ void UViewportManager::TickInput()
 		Target = (Root != nullptr) ? Root->HitTest(Point) : nullptr;
 	}
 
-
 	if (InputManager.IsKeyPressed(EKeyInput::MouseLeft) || (!Capture && InputManager.IsKeyDown(EKeyInput::MouseLeft)))
 	{
 		if (Target && Target->OnMouseDown(Point, 0))
@@ -979,9 +944,8 @@ void UViewportManager::TickInput()
 		}
 	}
 
-	// Mouse move while captured (always forward to allow cross-drag detection)
-	const FVector& d = InputManager.GetMouseDelta();
-	if ((d.X != 0.0f || d.Y != 0.0f) && Capture)
+	const FVector& Delta = InputManager.GetMouseDelta();
+	if ((Delta.X != 0.0f || Delta.Y != 0.0f) && Capture)
 	{
 		Capture->OnMouseMove(Point);
 	}
@@ -1031,14 +995,14 @@ int32 UViewportManager::GetViewportIndexUnderMouse() const
 	return -1;
 }
 
-bool UViewportManager::ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const
+bool UViewportManager::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, float& OutNdcY) const
 {
-	if (Index < 0 || Index >= static_cast<int32>(Viewports.size())) return false;
-	const FRect& Rect = Viewports[Index]->GetRect();
+	if (InIdx < 0 || InIdx >= static_cast<int32>(Viewports.size())) return false;
+	const FRect& Rect = Viewports[InIdx]->GetRect();
 	if (Rect.W <= 0 || Rect.H <= 0) return false;
 
 	// 툴바 높이를 고려한 실제 렌더링 영역 기준으로 NDC 계산
-	const int32 ToolbarHeight = Viewports[Index]->GetToolbarHeight();
+	const int32 ToolbarHeight = Viewports[InIdx]->GetToolbarHeight();
 	const float RenderAreaY = static_cast<float>(Rect.Y + ToolbarHeight);
 	const float RenderAreaHeight = static_cast<float>(Rect.H - ToolbarHeight);
 

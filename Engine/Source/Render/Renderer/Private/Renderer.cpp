@@ -229,68 +229,66 @@ void URenderer::Update()
 {
 	RenderBegin();
 
-	// Multi-viewport rendering via splitter leaf rects
     TArray<FRect> ViewRects;
     UViewportManager::GetInstance().GetLeafRects(ViewRects);
 	if (ViewRects.empty())
 	{
-		// Fallback: single full viewport
 		RenderLevel();
 		ULevelManager::GetInstance().GetEditor()->RenderEditor();
 	}
 	//리프창이 있을때
 	else
 	{
-		ID3D11DeviceContext* ctx = GetDeviceContext();
-		const D3D11_VIEWPORT& fullVP = GetDeviceResources()->GetViewportInfo();
+		ID3D11DeviceContext* DevictContext = GetDeviceContext();
+		const D3D11_VIEWPORT& FullVP = GetDeviceResources()->GetViewportInfo();
+		auto& ViewportManager = UViewportManager::GetInstance();
+		const auto& Viewports = ViewportManager.GetViewports();
 
 		// 초기 뷰포트 값 0초기화
 		ViewportIdx = 0;
         for (int32 i = 0;i < ViewRects.size();++i)
         {
-            D3D11_VIEWPORT vp{};
-            int32 toolH = 0;
+            D3D11_VIEWPORT Viewport{};
+            int32 ToolH = 0;
             {
-                auto& Vpm = UViewportManager::GetInstance();
-                const auto& VPs = Vpm.GetViewports();
-                if (i < (int32)VPs.size() && VPs[i])
+
+                if (i < (int32)Viewports.size() && Viewports[i])
                 {
-                    toolH = VPs[i]->GetToolbarHeight();
+                    ToolH = Viewports[i]->GetToolbarHeight();
                 }
             }
-            vp.TopLeftX = (FLOAT)ViewRects[i].X; vp.TopLeftY = (FLOAT)(ViewRects[i].Y + toolH);
-            vp.Width = (FLOAT)max(0L, ViewRects[i].W); vp.Height = (FLOAT)max(0L, ViewRects[i].H - toolH);
+            Viewport.TopLeftX = (FLOAT)ViewRects[i].X; Viewport.TopLeftY = (FLOAT)(ViewRects[i].Y + ToolH);
+            Viewport.Width = (FLOAT)max(0L, ViewRects[i].W); Viewport.Height = (FLOAT)max(0L, ViewRects[i].H - ToolH);
 
 			// Skip degenerate rects
-			if (vp.Width <= 0.0f || vp.Height <= 0.0f) continue;
+			if (Viewport.Width <= 0.0f || Viewport.Height <= 0.0f) continue;
 
-			vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
-			ctx->RSSetViewports(1, &vp);
-            D3D11_RECT sc{};
-            sc.left = ViewRects[i].X; sc.top = ViewRects[i].Y + toolH; sc.right = ViewRects[i].X + ViewRects[i].W; sc.bottom = ViewRects[i].Y + ViewRects[i].H;
-            ctx->RSSetScissorRects(1, &sc);
+			Viewport.MinDepth = 0.0f; Viewport.MaxDepth = 1.0f;
+			DevictContext->RSSetViewports(1, &Viewport);
+            D3D11_RECT Screen{};
+            Screen.left = ViewRects[i].X; Screen.top = ViewRects[i].Y + ToolH; Screen.right = ViewRects[i].X + ViewRects[i].W; Screen.bottom = ViewRects[i].Y + ViewRects[i].H;
+            DevictContext->RSSetScissorRects(1, &Screen);
 
-            // Bind per-viewport view/projection constants so overlays render correctly
             {
-                auto& Vpm = UViewportManager::GetInstance();
-                const auto& VPs = Vpm.GetViewports();
-                if (ViewportIdx < VPs.size() && VPs[ViewportIdx])
+                auto& ViewportManager = UViewportManager::GetInstance();
+                const auto& Viewports = ViewportManager.GetViewports();
+                if (ViewportIdx < Viewports.size() && Viewports[ViewportIdx])
                 {
-                    FViewport* VpObj = VPs[ViewportIdx];
-                    FViewportClient* VC = VpObj->GetViewportClient();
-					if (VC->GetViewType() == EViewType::Perspective) {
-						if (auto* Cam = VC->GetPerspectiveCamera()) {
-							Cam->SetAspect(vp.Width / max(1.f, vp.Height));
+                    FViewport* ViewportObject = Viewports[ViewportIdx];
+                    FViewportClient* ViewportObjectClient = ViewportObject->GetViewportClient();
+					if (ViewportObjectClient->GetViewType() == EViewType::Perspective) {
+						if (auto* Camera = ViewportObjectClient->GetPerspectiveCamera()) {
+							Camera->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
 							// 입력/움직임 갱신은 그대로 두고, 투영만 즉시 갱신하고 싶으면:
-							Cam->UpdateMatrixByPers(); // 또는 필요 시 Cam->Update() 호출
-							UpdateConstant(Cam->GetFViewProjConstants());
+							Camera->UpdateMatrixByPers(); // 또는 필요 시 Cam->Update() 호출
+							UpdateConstant(Camera->GetFViewProjConstants());
 						}
 					}
 					else {
-						if (auto* Cam = VC->GetOrthoCamera()) {
-							Cam->SetAspect(vp.Width / max(1.f, vp.Height));
-							Cam->UpdateMatrixByOrth(); // 또는 Cam->Update()
-							UpdateConstant(Cam->GetFViewProjConstants());
+						if (auto* Camera = ViewportObjectClient->GetOrthoCamera()) {
+							Camera->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
+							Camera->UpdateMatrixByOrth(); // 또는 Cam->Update()
+							UpdateConstant(Camera->GetFViewProjConstants());
 						}
 					}
                 }
@@ -303,17 +301,13 @@ void URenderer::Update()
             ViewportIdx++;
         }
 
-		ctx->RSSetViewports(1, &fullVP);
-		D3D11_RECT scFull{};
-		scFull.left = (LONG)fullVP.TopLeftX; scFull.top = (LONG)fullVP.TopLeftY;
-		scFull.right = (LONG)(fullVP.TopLeftX + fullVP.Width);
-		scFull.bottom = (LONG)(fullVP.TopLeftY + fullVP.Height);
-		ctx->RSSetScissorRects(1, &scFull);
+		DevictContext->RSSetViewports(1, &FullVP);
+		D3D11_RECT ScreenFull{};
+		ScreenFull.left = (LONG)FullVP.TopLeftX; ScreenFull.top = (LONG)FullVP.TopLeftY;
+		ScreenFull.right = (LONG)(FullVP.TopLeftX + FullVP.Width);
+		ScreenFull.bottom = (LONG)(FullVP.TopLeftY + FullVP.Height);
+		DevictContext->RSSetScissorRects(1, &ScreenFull);
 	}
-
-    // 폰트 렌더링
-    //RenderFont();
-
 	// ImGui 자체 Render 처리가 진행되어야 하므로 따로 처리
     UUIManager::GetInstance().Render();
 
@@ -331,15 +325,14 @@ void URenderer::RenderBegin() const
 	ID3D11DepthStencilView* DepthStencilView = DeviceResources->GetDepthStencilView();
 	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// Update full-screen viewport first (apply main menu bar height), then bind it
 	float MainMenuH = UUIManager::GetInstance().GetMainMenuBarHeight();
-	//UE_LOG("%f", MainMenuH);
+
 	DeviceResources->UpdateViewport(MainMenuH);
 	GetDeviceContext()->RSSetViewports(1, &DeviceResources->GetViewportInfo());
 
-	ID3D11RenderTargetView* rtvs[] = { RenderTargetView }; // 배열 생성
+	ID3D11RenderTargetView* RTV[] = { RenderTargetView }; // 배열 생성
 
-	GetDeviceContext()->OMSetRenderTargets(1, rtvs, DeviceResources->GetDepthStencilView());
+	GetDeviceContext()->OMSetRenderTargets(1, RTV, DeviceResources->GetDepthStencilView());
 }
 
 /**
@@ -395,16 +388,12 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 			UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
 			if (BillBoardComponent)
 			{
-				// ✅ 현재 타일(뷰포트)의 클라이언트/카메라 꺼내기
-				auto& Vpm = UViewportManager::GetInstance();
-				const auto& VPs = Vpm.GetViewports();
+				auto& ViewportManager = UViewportManager::GetInstance();
+				const auto& VPs = ViewportManager.GetViewports();
 				FViewport* VP = (ViewportIdx < VPs.size()) ? VPs[ViewportIdx] : nullptr;
 				FViewportClient* VC = VP ? VP->GetViewportClient() : nullptr;
 
-				if (!VC)
-				{
-					return;
-				}
+				if (!VC) return;
 
 				UCamera* CurrentCamera;
 				FViewProjConstants ViewProj;
@@ -666,7 +655,6 @@ void URenderer::RenderStaticMeshSection(const FStaticMeshSection& InSection
 		{
 			SectionMaterial = InMaterialSlots[InSection.MaterialSlotIndex];
 		}
-
 	}
 
 	ApplyMaterial(SectionMaterial, InFallbackColor);
