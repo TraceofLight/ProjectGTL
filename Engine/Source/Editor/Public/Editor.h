@@ -35,6 +35,7 @@ public:
 	FViewProjConstants GetViewProjConstData() const { return Camera.GetFViewProjConstants(); }
 
 	UCamera* GetCamera() { return &Camera; }
+	UBatchLines* GetBatchLines() { return &BatchLines; }
 
 private:
 	UCamera Camera; // legacy editor camera (not used for picking)

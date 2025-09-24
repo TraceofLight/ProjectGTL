@@ -234,7 +234,7 @@ void SSplitter::OnPaint()
         }
     }
 
-	ImDrawList* dl = ImGui::GetForegroundDrawList();
+	ImDrawList* dl = ImGui::GetBackgroundDrawList();
 
 
 	//UE_LOG("splitter rect=(%d,%d %dx%d) handle=(%d,%d %dx%d) mouse=(%d,%d) hovered=%d vp=(%.1f,%.1f)", Rect.X,

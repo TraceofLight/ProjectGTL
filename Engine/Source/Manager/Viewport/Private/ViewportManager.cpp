@@ -233,7 +233,7 @@ void UViewportManager::SyncRectsToViewports() const
 	for (int32 i = 0; i < N; ++i)
 	{
 		Viewports[i]->SetRect(Leaves[i]);
-		Viewports[i]->SetToolbarHeight(24);
+		Viewports[i]->SetToolbarHeight(28);
 
 		const int32 renderH = max<LONG>(0, Leaves[i].H - Viewports[i]->GetToolbarHeight());
 		Clients[i]->OnResize({Leaves[i].W, renderH});
@@ -383,198 +383,8 @@ void UViewportManager::RenderOverlay()
 	{
 		return;
 	}
+	// 스플리터 선만 렌더링 (나머지 UI는 ViewportControlWidget에서 처리)
 	Root->OnPaint();
-
-	int32 N = static_cast<int32>(Viewports.size());
-	if (N == 0) return;
-
-	// ViewType ViewMode 콤보 라벨 & 매핑
-	static const char* ViewModeLabels[] = {
-		"Lit", "Unlit", "WireFrame"
-	};
-	static constexpr EViewMode IndexToViewMode[] = {
-		EViewMode::Lit,
-		EViewMode::Unlit,
-		EViewMode::WireFrame
-	};
-
-
-	static const char* ViewTypeLabels[] = {
-		"Perspective", "OrthoTop", "OrthoBottom", "OrthoLeft", "OrthoRight", "OrthoFront", "OrthoBack"
-	};
-	static constexpr EViewType IndexToViewType[] = {
-		EViewType::Perspective,
-		EViewType::OrthoTop,
-		EViewType::OrthoBottom,
-		EViewType::OrthoLeft,
-		EViewType::OrthoRight,
-		EViewType::OrthoFront,
-		EViewType::OrthoBack
-	};
-
-
-	if (ViewportChange == EViewportChange::Single)
-	{
-		N = 1;
-	}
-	for (int32 i = 0; i < N; ++i)
-	{
-		const FRect& Rect = Viewports[i]->GetRect();
-		if (Rect.W <= 0 || Rect.H <= 0) continue;
-
-		const int ToolbarH = Viewports[i]->GetToolbarHeight();
-		const ImVec2 Vec1{static_cast<float>(Rect.X), static_cast<float>(Rect.Y)};
-		const ImVec2 Vec2{static_cast<float>(Rect.X + Rect.W), static_cast<float>(Rect.Y + ToolbarH)};
-
-		// 1) 1안처럼 오버레이 배경/보더 그리기
-		ImDrawList* DrawLine = ImGui::GetForegroundDrawList();
-		DrawLine->AddRectFilled(Vec1, Vec2, IM_COL32(30, 30, 30, 100));
-		DrawLine->AddLine(ImVec2(Vec1.x, Vec2.y), ImVec2(Vec2.x, Vec2.y), IM_COL32(70, 70, 70, 120), 1.0f);
-
-		// 2) 같은 영역에 "배경 없는" 작은 윈도우를 띄워 콤보/버튼 UI 배치 (2안의 핵심)
-		ImGui::PushID(i);
-
-		ImGui::SetNextWindowPos(ImVec2(Vec1.x, Vec1.y));
-		ImGui::SetNextWindowSize(ImVec2(Vec2.x - Vec1.x, Vec2.y - Vec1.y));
-
-		ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoDecoration |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoBackground | // ★ 배경 없음(우리가 drawlist로 그렸으므로)
-			ImGuiWindowFlags_NoFocusOnAppearing;
-
-		// 얇은 툴바 느낌을 위한 패딩/스페이싱 축소
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.f, 3.f));
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 3.f));
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.f, 0.f));
-
-		// 윈도우 이름은 뷰포트마다 고유해야 함
-		char WinName[64];
-		(void)snprintf(WinName, sizeof(WinName), "ViewportToolbar##%d", i);
-
-		if (ImGui::Begin(WinName, nullptr, flags))
-		{
-			EViewMode CurrentMode = Clients[i]->GetViewMode();
-			int32 CurrentModeIndex = 0;
-			for (int k = 0; k < IM_ARRAYSIZE(IndexToViewMode); ++k)
-			{
-				if (IndexToViewMode[k] == CurrentMode)
-				{
-					CurrentModeIndex = k;
-					break;
-				}
-			}
-			ImGui::SetNextItemWidth(140.0f);
-			if (ImGui::Combo("##ViewMode", &CurrentModeIndex, ViewModeLabels, IM_ARRAYSIZE(ViewModeLabels)))
-			{
-				if (CurrentModeIndex >= 0 && CurrentModeIndex < IM_ARRAYSIZE(IndexToViewMode))
-				{
-					Clients[i]->SetViewMode(IndexToViewMode[CurrentModeIndex]);
-				}
-			}
-
-			// 같은 줄로 이동 + 약간의 간격
-			ImGui::SameLine(0.0f, 10.0f);
-			ImGui::TextDisabled("|");
-			ImGui::SameLine(0.0f, 10.0f);
-
-			// ViewType 콤보 (2안처럼 정상 동작)
-			// 현재 타입을 인덱스로 변환
-			EViewType CurType = Clients[i]->GetViewType();
-			int CurrentIdx = 0;
-			for (int k = 0; k < IM_ARRAYSIZE(IndexToViewType); ++k)
-			{
-				if (IndexToViewType[k] == CurType)
-				{
-					CurrentIdx = k;
-					break;
-				}
-			}
-
-			ImGui::SetNextItemWidth(140.0f);
-			if (ImGui::Combo("##ViewType", &CurrentIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
-			{
-				if (CurrentIdx >= 0 && CurrentIdx < IM_ARRAYSIZE(IndexToViewType))
-				{
-					EViewType NewType = IndexToViewType[CurrentIdx];
-					Clients[i]->SetViewType(NewType);
-
-					if (NewType == EViewType::Perspective)
-					{
-						// 퍼스펙티브 바인딩
-						if (UCamera* Camera = PerspectiveCameras[i])
-						{
-							Clients[i]->SetPerspectiveCamera(Camera);
-							Clients[i]->SetViewType(EViewType::Perspective);
-							Camera->SetCameraType(ECameraType::ECT_Perspective);
-							Camera->Update();
-						}
-					}
-					else
-					{
-						const int OrthoIdx = CurrentIdx - 1;
-
-						if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.size()))
-						{
-							UCamera* Camera = OrthoGraphicCameras[OrthoIdx];
-							Clients[i]->SetOrthoCamera(Camera);
-							Clients[i]->SetViewType(static_cast<EViewType>(CurrentIdx));
-							Camera->SetCameraType(ECameraType::ECT_Orthographic);
-							Camera->Update();
-						}
-					}
-				}
-			}
-
-			{
-				constexpr float RightPadding = 6.0f;
-				constexpr float BetweenWidth = 24.0f;
-
-				// 현재 윈도우의 컨텐츠 우측 x좌표
-				const float ContentRight = ImGui::GetWindowContentRegionMax().x;
-				// 현재 커서 y는 유지하고, x만 우측으로 점프
-				float TargetX = ContentRight - RightPadding - BetweenWidth;
-				// 혹시 앞의 위젯이 너무 오른쪽까지 차지했다면 음수되지 않도록 보정
-				TargetX = std::max(TargetX, ImGui::GetCursorPosX());
-
-				// 같은 줄 유지 후 커서 이동
-				ImGui::SameLine();
-				ImGui::SetCursorPosX(TargetX);
-			}
-
-			// 현재 레이아웃 상태 보관
-			enum class ELayout : uint8 { Single, Quad };
-			static ELayout CurrentLayout = ELayout::Quad;
-
-			if (ViewportChange == EViewportChange::Single)
-			{
-				if (FUEImgui::ToolbarIconButton("LayoutQuad", EUEViewportIcon::Quad, CurrentLayout == ELayout::Quad))
-				{
-					CurrentLayout = ELayout::Quad;
-					ViewportChange = EViewportChange::Quad;
-					BuildFourSplitLayout();
-				}
-			}
-			if (ViewportChange == EViewportChange::Quad)
-			{
-				if (FUEImgui::ToolbarIconButton("LayoutSingle",
-				                                EUEViewportIcon::Single, CurrentLayout == ELayout::Single))
-				{
-					CurrentLayout = ELayout::Single;
-					ViewportChange = EViewportChange::Single;
-
-					PersistSplitterRatios();
-					BuildSingleLayout(i);
-				}
-			}
-		}
-		ImGui::End();
-		ImGui::PopStyleVar(3);
-		ImGui::PopID();
-	}
 }
 
 void UViewportManager::Release()
@@ -890,7 +700,7 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 
 		// 크기 반영(툴바 높이 포함) — 깜빡임/툴바 좌표 안정화
 		const FRect& Rect = Viewports[i]->GetRect();
-		Viewports[i]->SetToolbarHeight(24);
+		Viewports[i]->SetToolbarHeight(28);
 		Client->OnResize({Rect.W, Rect.H});
 	}
 

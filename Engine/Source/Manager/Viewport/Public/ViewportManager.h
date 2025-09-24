@@ -43,11 +43,18 @@ public:
 	TArray<FViewport*>& GetViewports() { return Viewports; }
 	TArray<FViewportClient*>& GetClients() { return Clients; }
 
+	// ViewportChange 상태 접근자
+	EViewportChange GetViewportChange() const { return ViewportChange; }
+	void SetViewportChange(EViewportChange InChange) { ViewportChange = InChange; }
+
+	// 스플리터 비율 저장
+	void PersistSplitterRatios();
+
 private:
 	// 내부 유틸
 	void SyncRectsToViewports() const; // 리프Rect → Viewport.Rect
 	void PumpAllViewportInput() const; // 각 뷰포트 → 클라 입력 전달
-	void TickCameras() const; // 카메라 업데이트 일원화(공유 오쏘 1회)
+	void TickCameras() const; // 카메라 업데이트 일원화(공유 오쇼 1회)
 	void UpdateActiveRmbViewportIndex(); // 우클릭 드래그 대상 뷰포트 인덱스 계산
 
 	void InitializeViewportAndClient();
@@ -63,8 +70,6 @@ private:
 	void ForceRefreshOrthoViewsAfterLayoutChange();
 
 	void ApplySharedOrthoCenterToAllCameras() const;
-
-	void PersistSplitterRatios();
 
 private:
 	SWindow* Root = nullptr;
