@@ -501,7 +501,7 @@ void UOverlayManagerSubsystem::RenderMemoryOverlay() const
 	DrawText(ProcessMemoryInfoText, OVERLAY_MARGIN_X, yOffset, 0xFF00FF00); // 초록색
 
 	// 동적 할당 정보
-	float AllocationKB = CurrentAllocationBytes / KILO;
+	float AllocationKB = static_cast<float>(CurrentAllocationBytes / KILO);
 
 	wchar_t HeapAllocText[128];
 	(void)swprintf_s(HeapAllocText,

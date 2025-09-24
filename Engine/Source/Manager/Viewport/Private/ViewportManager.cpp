@@ -233,7 +233,7 @@ void UViewportManager::SyncRectsToViewports() const
 	for (int32 i = 0; i < N; ++i)
 	{
 		Viewports[i]->SetRect(Leaves[i]);
-		Viewports[i]->SetToolbarHeight(24);
+		Viewports[i]->SetToolbarHeight(28);
 
 		const int32 renderH = max<LONG>(0, Leaves[i].H - Viewports[i]->GetToolbarHeight());
 		Clients[i]->OnResize({Leaves[i].W, renderH});
@@ -319,11 +319,26 @@ void UViewportManager::Update()
 	}
 
 
-	// 0) 스플리터 등 윈도우 트리 입력 처리 (캡처/드래그 우선)
+	// 0) 스플리터 등 윈도우 트리 입력 처리 (캐처/드래그 우선)
 	TickInput();
 
+	// 뷰포트 애니메이션 업데이트
+	if (ViewportAnimation.bIsAnimating)
+	{
+		UpdateViewportAnimation();
+	}
+
 	// 1) 리프 Rect 변화 동기화(스플리터 드래그 등)
-	SyncRectsToViewports();
+	// 애니메이션 중에도 뷰포트 Rect를 동기화해야 올바른 뷰포트가 렌더링됨
+	if (ViewportAnimation.bIsAnimating)
+	{
+		// 애니메이션 중에는 특별한 동기화 로직 사용
+		SyncAnimationRectsToViewports();
+	}
+	else
+	{
+		SyncRectsToViewports();
+	}
 
 	// 2) 입력 라우팅 (각 뷰포트가 InputManager에서 읽어 로컬 좌표로 변환/전달)
 	//    스플리터가 캡처 중이면 충돌 방지를 위해 뷰포트 입력은 건너뜀
@@ -383,198 +398,8 @@ void UViewportManager::RenderOverlay()
 	{
 		return;
 	}
+	// 스플리터 선만 렌더링 (나머지 UI는 ViewportControlWidget에서 처리)
 	Root->OnPaint();
-
-	int32 N = static_cast<int32>(Viewports.size());
-	if (N == 0) return;
-
-	// ViewType ViewMode 콤보 라벨 & 매핑
-	static const char* ViewModeLabels[] = {
-		"Lit", "Unlit", "WireFrame"
-	};
-	static constexpr EViewMode IndexToViewMode[] = {
-		EViewMode::Lit,
-		EViewMode::Unlit,
-		EViewMode::WireFrame
-	};
-
-
-	static const char* ViewTypeLabels[] = {
-		"Perspective", "OrthoTop", "OrthoBottom", "OrthoLeft", "OrthoRight", "OrthoFront", "OrthoBack"
-	};
-	static constexpr EViewType IndexToViewType[] = {
-		EViewType::Perspective,
-		EViewType::OrthoTop,
-		EViewType::OrthoBottom,
-		EViewType::OrthoLeft,
-		EViewType::OrthoRight,
-		EViewType::OrthoFront,
-		EViewType::OrthoBack
-	};
-
-
-	if (ViewportChange == EViewportChange::Single)
-	{
-		N = 1;
-	}
-	for (int32 i = 0; i < N; ++i)
-	{
-		const FRect& Rect = Viewports[i]->GetRect();
-		if (Rect.W <= 0 || Rect.H <= 0) continue;
-
-		const int ToolbarH = Viewports[i]->GetToolbarHeight();
-		const ImVec2 Vec1{static_cast<float>(Rect.X), static_cast<float>(Rect.Y)};
-		const ImVec2 Vec2{static_cast<float>(Rect.X + Rect.W), static_cast<float>(Rect.Y + ToolbarH)};
-
-		// 1) 1안처럼 오버레이 배경/보더 그리기
-		ImDrawList* DrawLine = ImGui::GetForegroundDrawList();
-		DrawLine->AddRectFilled(Vec1, Vec2, IM_COL32(30, 30, 30, 100));
-		DrawLine->AddLine(ImVec2(Vec1.x, Vec2.y), ImVec2(Vec2.x, Vec2.y), IM_COL32(70, 70, 70, 120), 1.0f);
-
-		// 2) 같은 영역에 "배경 없는" 작은 윈도우를 띄워 콤보/버튼 UI 배치 (2안의 핵심)
-		ImGui::PushID(i);
-
-		ImGui::SetNextWindowPos(ImVec2(Vec1.x, Vec1.y));
-		ImGui::SetNextWindowSize(ImVec2(Vec2.x - Vec1.x, Vec2.y - Vec1.y));
-
-		ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoDecoration |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoBackground | // ★ 배경 없음(우리가 drawlist로 그렸으므로)
-			ImGuiWindowFlags_NoFocusOnAppearing;
-
-		// 얇은 툴바 느낌을 위한 패딩/스페이싱 축소
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.f, 3.f));
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 3.f));
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.f, 0.f));
-
-		// 윈도우 이름은 뷰포트마다 고유해야 함
-		char WinName[64];
-		(void)snprintf(WinName, sizeof(WinName), "ViewportToolbar##%d", i);
-
-		if (ImGui::Begin(WinName, nullptr, flags))
-		{
-			EViewMode CurrentMode = Clients[i]->GetViewMode();
-			int32 CurrentModeIndex = 0;
-			for (int k = 0; k < IM_ARRAYSIZE(IndexToViewMode); ++k)
-			{
-				if (IndexToViewMode[k] == CurrentMode)
-				{
-					CurrentModeIndex = k;
-					break;
-				}
-			}
-			ImGui::SetNextItemWidth(140.0f);
-			if (ImGui::Combo("##ViewMode", &CurrentModeIndex, ViewModeLabels, IM_ARRAYSIZE(ViewModeLabels)))
-			{
-				if (CurrentModeIndex >= 0 && CurrentModeIndex < IM_ARRAYSIZE(IndexToViewMode))
-				{
-					Clients[i]->SetViewMode(IndexToViewMode[CurrentModeIndex]);
-				}
-			}
-
-			// 같은 줄로 이동 + 약간의 간격
-			ImGui::SameLine(0.0f, 10.0f);
-			ImGui::TextDisabled("|");
-			ImGui::SameLine(0.0f, 10.0f);
-
-			// ViewType 콤보 (2안처럼 정상 동작)
-			// 현재 타입을 인덱스로 변환
-			EViewType CurType = Clients[i]->GetViewType();
-			int CurrentIdx = 0;
-			for (int k = 0; k < IM_ARRAYSIZE(IndexToViewType); ++k)
-			{
-				if (IndexToViewType[k] == CurType)
-				{
-					CurrentIdx = k;
-					break;
-				}
-			}
-
-			ImGui::SetNextItemWidth(140.0f);
-			if (ImGui::Combo("##ViewType", &CurrentIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
-			{
-				if (CurrentIdx >= 0 && CurrentIdx < IM_ARRAYSIZE(IndexToViewType))
-				{
-					EViewType NewType = IndexToViewType[CurrentIdx];
-					Clients[i]->SetViewType(NewType);
-
-					if (NewType == EViewType::Perspective)
-					{
-						// 퍼스펙티브 바인딩
-						if (UCamera* Camera = PerspectiveCameras[i])
-						{
-							Clients[i]->SetPerspectiveCamera(Camera);
-							Clients[i]->SetViewType(EViewType::Perspective);
-							Camera->SetCameraType(ECameraType::ECT_Perspective);
-							Camera->Update();
-						}
-					}
-					else
-					{
-						const int OrthoIdx = CurrentIdx - 1;
-
-						if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.size()))
-						{
-							UCamera* Camera = OrthoGraphicCameras[OrthoIdx];
-							Clients[i]->SetOrthoCamera(Camera);
-							Clients[i]->SetViewType(static_cast<EViewType>(CurrentIdx));
-							Camera->SetCameraType(ECameraType::ECT_Orthographic);
-							Camera->Update();
-						}
-					}
-				}
-			}
-
-			{
-				constexpr float RightPadding = 6.0f;
-				constexpr float BetweenWidth = 24.0f;
-
-				// 현재 윈도우의 컨텐츠 우측 x좌표
-				const float ContentRight = ImGui::GetWindowContentRegionMax().x;
-				// 현재 커서 y는 유지하고, x만 우측으로 점프
-				float TargetX = ContentRight - RightPadding - BetweenWidth;
-				// 혹시 앞의 위젯이 너무 오른쪽까지 차지했다면 음수되지 않도록 보정
-				TargetX = std::max(TargetX, ImGui::GetCursorPosX());
-
-				// 같은 줄 유지 후 커서 이동
-				ImGui::SameLine();
-				ImGui::SetCursorPosX(TargetX);
-			}
-
-			// 현재 레이아웃 상태 보관
-			enum class ELayout : uint8 { Single, Quad };
-			static ELayout CurrentLayout = ELayout::Quad;
-
-			if (ViewportChange == EViewportChange::Single)
-			{
-				if (FUEImgui::ToolbarIconButton("LayoutQuad", EUEViewportIcon::Quad, CurrentLayout == ELayout::Quad))
-				{
-					CurrentLayout = ELayout::Quad;
-					ViewportChange = EViewportChange::Quad;
-					BuildFourSplitLayout();
-				}
-			}
-			if (ViewportChange == EViewportChange::Quad)
-			{
-				if (FUEImgui::ToolbarIconButton("LayoutSingle",
-				                                EUEViewportIcon::Single, CurrentLayout == ELayout::Single))
-				{
-					CurrentLayout = ELayout::Single;
-					ViewportChange = EViewportChange::Single;
-
-					PersistSplitterRatios();
-					BuildSingleLayout(i);
-				}
-			}
-		}
-		ImGui::End();
-		ImGui::PopStyleVar(3);
-		ImGui::PopID();
-	}
 }
 
 void UViewportManager::Release()
@@ -612,7 +437,6 @@ void UViewportManager::Release()
 
 	AppWindow = nullptr;
 }
-
 
 void UViewportManager::InitializeViewportAndClient()
 {
@@ -890,7 +714,7 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 
 		// 크기 반영(툴바 높이 포함) — 깜빡임/툴바 좌표 안정화
 		const FRect& Rect = Viewports[i]->GetRect();
-		Viewports[i]->SetToolbarHeight(24);
+		Viewports[i]->SetToolbarHeight(28);
 		Client->OnResize({Rect.W, Rect.H});
 	}
 
@@ -1069,3 +893,515 @@ bool UViewportManager::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, f
 	OutNdcY = 1.0f - (LocalY / Height) * 2.0f;
 	return true;
 }
+
+#pragma region viewport animation
+
+void UViewportManager::StartLayoutAnimation(bool bSingleToQuad, int32 ViewportIndex)
+{
+	StartViewportAnimation(bSingleToQuad, ViewportIndex);
+}
+
+void UViewportManager::StartViewportAnimation(bool bSingleToQuad, int32 PromoteIdx)
+{
+	// 현재 애니메이션이 진행 중이면 중단
+	if (ViewportAnimation.bIsAnimating)
+	{
+		RestoreOriginalLayout();
+	}
+
+	// 애니메이션 설정 초기화
+	ViewportAnimation.bSingleToQuad = bSingleToQuad;
+	ViewportAnimation.AnimationTime = 0.0f;
+	ViewportAnimation.PromotedViewportIndex = (PromoteIdx >= 0) ? PromoteIdx : ActiveRmbViewportIdx;
+
+	// 현재 스플리터 비율 저장 (기존 비율 유지)
+	ViewportAnimation.CurrentVerticalRatio = IniSaveSharedV;
+	ViewportAnimation.CurrentHorizontalRatio = IniSaveSharedH;
+
+	// 현재 루트 백업
+	ViewportAnimation.BackupRoot = Root;
+	Root = nullptr; // 임시로 비우기
+
+	// 애니메이션용 SWindow 트리 생성
+	CreateAnimationSplitters();
+
+	// 애니메이션 시작
+	ViewportAnimation.bIsAnimating = true;
+
+	// 디버깅 로그
+	UE_LOG("[VIEWPORT ANIMATION] Started SWindow-based animation: %s, Duration: %.2f",
+	       bSingleToQuad ? "SingleToQuad" : "QuadToSingle",
+	       ViewportAnimation.AnimationDuration);
+}
+
+void UViewportManager::UpdateViewportAnimation()
+{
+	if (!ViewportAnimation.bIsAnimating)
+	{
+		return;
+	}
+
+	// 애니메이션 시간 진행 (DT 매크로 사용)
+	ViewportAnimation.AnimationTime += DT;
+	float Progress = ViewportAnimation.AnimationTime / ViewportAnimation.AnimationDuration;
+
+	// 애니메이션 완료 체크
+	if (Progress >= 1.0f)
+	{
+		Progress = 1.0f;
+
+		// 마지막 이징 프레임 적용 (깜빡임 방지)
+		float FinalEasedProgress = EaseInOutCubic(Progress);
+		AnimateSplitterTransition(FinalEasedProgress);
+
+		// 애니메이션 완료 처리 - 백업 루트 복원 없이 직접 전환
+		if (!ViewportAnimation.bSingleToQuad) // QuadToSingle
+		{
+			// 현재 애니메이션 루트를 직접 단일 레이아웃으로 변경
+			FinalizeSingleLayoutFromAnimation();
+		}
+		else // SingleToQuad
+		{
+			// 현재 애니메이션 루트를 직접 4분할 레이아웃으로 완료
+			FinalizeFourSplitLayoutFromAnimation();
+		}
+
+		// 정리
+		ViewportAnimation.bIsAnimating = false;
+		ViewportAnimation.BackupRoot = nullptr; // 백업은 사용안함
+		ViewportAnimation.AnimationRoot = nullptr;
+
+		UE_LOG("[VIEWPORT ANIMATION] Animation completed!");
+		return;
+	}
+
+	// 이징 함수 적용 후 SWindow 전환 애니메이션
+	float EasedProgress = EaseInOutCubic(Progress);
+	AnimateSplitterTransition(EasedProgress);
+}
+
+float UViewportManager::EaseInOutCubic(float t) const
+{
+	// 부드러운 3차 이징 함수 (가속 → 등속 → 감속)
+	if (t < 0.5f)
+	{
+		return 4.0f * t * t * t;
+	}
+	else
+	{
+		float f = (2.0f * t - 2.0f);
+		return 1.0f + f * f * f * 0.5f;
+	}
+}
+
+void UViewportManager::SyncAnimationRectsToViewports() const
+{
+	TArray<FRect> Leaves;
+	GetLeafRects(Leaves);
+
+	if (Leaves.empty()) return;
+
+	// 애니메이션 유형에 따라 올바른 뷰포트 매핑
+	if (!ViewportAnimation.bSingleToQuad) // QuadToSingle
+	{
+		// Quad → Single: 선택된 뷰포트만 첫 번째 위치에 렌더링
+		int32 PromotedIdx = ViewportAnimation.PromotedViewportIndex;
+		if (PromotedIdx >= 0 && PromotedIdx < static_cast<int32>(Viewports.size()) && !Leaves.empty())
+		{
+			// 선택된 뷰포트의 데이터를 0번 인덱스에 임시 배치
+			// 이렇게 하면 전체 화면에 올바른 뷰포트가 보인다
+			FViewport* TargetViewport = Viewports[PromotedIdx];
+			FViewportClient* TargetClient = Clients[PromotedIdx];
+
+			// 첫 번째 리프 영역에 선택된 뷰포트 배치 (전체 화면)
+			TargetViewport->SetRect(Leaves[0]);
+			TargetViewport->SetToolbarHeight(24);
+
+			const int32 renderH = max<LONG>(0, Leaves[0].H - TargetViewport->GetToolbarHeight());
+			TargetClient->OnResize({Leaves[0].W, renderH});
+
+			// 다른 뷰포트들은 최소 크기로 숨김 (비가시)
+			for (int32 i = 0; i < static_cast<int32>(Viewports.size()); ++i)
+			{
+				if (i != PromotedIdx)
+				{
+					Viewports[i]->SetRect(FRect{0, 0, 0, 0}); // 비가시
+					Clients[i]->OnResize({0, 0});
+				}
+			}
+		}
+	}
+	else // SingleToQuad
+	{
+		// Single → Quad: 모든 뷰포트를 올바른 영역에 매핑
+		// 애니메이션 중에는 원래 배치대로 복원
+		const int32 N = min<int32>(static_cast<int32>(Leaves.size()), static_cast<int32>(Viewports.size()));
+
+		// 기본 매핑: 원래 뷰포트 순서대로 (0=Top, 1=Front, 2=Side, 3=Persp)
+		for (int32 i = 0; i < N; ++i)
+		{
+			Viewports[i]->SetRect(Leaves[i]);
+			Viewports[i]->SetToolbarHeight(24);
+
+			const int32 renderH = max<LONG>(0, Leaves[i].H - Viewports[i]->GetToolbarHeight());
+			Clients[i]->OnResize({Leaves[i].W, renderH});
+		}
+	}
+}
+
+void UViewportManager::CreateAnimationSplitters()
+{
+	// 현재 창 크기 얻기
+	int32 Width = 0, Height = 0;
+	if (AppWindow)
+	{
+		AppWindow->GetClientSize(Width, Height);
+	}
+
+	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int32 ViewportWidth = Width - RightPanelWidth;
+	const FRect ViewportRect{0, MenuHeight, max(0, ViewportWidth), max(0, Height - MenuHeight)};
+
+	if (ViewportAnimation.bSingleToQuad) // SingleToQuad
+	{
+		// 싱글 → 쿼드: 4분할 구조로 생성하지만 선택된 뷰포트가 전체 차지하도록 설정
+		// 4분할 스플리터 구조 생성
+		SSplitter* RootSplit = new SSplitterV();
+		SSplitter* Left = new SSplitterH();
+		SSplitter* Right = new SSplitterH();
+
+		// 현재 선택된 뷰포트(BuildSingleLayout에서 0번으로 스왈됨)가 어떤 위치에 있었는지 결정
+		// LastPromotedIdx가 원래 위치를 나타냄
+		int32 OriginalViewportIndex = (LastPromotedIdx >= 0) ? LastPromotedIdx : 0;
+
+		// 원래 위치에 따라 시작 비율 설정
+		switch (OriginalViewportIndex)
+		{
+		case 0: // Top (Top-Left): 왼쪽 위쪽에서 시작
+			RootSplit->Ratio = 1.0f; // 왼쪽 전체
+			Left->Ratio = 1.0f; // Top 전체
+			Right->Ratio = 1.0f; // 사용안됨
+			break;
+		case 1: // Front (Bottom-Left): 왼쪽 아래쪽에서 시작
+			RootSplit->Ratio = 1.0f; // 왼쪽 전체
+			Left->Ratio = 0.0f; // Front 전체
+			Right->Ratio = 1.0f; // 사용안됨
+			break;
+		case 2: // Side (Top-Right): 오른쪽 위쪽에서 시작
+			RootSplit->Ratio = 0.0f; // 오른쪽 전체
+			Left->Ratio = 1.0f; // 사용안됨
+			Right->Ratio = 1.0f; // Side 전체
+			break;
+		case 3: // Persp (Bottom-Right): 오른쪽 아래쪽에서 시작
+			RootSplit->Ratio = 0.0f; // 오른쪽 전체
+			Left->Ratio = 1.0f; // 사용안됨
+			Right->Ratio = 0.0f; // Persp 전체
+			break;
+		default:
+			// 기본값 (0번과 동일)
+			RootSplit->Ratio = 1.0f;
+			Left->Ratio = 1.0f;
+			Right->Ratio = 1.0f;
+			break;
+		}
+
+		RootSplit->SetChildren(Left, Right);
+
+		SWindow* Top = new SWindow();
+		SWindow* Front = new SWindow();
+		SWindow* Side = new SWindow();
+		SWindow* Persp = new SWindow();
+
+		Left->SetChildren(Top, Front);
+		Right->SetChildren(Side, Persp);
+
+		RootSplit->OnResize(ViewportRect);
+		ViewportAnimation.AnimationRoot = RootSplit;
+		ViewportAnimation.StartRatio = 1.0f; // 선택된 뷰포트가 전체 차지
+		ViewportAnimation.TargetRatio = ViewportAnimation.CurrentVerticalRatio; // 목표: 기존 비율
+	}
+	else // QuadToSingle
+	{
+		// 쿼드 → 싱글: 쿼드 스플리터로 시작해서 점진적으로 싱글로 바꿲
+		// 4분할 스플리터 구조 생성
+		SSplitter* RootSplit = new SSplitterV();
+		RootSplit->Ratio = IniSaveSharedV;
+
+		SSplitter* Left = new SSplitterH();
+		SSplitter* Right = new SSplitterH();
+		Left->Ratio = IniSaveSharedH;
+		Right->Ratio = IniSaveSharedH;
+
+		RootSplit->SetChildren(Left, Right);
+
+		SWindow* Top = new SWindow();
+		SWindow* Front = new SWindow();
+		SWindow* Side = new SWindow();
+		SWindow* Persp = new SWindow();
+
+		Left->SetChildren(Top, Front);
+		Right->SetChildren(Side, Persp);
+
+		RootSplit->OnResize(ViewportRect);
+		ViewportAnimation.AnimationRoot = RootSplit;
+		ViewportAnimation.StartRatio = IniSaveSharedV;
+		ViewportAnimation.TargetRatio = 1.0f; // 전체 화면으로 (싱글 상태)
+	}
+
+	// 애니메이션 루트를 현재 루트로 설정
+	Root = ViewportAnimation.AnimationRoot;
+}
+
+void UViewportManager::AnimateSplitterTransition(float Progress)
+{
+	if (!ViewportAnimation.AnimationRoot) return;
+
+	// 진행률에 따른 스플리터 비율 계산
+	float CurrentRatio = ViewportAnimation.StartRatio + (ViewportAnimation.TargetRatio - ViewportAnimation.StartRatio) *
+		Progress;
+
+	if (ViewportAnimation.bSingleToQuad) // SingleToQuad
+	{
+		// 싱글 → 쿼드: 원래 위치에서 기존 비율로 단계적 축소
+		if (SSplitter* RootSplitter = Cast(ViewportAnimation.AnimationRoot))
+		{
+			int32 OriginalViewportIndex = (LastPromotedIdx >= 0) ? LastPromotedIdx : 0;
+
+			// 원래 위치에 따라 애니메이션 다르게 처리
+			switch (OriginalViewportIndex)
+			{
+			case 0: // Top (Top-Left)
+				// 수직: 1.0 → 기존비율, 수평: 1.0 → 기존비율
+				RootSplitter->Ratio = 1.0f + (ViewportAnimation.CurrentVerticalRatio - 1.0f) * Progress;
+				if (SSplitter* LeftSplitter = Cast(RootSplitter->SideLT))
+				{
+					LeftSplitter->Ratio = 1.0f + (ViewportAnimation.CurrentHorizontalRatio - 1.0f) * Progress;
+				}
+				break;
+			case 1: // Front (Bottom-Left)
+				// 수직: 1.0 → 기존비율, 수평: 0.0 → 기존비율
+				RootSplitter->Ratio = 1.0f + (ViewportAnimation.CurrentVerticalRatio - 1.0f) * Progress;
+				if (SSplitter* LeftSplitter = Cast(RootSplitter->SideLT))
+				{
+					LeftSplitter->Ratio = 0.0f + (ViewportAnimation.CurrentHorizontalRatio - 0.0f) * Progress;
+				}
+				break;
+			case 2: // Side (Top-Right)
+				// 수직: 0.0 → 기존비율, 수평: 1.0 → 기존비율
+				RootSplitter->Ratio = 0.0f + (ViewportAnimation.CurrentVerticalRatio - 0.0f) * Progress;
+				if (SSplitter* RightSplitter = Cast(RootSplitter->SideRB))
+				{
+					RightSplitter->Ratio = 1.0f + (ViewportAnimation.CurrentHorizontalRatio - 1.0f) * Progress;
+				}
+				break;
+			case 3: // Persp (Bottom-Right)
+				// 수직: 0.0 → 기존비율, 수평: 0.0 → 기존비율
+				RootSplitter->Ratio = 0.0f + (ViewportAnimation.CurrentVerticalRatio - 0.0f) * Progress;
+				if (SSplitter* RightSplitter = Cast(RootSplitter->SideRB))
+				{
+					RightSplitter->Ratio = 0.0f + (ViewportAnimation.CurrentHorizontalRatio - 0.0f) * Progress;
+				}
+				break;
+			default:
+				// 기본값 (0번과 동일)
+				RootSplitter->Ratio = 1.0f + (ViewportAnimation.CurrentVerticalRatio - 1.0f) * Progress;
+				if (SSplitter* LeftSplitter = Cast(RootSplitter->SideLT))
+				{
+					LeftSplitter->Ratio = 1.0f + (ViewportAnimation.CurrentHorizontalRatio - 1.0f) * Progress;
+				}
+				break;
+			}
+
+			RootSplitter->LayoutChildren();
+		}
+	}
+	else // QuadToSingle
+	{
+		// 쿼드 → 싱글: 선택된 뷰포트 위치에 따라 확장 방향 결정
+		if (SSplitter* RootSplitter = Cast(ViewportAnimation.AnimationRoot))
+		{
+			// 먼저 수직 스플리터(V) 비율 조정
+			// 레이아웃: 0=Top(TL), 1=Front(BL), 2=Side(TR), 3=Persp(BR)
+			// 선택된 뷰포트가 점진적으로 전체 화면으로 확장
+			switch (ViewportAnimation.PromotedViewportIndex)
+			{
+			case 0: // Top (Top-Left): 왼쪽 영역 확장
+			case 1: // Front (Bottom-Left): 왼쪽 영역 확장
+				// 시작 0.5에서 1.0으로 확장
+				RootSplitter->Ratio = IniSaveSharedV + (1.0f - IniSaveSharedV) * Progress;
+				break;
+			case 2: // Side (Top-Right): 오른쪽 영역 확장
+			case 3: // Persp (Bottom-Right): 오른쪽 영역 확장
+				// 시작 0.5에서 0.0으로 축소 (오른쪽이 확장됨)
+				RootSplitter->Ratio = IniSaveSharedV * (1.0f - Progress);
+				break;
+			default:
+				break;
+			}
+
+			// 수평 스플리터(H)들의 비율도 조정
+			if (RootSplitter->SideLT && RootSplitter->SideRB)
+			{
+				SSplitter* LeftSplitter = Cast(RootSplitter->SideLT);
+				SSplitter* RightSplitter = Cast(RootSplitter->SideRB);
+
+				if (LeftSplitter && RightSplitter)
+				{
+					// 수평 스플리터에서도 선택된 뷰포트가 점진적으로 확장
+					switch (ViewportAnimation.PromotedViewportIndex)
+					{
+					case 0: // Top (Top-Left): 왼쪽 수평 스플리터에서 Top 확장
+						// 시작 0.5에서 1.0으로 확장
+						LeftSplitter->Ratio = IniSaveSharedH + (1.0f - IniSaveSharedH) * Progress;
+						break;
+					case 1: // Front (Bottom-Left): 왼쪽 수평 스플리터에서 Front 확장
+						// 시작 0.5에서 0.0으로 축소 (Front가 확장됨)
+						LeftSplitter->Ratio = IniSaveSharedH * (1.0f - Progress);
+						break;
+					case 2: // Side (Top-Right): 오른쪽 수평 스플리터에서 Side 확장
+						// 시작 0.5에서 1.0으로 확장
+						RightSplitter->Ratio = IniSaveSharedH + (1.0f - IniSaveSharedH) * Progress;
+						break;
+					case 3: // Persp (Bottom-Right): 오른쪽 수평 스플리터에서 Persp 확장
+						// 시작 0.5에서 0.0으로 축소 (Persp가 확장됨)
+						RightSplitter->Ratio = IniSaveSharedH * (1.0f - Progress);
+						break;
+					default:
+						break;
+					}
+				}
+			}
+
+			RootSplitter->LayoutChildren();
+		}
+	}
+}
+
+void UViewportManager::RestoreOriginalLayout()
+{
+	if (ViewportAnimation.AnimationRoot)
+	{
+		delete ViewportAnimation.AnimationRoot;
+		ViewportAnimation.AnimationRoot = nullptr;
+	}
+
+	if (ViewportAnimation.BackupRoot)
+	{
+		Root = ViewportAnimation.BackupRoot;
+		ViewportAnimation.BackupRoot = nullptr;
+	}
+
+	ViewportAnimation.bIsAnimating = false;
+}
+
+void UViewportManager::FinalizeSingleLayoutFromAnimation()
+{
+	// 현재 애니메이션 루트를 삭제하고 단일 레이아웃으로 직접 전환
+	if (ViewportAnimation.AnimationRoot)
+	{
+		delete ViewportAnimation.AnimationRoot;
+		ViewportAnimation.AnimationRoot = nullptr;
+	}
+
+	if (ViewportAnimation.BackupRoot)
+	{
+		delete ViewportAnimation.BackupRoot;
+		ViewportAnimation.BackupRoot = nullptr;
+	}
+
+	// 애니메이션에서 선택된 뷰포트 인덱스 사용 (그대로 유지)
+	int32 PromoteIdx = ViewportAnimation.PromotedViewportIndex;
+
+	// 단일 레이아웃 직접 구축 - 선택된 뷰포트만 0번에 나타나게 함
+	// 하지만 원래 뷰포트 배열은 그대로 유지해서 나중에 원위치 복원 가능하게
+	int32 Width = 0, Height = 0;
+	if (AppWindow)
+	{
+		AppWindow->GetClientSize(Width, Height);
+	}
+
+	const int32 MenuH = static_cast<int32>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int32 ViewportWidth = Width - RightPanelWidth;
+
+	const FRect Rect{0, MenuH, max(0, ViewportWidth), max(0, Height - MenuH)};
+
+	// 새 루트 구성 (싱글)
+	SWindow* Single = new SWindow();
+	Single->OnResize(Rect);
+	SetRoot(Single);
+
+	// 선택된 뷰포트를 0번 위치에 임시 오는 대신, 애니메이션 목적에 맞게
+	// PromotedViewportIndex만 기록하고 실제 배열 순서는 그대로 유지
+	if (PromoteIdx >= 0 && PromoteIdx < static_cast<int32>(Viewports.size()))
+	{
+		// 단일 레이아웃에서는 선택된 뷰포트만 보이도록 조정
+		// ViewportChange가 Single이므로 RenderOverlay에서 N=1로 처리됨
+		// 0번 인덱스에 선택된 뷰포트를 임시 배치해야 데이터 접근에 문제가 없음
+		if (PromoteIdx != 0)
+		{
+			std::swap(Viewports[0], Viewports[PromoteIdx]);
+			std::swap(Clients[0], Clients[PromoteIdx]);
+			LastPromotedIdx = PromoteIdx; // 나중에 원위치 복원용
+		}
+		else
+		{
+			LastPromotedIdx = -1;
+		}
+	}
+	else
+	{
+		LastPromotedIdx = -1;
+	}
+}
+
+void UViewportManager::FinalizeFourSplitLayoutFromAnimation()
+{
+	// 현재 애니메이션 루트의 구조를 그대로 유지하되 비율을 최종값으로 설정
+	if (!ViewportAnimation.AnimationRoot) return;
+
+	// 애니메이션 루트를 그대로 사용하되, 최종 비율로 고정
+	if (SSplitter* RootSplitter = Cast(ViewportAnimation.AnimationRoot))
+	{
+		// 최종 비율 적용
+		RootSplitter->Ratio = ViewportAnimation.CurrentVerticalRatio;
+
+		if (SSplitter* LeftSplitter = Cast(RootSplitter->SideLT))
+		{
+			LeftSplitter->Ratio = ViewportAnimation.CurrentHorizontalRatio;
+			LeftSplitter->SetSharedRatio(&IniSaveSharedH);
+		}
+
+		if (SSplitter* RightSplitter = Cast(RootSplitter->SideRB))
+		{
+			RightSplitter->Ratio = ViewportAnimation.CurrentHorizontalRatio;
+			RightSplitter->SetSharedRatio(&IniSaveSharedH);
+		}
+
+		RootSplitter->LayoutChildren();
+	}
+
+	// 애니메이션 루트를 영구 루트로 이전 (삭제하지 않음)
+	Root = ViewportAnimation.AnimationRoot;
+	ViewportAnimation.AnimationRoot = nullptr;
+
+	// 백업 정리
+	if (ViewportAnimation.BackupRoot)
+	{
+		delete ViewportAnimation.BackupRoot;
+		ViewportAnimation.BackupRoot = nullptr;
+	}
+
+	// 뷰포트 배열 원위치 복원: SingleToQuad 애니메이션 후 뷰포트들이 원래 자리로 돌아가도록
+	if (LastPromotedIdx > 0 && LastPromotedIdx < static_cast<int32>(Viewports.size()))
+	{
+		std::swap(Viewports[0], Viewports[LastPromotedIdx]);
+		std::swap(Clients[0], Clients[LastPromotedIdx]);
+	}
+	LastPromotedIdx = -1;
+
+	ForceRefreshOrthoViewsAfterLayoutChange();
+}
+
+#pragma endregion viewport animation
