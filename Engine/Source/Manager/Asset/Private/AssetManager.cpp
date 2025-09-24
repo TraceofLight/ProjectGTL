@@ -520,6 +520,10 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 		BuildMaterialSlots(ObjInfos, MaterialSlots, MaterialNameToSlot);
 		AssignSectionMaterialSlots(StaticMeshData, MaterialNameToSlot);
 
+		if(CheckEmptyMaterialSlots(StaticMeshData.Sections))
+		{
+			UE_LOG_WARNING("StaticMesh에 머티리얼이 없거나 섹션에 머티리얼이 할당되지 않았습니다. 기본 머티리얼을 할당합니다.");
+		}
 		InsertDefaultMaterial(StaticMeshData, MaterialSlots);
 
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
@@ -854,7 +858,7 @@ void UAssetManager::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<
 	else if (MatNums > 0 && InMaterialSlots[0] != DefaultMaterial)
 	{
 		InMaterialSlots.push_back(InMaterialSlots[0]);
-		InMaterialSlots.insert(InMaterialSlots.begin(), DefaultMaterial);
+		InMaterialSlots[0] = DefaultMaterial;
 		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
 		{
 			if (Section.MaterialSlotIndex == 0)

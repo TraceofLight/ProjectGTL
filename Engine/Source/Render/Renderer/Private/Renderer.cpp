@@ -620,7 +620,7 @@ void URenderer::RenderStaticMeshComponent(UStaticMeshComponent* InStaticMeshComp
 				continue;
 			}
 
-			RenderStaticMeshSection(Section, MaterialSlots, FallbackColor);
+			RenderStaticMeshSection(Section, MaterialSlots, InStaticMeshComponent, FallbackColor);
 			bDrewSection = true;
 		}
 
@@ -641,14 +641,32 @@ void URenderer::RenderStaticMeshComponent(UStaticMeshComponent* InStaticMeshComp
  * @brief StaticMesh의 섹션 단위로 렌더링하는 함수
  * @param InSection 렌더링할 스태틱 메시 섹션 정보
  * @param InMaterialSlots 메시가 참조하는 머티리얼 슬롯 배열
+ * @param InStaticMeshComp 머티리얼 오버라이드를 참조할 스태틱 메시 컴포넌트
  * @param InFallbackColor 머티리얼이 없을 때 사용할 대체 색상
  */
-void URenderer::RenderStaticMeshSection(const FStaticMeshSection& InSection, const TArray<UMaterialInterface*>& InMaterialSlots, const FVector4& InFallbackColor)
+void URenderer::RenderStaticMeshSection(const FStaticMeshSection& InSection
+	, const TArray<UMaterialInterface*>& InMaterialSlots
+	, const UStaticMeshComponent* InStaticMeshComp
+	, const FVector4& InFallbackColor)
 {
 	UMaterialInterface* SectionMaterial = nullptr;
 	if (InSection.MaterialSlotIndex >= 0 && InSection.MaterialSlotIndex < static_cast<int32>(InMaterialSlots.size()))
 	{
-		SectionMaterial = InMaterialSlots[InSection.MaterialSlotIndex];
+		// StaticMeshComponent에 머티리얼 오버라이드가 있으면 우선 적용
+		if (InStaticMeshComp)
+		{
+			UMaterialInterface* OverriddenMaterial = InStaticMeshComp->GetMaterialOverride(InSection.MaterialSlotIndex);
+			if (OverriddenMaterial)
+			{
+				SectionMaterial = OverriddenMaterial;
+			}
+		}
+
+		if (!SectionMaterial)
+		{
+			SectionMaterial = InMaterialSlots[InSection.MaterialSlotIndex];
+		}
+		
 	}
 
 	ApplyMaterial(SectionMaterial, InFallbackColor);

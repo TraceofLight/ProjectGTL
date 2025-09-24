@@ -57,8 +57,7 @@ private:
 };
 
 /*
-* @brief 컴포넌트들이 실제 사용하는 머티리얼 인스턴스
-* @note 부모 머티리얼을 참조하고 일부 파라미터만 오버라이드해 인스턴스마다 변형을 주는 데에 사용됨.
+* @brief 부모 머티리얼을 참조하고 일부 파라미터만 오버라이드해 인스턴스마다 변형을 주는 데에 사용됨.
 */
 UCLASS()
 class UMaterialInstance : public UMaterialInterface

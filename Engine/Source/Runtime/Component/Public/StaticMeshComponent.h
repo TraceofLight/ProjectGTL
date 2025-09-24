@@ -2,6 +2,8 @@
 #include "Runtime/Component/Public/MeshComponent.h"
 #include "Asset/Public/StaticMesh.h"
 
+class UMaterialInterface;
+
 /**
  * @brief UStaticMeshComponent: 스태틱 메시 렌더링을 위한 컴포넌트
  * @note 언리얼 엔진의 UStaticMeshComponent에 해당
@@ -54,6 +56,38 @@ public:
 	// PrimitiveComponent 오버라이드
 	virtual void GetWorldAABB(FVector& OutMin, FVector& OutMax) const override;
 
+	// Material Override 관련 기능
+	/**
+	 * @brief 특정 슬롯의 머티리얼을 오버라이드
+	 * @param SlotIndex 머티리얼 슬롯 인덱스
+	 * @param Material 오버라이드할 머티리얼
+	 */
+	void SetMaterialOverride(int32 SlotIndex, UMaterialInterface* Material);
+
+	/**
+	 * @brief 특정 슬롯의 오버라이드 머티리얼을 가져옴
+	 * @param SlotIndex 머티리얼 슬롯 인덱스
+	 * @return 오버라이드된 머티리얼, 없으면 nullptr
+	 */
+	UMaterialInterface* GetMaterialOverride(int32 SlotIndex) const;
+
+	/**
+	 * @brief 특정 슬롯의 머티리얼 오버라이드를 제거
+	 * @param SlotIndex 머티리얼 슬롯 인덱스
+	 */
+	void RemoveMaterialOverride(int32 SlotIndex);
+
+	/**
+	 * @brief 모든 머티리얼 오버라이드를 제거
+	 */
+	void ClearMaterialOverrides();
+
+	/**
+	 * @brief MaterialOverrideMap을 가져옴
+	 * @return MaterialOverrideMap 참조
+	 */
+	const TMap<int32, UMaterialInterface*>& GetMaterialOverrideMap() const { return MaterialOverrideMap; }
+
 protected:
 	// UMeshComponent로부터 재정의
 	virtual void InitializeMeshRenderData() override;
@@ -66,4 +100,7 @@ protected:
 private:
 	/** 렌더링할 스태틱 메시 애셋 */
 	UStaticMesh* StaticMesh = nullptr;
+
+	/** 스태틱 메시 애셋 자체 머터리얼 대신 사용할 머티리얼 */
+	TMap<int32, UMaterialInterface*> MaterialOverrideMap;
 };
