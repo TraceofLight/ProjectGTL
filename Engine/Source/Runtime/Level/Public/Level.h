@@ -43,6 +43,8 @@ public:
 	ULevel(const FName& InName);
 	~ULevel() override;
 
+	void Release();
+
 	virtual void Init();
 	virtual void Update();
 	virtual void Render();

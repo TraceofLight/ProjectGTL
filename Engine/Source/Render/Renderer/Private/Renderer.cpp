@@ -301,7 +301,7 @@ void URenderer::Update()
             ViewportIdx++;
         }
 
-		DevictContext->RSSetViewports(1, &FullVP); 
+		DevictContext->RSSetViewports(1, &FullVP);
 		D3D11_RECT ScreenFull{};
 		ScreenFull.left = (LONG)FullVP.TopLeftX; ScreenFull.top = (LONG)FullVP.TopLeftY;
 		ScreenFull.right = (LONG)(FullVP.TopLeftX + FullVP.Width);
@@ -395,21 +395,24 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 
 				if (!VC) return;
 
-				// 카메라 위치
-				FVector CamLoc;
-				FViewProjConstants VPC;
+				UCamera* CurrentCamera;
+				FViewProjConstants ViewProj;
 				if (VC->GetViewType() == EViewType::Perspective)
 				{
-					CamLoc = VC->GetPerspectiveCamera()->GetLocation();
-					VPC = VC->GetPerspectiveViewProjConstData();
+					CurrentCamera = VC->GetPerspectiveCamera();
+					ViewProj = VC->GetPerspectiveViewProjConstData();
 				}
 				else
 				{
-					CamLoc = VC->GetOrthoCamera()->GetLocation();
-					VPC = VC->GetOrthoGraphicViewProjConstData();
+					CurrentCamera = VC->GetOrthoCamera();
+					ViewProj = VC->GetOrthoGraphicViewProjConstData();
 				}
-				BillBoardComponent->UpdateRotationMatrix(CamLoc);
-				RenderBillBoardDirect(BillBoardComponent, VPC);
+
+				// 현재 뷰포트 카메라 기준으로 billboard 회전행렬 갱신
+				BillBoardComponent->UpdateRotationMatrix(CurrentCamera);
+
+				// 현재 뷰포트의 View/Proj로 텍스트 그리기
+				RenderBillBoardDirect(BillBoardComponent, ViewProj);
 			}
 		}
 		return;
@@ -522,8 +525,6 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 		Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
 		UpdateConstant(InPrimitiveComponent->GetColor());
 	}
-	//const FViewProjConstants& ViewProjConstants = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-	
 }
 
 /**
@@ -654,7 +655,6 @@ void URenderer::RenderStaticMeshSection(const FStaticMeshSection& InSection
 		{
 			SectionMaterial = InMaterialSlots[InSection.MaterialSlotIndex];
 		}
-		
 	}
 
 	ApplyMaterial(SectionMaterial, InFallbackColor);
@@ -824,9 +824,9 @@ void URenderer::RenderBillBoardDirect(UBillBoardComponent* InBillBoardComponent,
 	// Actor의 UUID를 표시 텍스트로 설정
 	FString DisplayText = "Unknown";
 	if (auto* Owner = InBillBoardComponent->GetOwner())
-		DisplayText = "UUID:" + std::to_string(Owner->GetUUID());
+		DisplayText = "아이디:" + std::to_string(Owner->GetUUID());
 
-	FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, InViewProj);
+	FontRenderer->RenderText(DisplayText, RTMatrix, InViewProj);
 }
 
 /**
