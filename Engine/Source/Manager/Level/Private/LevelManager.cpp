@@ -58,7 +58,7 @@ void ULevelManager::Shutdown()
 	{
 		if (Level.second)
 		{
-			Level.second->SetOuter(nullptr);
+			Level.second->Release();
 		}
 	}
 
@@ -184,8 +184,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!bLoadSuccess)
 		{
 			UE_LOG("LevelManager: Failed To Load Level From: %s", InFilePath.c_str());
-			// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
-			NewLevel->SetOuter(nullptr);
+			NewLevel->Release();
 			return false;
 		}
 
@@ -194,8 +193,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!FJsonSerializer::ValidateLevelData(Metadata, ErrorMessage))
 		{
 			UE_LOG("LevelManager: Level Validation Failed: %s", ErrorMessage.c_str());
-			// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
-			NewLevel->SetOuter(nullptr);
+			NewLevel->Release();
 			return false;
 		}
 
@@ -205,8 +203,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 		if (!bSuccess)
 		{
 			UE_LOG("LevelManager: Failed To Create Level From Metadata");
-			// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
-			NewLevel->SetOuter(nullptr);
+			NewLevel->Release();
 			return false;
 		}
 	}
@@ -214,7 +211,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 	{
 		UE_LOG("LevelManager: Exception During Load: %s", InException.what());
 		// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
-		NewLevel->SetOuter(nullptr);
+		NewLevel->Release();
 		return false;
 	}
 
@@ -244,8 +241,7 @@ bool ULevelManager::LoadLevel(const FString& InLevelName, const FString& InFileP
 	}
 	else
 	{
-		// 로드 실패 시 정리 - Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
-		NewLevel->SetOuter(nullptr);
+		NewLevel->Release();
 		UE_LOG("LevelManager: 파일로부터 Level을 로드하는 데에 실패했습니다");
 	}
 
@@ -436,7 +432,7 @@ void ULevelManager::ClearCurrentLevel()
 	if (CurrentLevel)
 	{
 		// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
-		CurrentLevel->SetOuter(nullptr);
+		CurrentLevel->Release();
 		CurrentLevel = nullptr;
 		UE_LOG("LevelManager: Current level cleared successfully");
 	}
