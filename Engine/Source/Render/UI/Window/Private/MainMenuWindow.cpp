@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
 
+#include "Render/UI/Widget/Public/ActorTerminationWidget.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
 
 IMPLEMENT_SINGLETON_CLASS(UMainMenuWindow, UUIWindow)
@@ -30,6 +31,10 @@ void UMainMenuWindow::Initialize()
 	}
 
 	UE_LOG("MainMenuWindow: 메인 메뉴 윈도우가 초기화되었습니다");
+
+	// TODO(KHJ): 어디에 붙어있는 것이 적합한지 아직은 모르겠어서 MainMenu로 이관
+	// 필요 시 적절한 위치로 위젯 내부의 기능을 배치할 것
+	AddWidget(NewObject<UActorTerminationWidget>());
 }
 
 void UMainMenuWindow::Cleanup()

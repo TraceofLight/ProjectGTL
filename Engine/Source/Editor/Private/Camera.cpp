@@ -29,20 +29,6 @@ void UCamera::Update()
     {
         if (CameraType == ECameraType::ECT_Orthographic)
         {
-            // Ortho: WASD 이동은 유지, 마우스 드래그는 평면 상하좌우 패닝, 휠은 앞뒤 이동(도리)
-            FVector Direction = { 0,0,0 };
-            if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right; }
-            if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right; }
-            if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward; }
-            if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward; }
-            if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up; }
-            if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up; }
-            if (Direction.LengthSquared() > 0.0f)
-            {
-                Direction.Normalize();
-                RelativeLocation += Direction * CurrentMoveSpeed * GDeltaTime;
-            }
-
             // 마우스 드래그 → 패닝 (스크린 공간 X→Right, Y→Up)
             const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
             if (MouseDelta.X != 0.0f || MouseDelta.Y != 0.0f)
