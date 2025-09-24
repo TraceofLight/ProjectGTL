@@ -7,6 +7,7 @@
 #include "Runtime/Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/UI/Public/UIManager.h"
+#include "Render/UI/Widget/Public/ActorDetailWidget.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Material/Public/Material.h"
 //#include "Component/Public/PrimitiveComponent.h"
@@ -1182,6 +1183,7 @@ void URenderer::UpdateConstant(const FMatrix& InMatrix) const
 */
 void URenderer::UpdateConstant(const FVector4& InColor, float InUseVertexColor, float InUseDiffuseTexture) const
 {
+	static float TimeAccumulator = 0.0f;
 	Pipeline->SetConstantBuffer(2, false, ConstantBufferColor);
 
 	if (ConstantBufferColor)
@@ -1197,10 +1199,28 @@ void URenderer::UpdateConstant(const FVector4& InColor, float InUseVertexColor, 
 			MaterialConstants[0].Z = InColor.Z;
 			MaterialConstants[0].W = InColor.W;
 
+			// UV Scroll 값을 ActorDetailWidget에서 가져오기
+			float UseUVScroll = 0.0f;
+			if (TObjectPtr<UWidget> Widget = UUIManager::GetInstance().FindWidget(FName("Actor Detail Widget")))
+			{
+				if (UActorDetailWidget* ActorDetailWidget = Cast<UActorDetailWidget>(Widget))
+				{
+					if (ActorDetailWidget->GetUseUVScroll())
+					{
+						UseUVScroll = ActorDetailWidget->GetUseUVScroll() ? 1.0f : 0.0f;
+						TimeAccumulator += DT;
+					}
+					else
+					{
+						TimeAccumulator = 0.0f; // UV Scroll 사용 안 하면 시간 초기화
+					}
+				}
+			}
+
 			MaterialConstants[1].X = InUseVertexColor;
 			MaterialConstants[1].Y = InUseDiffuseTexture;
-			MaterialConstants[1].Z = 0.0f;
-			MaterialConstants[1].W = 0.0f;
+			MaterialConstants[1].Z = UseUVScroll;
+			MaterialConstants[1].W = TimeAccumulator;
 		}
 		GetDeviceContext()->Unmap(ConstantBufferColor, 0);
 	}

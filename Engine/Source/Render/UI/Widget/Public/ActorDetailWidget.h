@@ -16,12 +16,15 @@ public:
 	void Update() override;
 	void RenderWidget() override;
 
+	bool GetUseUVScroll() const { return bUseUVScroll; }	// 시연용 기능
+
 	// Special Member Function
 	UActorDetailWidget();
 	~UActorDetailWidget() override;
 
 private:
 	bool bIsRenamingActor = false;
+	bool bUseUVScroll = false;	// 시연용 기능
 	char ActorNameBuffer[256] = {};
 
 	// Helper functions
@@ -33,4 +36,5 @@ private:
 	void StartRenamingActor(TObjectPtr<AActor> InActor);
 	void FinishRenamingActor(TObjectPtr<AActor> InActor);
 	void CancelRenamingActor();
+
 };
