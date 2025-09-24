@@ -87,8 +87,7 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 	Capture = nullptr;
 	DestroyTree(Root);
 
-
-	UE_LOG("%d", PromoteIdx);
+	// UE_LOG_DEBUG("ViewportManager: PromoteIdx: %d", PromoteIdx);
 
 	if (PromoteIdx < 0 || PromoteIdx >= static_cast<int32>(Viewports.size()))
 	{
@@ -103,7 +102,7 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 	{
 		std::swap(Viewports[0], Viewports[PromoteIdx]);
 		std::swap(Clients[0], Clients[PromoteIdx]);
-		LastPromotedIdx = PromoteIdx;   
+		LastPromotedIdx = PromoteIdx;
 	}
 	else
 	{
@@ -681,7 +680,7 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 
 	// 오른쪽 클릭을 했을 때, 인덱스를 가져옵니다.
 	const int32 Index = ActiveRmbViewportIdx;
-	UE_LOG("%d", Index);
+	// UE_LOG_DEBUG("ViewportManager: Get Index: %d", Index);
 
 	// 인덱스가 범위 밖이라면 리턴합니다
 	if (Index < 0 || Index >= static_cast<int32>(Clients.size()))
@@ -741,7 +740,7 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 
 
 	FVector UpRef(0, 0, 1);
-	// 직교 탑 타입이거나 바텀 타입이면 
+	// 직교 탑 타입이거나 바텀 타입이면
 	if (ViewType == EViewType::OrthoTop || ViewType == EViewType::OrthoBottom)
 	{
 		UpRef = { -1, 0, 0 };
