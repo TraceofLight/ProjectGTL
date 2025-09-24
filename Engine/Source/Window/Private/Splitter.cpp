@@ -36,7 +36,7 @@ bool SSplitter::IsHandleHover(FPoint Coord) const
 	// Slightly extend the hit area to make grabbing the handle easier
 	   // and to be more forgiving at the cross intersection.
 	const FRect h = GetHandleRect();
-	const int32 extend = 2; // pixels of tolerance on each side
+	const int32 extend = 4; // pixels of tolerance on each side
 	const int32 x0 = h.X - extend;
 	const int32 y0 = h.Y - extend;
 	const int32 x1 = h.X + h.W + extend;

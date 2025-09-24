@@ -179,6 +179,9 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			ImGui::SetCursorPosX(TargetX);
 		}
 
+		// 애니메이션 중이면 버튼 비활성화
+		ImGui::BeginDisabled(ViewportManager.IsAnimating());
+
 		// 레이아웃 전환 버튼들
 		if (ViewportManager.GetViewportChange() == EViewportChange::Single)
 		{
@@ -186,7 +189,9 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			{
 				CurrentLayout = ELayout::Quad;
 				ViewportManager.SetViewportChange(EViewportChange::Quad);
-				ViewportManager.BuildFourSplitLayout();
+				
+				// 애니메이션 시작: Single → Quad
+				ViewportManager.StartLayoutAnimation(true, ViewportIndex);
 			}
 		}
 		if (ViewportManager.GetViewportChange() == EViewportChange::Quad)
@@ -195,10 +200,14 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			{
 				CurrentLayout = ELayout::Single;
 				ViewportManager.SetViewportChange(EViewportChange::Single);
+
+				// 스플리터 비율을 저장하고 애니메이션 시작: Quad → Single
 				ViewportManager.PersistSplitterRatios();
-				ViewportManager.BuildSingleLayout(ViewportIndex);
+				ViewportManager.StartLayoutAnimation(false, ViewportIndex);
 			}
 		}
+
+		ImGui::EndDisabled();
 	}
 	ImGui::End();
 	ImGui::PopStyleVar(3);

@@ -50,9 +50,14 @@ public:
 	// 스플리터 비율 저장
 	void PersistSplitterRatios();
 
+	// 애니메이션 시스템 공개 인터페이스
+	bool IsAnimating() const { return ViewportAnimation.bIsAnimating; }
+	void StartLayoutAnimation(bool bSingleToQuad, int32 ViewportIndex = -1);
+
 private:
 	// 내부 유틸
 	void SyncRectsToViewports() const; // 리프Rect → Viewport.Rect
+	void SyncAnimationRectsToViewports() const; // 애니메이션 중 리프Rect → Viewport.Rect
 	void PumpAllViewportInput() const; // 각 뷰포트 → 클라 입력 전달
 	void TickCameras() const; // 카메라 업데이트 일원화(공유 오쇼 1회)
 	void UpdateActiveRmbViewportIndex(); // 우클릭 드래그 대상 뷰포트 인덱스 계산
@@ -70,6 +75,16 @@ private:
 	void ForceRefreshOrthoViewsAfterLayoutChange();
 
 	void ApplySharedOrthoCenterToAllCameras() const;
+
+	// 애니메이션 시스템 내부 함수들
+	void StartViewportAnimation(bool bSingleToQuad, int32 PromoteIdx = -1);
+	void UpdateViewportAnimation();
+	float EaseInOutCubic(float t) const;
+	void CreateAnimationSplitters();
+	void AnimateSplitterTransition(float Progress);
+	void RestoreOriginalLayout();
+	void FinalizeSingleLayoutFromAnimation();
+	void FinalizeFourSplitLayoutFromAnimation();
 
 private:
 	SWindow* Root = nullptr;
@@ -103,6 +118,29 @@ private:
 	float SplitterValueH = 0.5f;
 
 	int32 LastPromotedIdx = -1;
+
+	// Viewport Animation System
+	struct FViewportAnimation
+	{
+		bool bIsAnimating = false;
+		float AnimationTime = 0.0f;
+		float AnimationDuration = 0.5f; // 애니메이션 지속 시간 (초)
+		
+		bool bSingleToQuad = true; // true: Single→Quad, false: Quad→Single
+		
+		// SWindow 트리 백업 및 복원을 위한 데이터
+		SWindow* BackupRoot = nullptr;
+		SWindow* AnimationRoot = nullptr; // 애니메이션용 임시 루트
+		
+		// 스플리터 비율 정보
+		float CurrentVerticalRatio = 0.5f;   // 현재 수직 스플리터 비율
+		float CurrentHorizontalRatio = 0.5f; // 현재 수평 스플리터 비율
+		float StartRatio = 0.5f;  // 시작 스플리터 비율
+		float TargetRatio = 0.5f; // 목표 스플리터 비율
+		int32 PromotedViewportIndex = 0;
+	};
+	
+	FViewportAnimation ViewportAnimation;
 };
 
 // UE 스타일 아이콘 타입
@@ -132,7 +170,7 @@ struct FUEImgui
 		bool bPressed = ImGui::IsItemClicked();
 		bool bHovered = ImGui::IsItemHovered();
 
-		ImDrawList* DL = ImGui::GetForegroundDrawList();
+		ImDrawList* DL = ImGui::GetWindowDrawList();
 		ImVec2 Min = ImGui::GetItemRectMin();
 		ImVec2 Max = ImGui::GetItemRectMax();
 
