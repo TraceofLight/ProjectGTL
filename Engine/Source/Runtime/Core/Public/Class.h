@@ -128,6 +128,7 @@ private: \
     ClassName& operator=(const ClassName&) = delete; \
     ClassName(ClassName&&) = delete; \
     ClassName& operator=(ClassName&&) = delete;
+	
 
 // 싱글톤 클래스 구현부에 사용하는 매크로
 #define IMPLEMENT_SINGLETON_CLASS(ClassName, SuperClassName) \
