@@ -3,6 +3,7 @@
 #include "Manager/Level/Public/LevelManager.h"
 #include "Editor/Public/Editor.h"
 #include "Runtime/Actor/Public/Actor.h"
+#include "Editor/Public/Camera.h"
 
 IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
 
@@ -16,24 +17,24 @@ UBillBoardComponent::UBillBoardComponent()
 	UBillBoardComponent::GetClass()->IncrementGenNumber();
 }
 
-void UBillBoardComponent::UpdateRotationMatrix(const FVector& InCameraLocation)
+void UBillBoardComponent::UpdateRotationMatrix(const UCamera* InCamera)
 {
+	if (!InCamera)
+	{
+		return;
+	}
+
     const FVector& OwnerActorLocation = GetOwner()->GetActorLocation();
 
-	FVector ToCamera = InCameraLocation;
-	ToCamera.Normalize();
+	const FVector& CameraForward = InCamera->GetForward();
+	const FVector& CameraRight = InCamera->GetRight();
+	const FVector& CameraUp = InCamera->GetUp();
 
-	const FVector4 worldUp4 = FVector4(0, 0, 1, 1);
+	// 빌보드가 뷰 평면에 평행하도록 카메라의 방향 벡터를 그대로 사용
+	// Forward 벡터가 빌보드의 normal이 되고, Right와 Up은 빌보드의 로컬 축이 됨
+	RTMatrix = FMatrix(CameraForward, CameraRight, CameraUp);
 
-	const FVector worldUp = { worldUp4.X, worldUp4.Y, worldUp4.Z };
-	FVector Right = worldUp.Cross(ToCamera);
-	Right.Normalize();
-	FVector Up = ToCamera.Cross(Right);
-	Up.Normalize();
-
-	RTMatrix = FMatrix(FVector4(0, 1, 0, 1), worldUp4, FVector4(1,0,0,1));
-	RTMatrix = FMatrix(ToCamera, Right, Up);
-
+	// 오프셋을 적용한 위치로 이동
 	const FVector Translation = OwnerActorLocation + FVector(0.0f, 0.0f, 5.0f);
 	RTMatrix *= FMatrix::TranslationMatrix(Translation);
 }

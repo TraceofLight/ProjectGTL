@@ -3,6 +3,7 @@
 #include "Global/Matrix.h"
 
 class AActor;
+class UCamera;
 
 UCLASS()
 class UBillBoardComponent :
@@ -15,7 +16,7 @@ public:
 	UBillBoardComponent();
 	~UBillBoardComponent() override = default;
 
-	void UpdateRotationMatrix(const FVector& InCameraLocation);
+	void UpdateRotationMatrix(const UCamera* InCamera);
 
 	FMatrix GetRTMatrix() const { return RTMatrix; }
 

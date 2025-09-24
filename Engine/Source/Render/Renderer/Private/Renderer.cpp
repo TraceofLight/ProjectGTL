@@ -303,7 +303,7 @@ void URenderer::Update()
             ViewportIdx++;
         }
 
-		ctx->RSSetViewports(1, &fullVP); 
+		ctx->RSSetViewports(1, &fullVP);
 		D3D11_RECT scFull{};
 		scFull.left = (LONG)fullVP.TopLeftX; scFull.top = (LONG)fullVP.TopLeftY;
 		scFull.right = (LONG)(fullVP.TopLeftX + fullVP.Width);
@@ -401,27 +401,29 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 				FViewport* VP = (ViewportIdx < VPs.size()) ? VPs[ViewportIdx] : nullptr;
 				FViewportClient* VC = VP ? VP->GetViewportClient() : nullptr;
 
-				if (!VC) return;
+				if (!VC)
+				{
+					return;
+				}
 
-				// 카메라 위치
-				FVector CamLoc;
-				FViewProjConstants VPC;
+				UCamera* CurrentCamera;
+				FViewProjConstants ViewProj;
 				if (VC->GetViewType() == EViewType::Perspective)
 				{
-					CamLoc = VC->GetPerspectiveCamera()->GetLocation();
-					VPC = VC->GetPerspectiveViewProjConstData();
+					CurrentCamera = VC->GetPerspectiveCamera();
+					ViewProj = VC->GetPerspectiveViewProjConstData();
 				}
 				else
 				{
-					CamLoc = VC->GetOrthoCamera()->GetLocation();
-					VPC = VC->GetOrthoGraphicViewProjConstData();
+					CurrentCamera = VC->GetOrthoCamera();
+					ViewProj = VC->GetOrthoGraphicViewProjConstData();
 				}
 
-				// ✅ 현재 뷰포트 카메라 기준으로 billboard 회전행렬 갱신
-				BillBoardComponent->UpdateRotationMatrix(CamLoc);
+				// 현재 뷰포트 카메라 기준으로 billboard 회전행렬 갱신
+				BillBoardComponent->UpdateRotationMatrix(CurrentCamera);
 
-				// ✅ 현재 뷰포트의 View/Proj로 텍스트 그리기
-				RenderBillBoardDirect(BillBoardComponent, VPC);
+				// 현재 뷰포트의 View/Proj로 텍스트 그리기
+				RenderBillBoardDirect(BillBoardComponent, ViewProj);
 			}
 		}
 		return;
@@ -535,7 +537,7 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 		UpdateConstant(InPrimitiveComponent->GetColor());
 	}
 	//const FViewProjConstants& ViewProjConstants = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-	
+
 }
 
 /**
@@ -666,7 +668,7 @@ void URenderer::RenderStaticMeshSection(const FStaticMeshSection& InSection
 		{
 			SectionMaterial = InMaterialSlots[InSection.MaterialSlotIndex];
 		}
-		
+
 	}
 
 	ApplyMaterial(SectionMaterial, InFallbackColor);
