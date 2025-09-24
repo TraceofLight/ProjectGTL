@@ -10,16 +10,13 @@
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Material/Public/Material.h"
-//#include "Component/Public/PrimitiveComponent.h"
+#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
-// For per-viewport view/projection constants
 #include "Window/Public/Viewport.h"
 #include "Window/Public/ViewportClient.h"
-#include "Source/Window/Public/Viewport.h"
-#include "Source/Window/Public/ViewportClient.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -311,6 +308,12 @@ void URenderer::Update()
 	}
 	// ImGui 자체 Render 처리가 진행되어야 하므로 따로 처리
     UUIManager::GetInstance().Render();
+
+    // 오버레이 렌더링
+    if (auto* OverlayManager = GEngine->GetEngineSubsystem<UOverlayManagerSubsystem>())
+    {
+    	OverlayManager->RenderOverlay();
+    }
 
 	RenderEnd();
 }

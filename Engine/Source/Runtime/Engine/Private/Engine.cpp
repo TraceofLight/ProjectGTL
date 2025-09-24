@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/Public/PathSubsystem.h"
+#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 
 UEngine* GEngine = nullptr;
 
@@ -57,4 +58,5 @@ void UEngine::RegisterDefaultEngineSubsystems()
 {
 	// 기본 엔진 서브시스템 등록
 	RegisterEngineSubsystem<UPathSubsystem>();
+	RegisterEngineSubsystem<UOverlayManagerSubsystem>();
 }

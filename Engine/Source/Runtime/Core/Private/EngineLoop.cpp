@@ -166,6 +166,10 @@ void FEngineLoop::Tick()
 {
 	UpdateDeltaTime();
 
+	// TODO(KHJ): Subsystem 대신 Slate로 처리할 수 있도록 할 것
+	auto OverlayManager = GEngine->GetEngineSubsystem<UOverlayManagerSubsystem>();
+	OverlayManager->Tick();
+
 	// 일단 Editor만 Tick 처리
 	// 나머지는 필요하면 추가할 것
 #ifdef EDITOR_MODE

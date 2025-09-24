@@ -579,7 +579,7 @@ bool FJsonSerializer::LoadFontMetrics(TMap<uint32, CharacterMetric>& OutFontMetr
 			uint32 CharCode = UTF8ToUnicode(Key, 0);
 			OutFontMetrics[CharCode] = Metric;
 			++TotalCharacters;
-			UE_LOG("JsonParser: 문자를 유니코드로 저장 완료: '%s' -> %u", Key.data(), CharCode);
+			// UE_LOG("JsonParser: 문자를 유니코드로 저장 완료: '%s' -> %u", Key.data(), CharCode);
 
 			// 아틀라스 크기 계산 (모든 문자에 대해)
 			MaxWidth = max(MaxWidth, Metric.x + Metric.width);

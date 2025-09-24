@@ -27,7 +27,6 @@ UDetailWindow::UDetailWindow()
 
 	AddWidget(NewObject<UActorDetailWidget>());
 	AddWidget(NewObject<UTargetActorTransformWidget>());
-	AddWidget(NewObject<UActorTerminationWidget>());
 }
 
 /**

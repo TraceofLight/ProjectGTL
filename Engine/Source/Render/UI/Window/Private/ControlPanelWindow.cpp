@@ -13,7 +13,7 @@ UControlPanelWindow::UControlPanelWindow()
 {
 	FUIWindowConfig Config;
 	Config.WindowTitle = "Control Panel";
-	Config.DefaultSize = ImVec2(350, 520);
+	Config.DefaultSize = ImVec2(350, 270);
 	Config.DefaultPosition = ImVec2(10, 56); // 메뉴바 2개만큼 하향 이동
 	Config.MinSize = ImVec2(350, 200);
 	Config.DockDirection = EUIDockDirection::Left;
@@ -27,7 +27,6 @@ UControlPanelWindow::UControlPanelWindow()
 
 	AddWidget(NewObject<UFPSWidget>());
 	AddWidget(NewObject<UPrimitiveSpawnWidget>());
-	AddWidget(NewObject<UCameraControlWidget>());
 }
 
 /**
