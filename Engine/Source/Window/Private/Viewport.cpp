@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Source/Window/Public/Viewport.h"
 #include "Source/Window/Public/ViewportClient.h"
-// InputManager를 통해 전역 마우스 상태를 조회
 #include "Source/Manager/Input/Public/InputManager.h"
 
 FViewport::FViewport()
@@ -59,7 +58,7 @@ void FViewport::PumpMouseFromInputManager()
 {
     auto& Input = UInputManager::GetInstance();
 
-    const FVector& MousePosWS = Input.GetMousePosition(); // window space (screen)
+    const FVector& MousePosWS = Input.GetMousePosition(); 
     const FPoint   Screen{ (LONG)MousePosWS.X, (LONG)MousePosWS.Y };
 
     // 로컬 좌표계 변환
@@ -67,29 +66,29 @@ void FViewport::PumpMouseFromInputManager()
 
     const LONG RenderAreaTop = Rect.Y + ToolBarLayPx;
     const LONG RenderAreaBottom = Rect.Y + Rect.H;
-    const bool inside = (Screen.X >= Rect.X) && (Screen.X < Rect.X + Rect.W) &&
+    const bool bInside = (Screen.X >= Rect.X) && (Screen.X < Rect.X + Rect.W) &&
                         (Screen.Y >= RenderAreaTop) && (Screen.Y < RenderAreaBottom);
 
     // 버튼 상태 변화 감지 후 down/up 처리 (좌클릭 우선)
-    if (Input.IsKeyPressed(EKeyInput::MouseLeft) && inside)
+    if (Input.IsKeyPressed(EKeyInput::MouseLeft) && bInside)
     {
-        HandleMouseDown(/*Button*/0, Local.X, Local.Y);
+        HandleMouseDown(0, Local.X, Local.Y);
     }
     if (Input.IsKeyReleased(EKeyInput::MouseLeft))
     {
-        HandleMouseUp(/*Button*/0, Local.X, Local.Y);
+        HandleMouseUp(0, Local.X, Local.Y);
     }
 
     // 이동 라우팅: 캡처 중이면 Captured, 아니면 일반 Move
-    const FVector& d = Input.GetMouseDelta();
-    const bool moved = (d.X != 0.0f || d.Y != 0.0f);
-    if (moved)
+    const FVector& Delta = Input.GetMouseDelta();
+    const bool bMoved = (Delta.X != 0.0f || Delta.Y != 0.0f);
+    if (bMoved)
     {
         if (bCapturing)
         {
             HandleCapturedMouseMove(Local.X, Local.Y);
         }
-        else if (inside)
+        else if (bInside)
         {
             HandleMouseMove(Local.X, Local.Y);
         }

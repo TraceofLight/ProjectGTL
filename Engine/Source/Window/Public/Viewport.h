@@ -52,13 +52,13 @@ public:
     // ----- D3D11 RS 바인딩 (옵션) -----
     void ApplyRasterizer(ID3D11DeviceContext* InDeviceContext) const
     {
-        D3D11_VIEWPORT VP{};
-        VP.TopLeftX = (FLOAT)Rect.X;
-        VP.TopLeftY = (FLOAT)Rect.Y + (FLOAT)ToolBarLayPx; // 툴바 제외하고 그릴 때
-        VP.Width = (FLOAT)max<LONG>(0, Rect.W);
-        VP.Height = (FLOAT)max<LONG>(0, Rect.H - ToolBarLayPx);
-        VP.MinDepth = 0.0f; VP.MaxDepth = 1.0f;
-        InDeviceContext->RSSetViewports(1, &VP);
+        D3D11_VIEWPORT ViewPort{};
+        ViewPort.TopLeftX = (FLOAT)Rect.X;
+        ViewPort.TopLeftY = (FLOAT)Rect.Y + (FLOAT)ToolBarLayPx; // 툴바 제외하고 그릴 때
+        ViewPort.Width = (FLOAT)max<LONG>(0, Rect.W);
+        ViewPort.Height = (FLOAT)max<LONG>(0, Rect.H - ToolBarLayPx);
+        ViewPort.MinDepth = 0.0f; ViewPort.MaxDepth = 1.0f;
+        InDeviceContext->RSSetViewports(1, &ViewPort);
 
         D3D11_RECT Sc{ Rect.X, Rect.Y + ToolBarLayPx, Rect.X + Rect.W, Rect.Y + Rect.H };
         InDeviceContext->RSSetScissorRects(1, &Sc);
