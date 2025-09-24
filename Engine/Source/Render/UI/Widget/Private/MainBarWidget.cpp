@@ -158,6 +158,13 @@ void UMainBarWidget::RenderWindowsMenu() const
 				{
 					Window->ToggleVisibility();
 
+					// Outliner나 Details 패널인 경우 레이아웃 재정리 요청
+					const FString& Title = Window->GetWindowTitle().ToString();
+					if (Title == "Outliner" || Title == "Details")
+					{
+						UIManager->OnPanelVisibilityChanged();
+					}
+
 					UE_LOG("MainBarWidget: %s 창 토글됨 (현재 상태: %s)",
 					       Window->GetWindowTitle().ToString().data(),
 					       Window->IsVisible() ? "표시" : "숨김");

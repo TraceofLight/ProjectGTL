@@ -32,7 +32,8 @@ struct FUIWindowConfig
 
 	bool bResizable = true; // 크기 조절 가능 여부
 	bool bMovable = true; // 이동 가능 여부
-	bool bCollapsible = true; // 접기 가능 여부
+	bool bCollapsible = false; // 접기 가능 여부
+	bool bClosable = true; // X 버튼 활성화 여부
 	bool bAutoFocus = false; // 자동 포커스 여부
 	bool bBringToFrontOnFocus = true; // 포커스시 앞으로 가져오기
 
@@ -94,6 +95,11 @@ public:
 	}
 
 	virtual bool OnWindowClose() { return true; }
+
+	virtual void OnWindowHidden()
+	{
+	}
+
 	virtual bool IsSingleton() { return false; }
 
 	// Getter & Setter
@@ -132,7 +138,12 @@ public:
 		return CurrentState == EUIWindowState::Visible || CurrentState == EUIWindowState::Maximized;
 	}
 
-	void SetWindowState(EUIWindowState NewState) { CurrentState = NewState; }
+	void SetWindowState(EUIWindowState InNewState)
+	{
+		CurrentState = InNewState;
+		bIsWindowOpen = (InNewState == EUIWindowState::Visible || InNewState == EUIWindowState::Maximized);
+	}
+
 	void SetWindowTitle(const FString& NewTitle) { Config.WindowTitle = NewTitle; }
 	void SetPriority(int NewPriority) { Config.Priority = NewPriority; }
 	void SetConfig(const FUIWindowConfig& InConfig) { Config = InConfig; }

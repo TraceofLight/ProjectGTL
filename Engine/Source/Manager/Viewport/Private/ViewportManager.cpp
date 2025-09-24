@@ -43,13 +43,12 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	if (InWindow)
 	{
 		InWindow->GetClientSize(Width, Height);
-
 	}
 	AppWindow = InWindow;
 
 	// 루트 윈도우에 새로운 윈도우를 할당합니다.
 	SWindow* Window = new SWindow();
-	Window->OnResize({ 0, 0, Width, Height });
+	Window->OnResize({0, 0, Width, Height});
 
 	SetRoot(Window);
 
@@ -88,7 +87,9 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 	if (PromoteIdx < 0 || PromoteIdx >= static_cast<int32>(Viewports.size()))
 	{
 		// 우클릭 드래그 중인 뷰가 있으면 그걸 우선, 없으면 0번 유지
-		PromoteIdx = (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < static_cast<int32>(Viewports.size())) ? ActiveRmbViewportIdx : 0;
+		PromoteIdx = (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < static_cast<int32>(Viewports.size()))
+			             ? ActiveRmbViewportIdx
+			             : 0;
 	}
 
 	// 0.5) 선택된 인덱스를 0번으로 올리기(뷰포트/클라이언트 페어 동기 스왑)
@@ -103,14 +104,18 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 		LastPromotedIdx = -1;
 	}
 
-	// 1) 윈도우 크기 읽기
+	// 1) 윈도우 크기 읽기 및 오른쪽 패널 영역 제외
 	int32 Width = 0, Height = 0;
 	if (AppWindow)
 	{
 		AppWindow->GetClientSize(Width, Height);
 	}
+
 	const int32 MenuH = static_cast<int32>(UUIManager::GetInstance().GetMainMenuBarHeight());
-	const FRect Rect{0, MenuH, Width, max(0, Height - MenuH)};
+	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int32 ViewportWidth = Width - RightPanelWidth;
+
+	const FRect Rect{0, MenuH, max(0, ViewportWidth), max(0, Height - MenuH)};
 
 	// 2) 기존 캡처 해제 (안전)
 	Capture = nullptr;
@@ -148,8 +153,10 @@ void UViewportManager::BuildFourSplitLayout()
 	}
 
 	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int32 ViewportWidth = Width - RightPanelWidth;
 
-	const FRect Rect{0, MenuHeight, Width, max(0, Height - MenuHeight)};
+	const FRect Rect{0, MenuHeight, max(0, ViewportWidth), max(0, Height - MenuHeight)};
 
 	// 기존 캡처 해제 (안전)
 	Capture = nullptr;
@@ -229,7 +236,7 @@ void UViewportManager::SyncRectsToViewports() const
 		Viewports[i]->SetToolbarHeight(24);
 
 		const int32 renderH = max<LONG>(0, Leaves[i].H - Viewports[i]->GetToolbarHeight());
-		Clients[i]->OnResize({ Leaves[i].W, renderH });
+		Clients[i]->OnResize({Leaves[i].W, renderH});
 	}
 }
 
@@ -262,7 +269,8 @@ void UViewportManager::UpdateActiveRmbViewportIndex()
 	for (int32 i = 0; i < N; ++i)
 	{
 		const FRect& Rect = Viewports[i]->GetRect();
-		if (MousePositionX >= Rect.X && MousePositionX < Rect.X + Rect.W && MousePositioinY >= Rect.Y && MousePositioinY < Rect.Y + Rect.H)
+		if (MousePositionX >= Rect.X && MousePositionX < Rect.X + Rect.W &&
+			MousePositioinY >= Rect.Y && MousePositioinY < Rect.Y + Rect.H)
 		{
 			ActiveRmbViewportIdx = i;
 			//UE_LOG("%d", i);
@@ -302,9 +310,12 @@ void UViewportManager::Update()
 	}
 
 	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int32 ViewportWidth = Width - RightPanelWidth;
+
 	if (Width > 0 && Height > 0)
 	{
-		Root->OnResize(FRect{0, MenuHeight, Width, max(0, Height - MenuHeight)});
+		Root->OnResize(FRect{0, MenuHeight, max(0, ViewportWidth), max(0, Height - MenuHeight)});
 	}
 
 
@@ -549,7 +560,8 @@ void UViewportManager::RenderOverlay()
 			}
 			if (ViewportChange == EViewportChange::Quad)
 			{
-				if (FUEImgui::ToolbarIconButton("LayoutSingle", EUEViewportIcon::Single, CurrentLayout == ELayout::Single))
+				if (FUEImgui::ToolbarIconButton("LayoutSingle",
+				                                EUEViewportIcon::Single, CurrentLayout == ELayout::Single))
 				{
 					CurrentLayout = ELayout::Single;
 					ViewportChange = EViewportChange::Single;
@@ -731,7 +743,7 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 	// 직교 탑 타입이거나 바텀 타입이면
 	if (ViewType == EViewType::OrthoTop || ViewType == EViewType::OrthoBottom)
 	{
-		UpRef = { -1, 0, 0 };
+		UpRef = {-1, 0, 0};
 	}
 
 	FVector Right = OrthoCameraFoward.Cross(UpRef);
