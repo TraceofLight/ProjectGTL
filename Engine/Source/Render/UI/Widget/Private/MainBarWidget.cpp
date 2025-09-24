@@ -58,7 +58,8 @@ void UMainBarWidget::RenderWidget()
 
 		// 메뉴 Listing
 		RenderFileMenu();
-		RenderViewMenu();
+		// TODO(KHJ): Deprecated인 거 같은데 아직 안 쓴지 얼마 안된 관계로 주석 처리만 진행
+		// RenderViewMenu();
 		RenderShowFlagsMenu();
 		RenderWindowsMenu();
 		RenderHelpMenu();

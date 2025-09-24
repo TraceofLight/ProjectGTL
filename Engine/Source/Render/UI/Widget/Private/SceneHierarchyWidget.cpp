@@ -29,15 +29,16 @@ void USceneHierarchyWidget::Update()
 	{
 		auto& ViewportManager = UViewportManager::GetInstance();
 
-		// Update orthogonal camera
-		//TObjectPtr<UCamera> OrthogonalCamera = TObjectPtr(ViewportManager.GetOrthographicCamera());
-		//UpdateCameraAnimation(OrthogonalCamera);
-		//
-		// Update perspective camera
+		// 모든 카메라에 대해 애니메이션 업데이트
 		for (FViewportClient* Client : ViewportManager.GetClients())
 		{
+			// Perspective 카메라 업데이트
 			TObjectPtr<UCamera> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
 			UpdateCameraAnimation(PerspectiveCamera);
+
+			// Orthographic 카메라 업데이트
+			TObjectPtr<UCamera> OrthoCamera = TObjectPtr(Client->GetOrthoCamera());
+			UpdateCameraAnimation(OrthoCamera);
 		}
 	}
 }
@@ -264,13 +265,21 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 
 		auto& InputManager = UInputManager::GetInstance();
 
-		// 더블 클릭 및 F키 입력 감지: 카메라 이동 수행
-		if (ImGui::IsItemHovered() &&
-			(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) || InputManager.IsKeyDown(EKeyInput::F)))
+		// 더블 클릭 감지: 카메라 이동 수행 (hover 필요)
+		if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 		{
 			SelectActor(InActor, true);
 
 			// 더블클릭 시 이름변경 모드 비활성화
+			FinishRenaming(false);
+		}
+
+		// F키 입력 감지: 선택된 Actor에 대해서는 hover 조건 없이 포커싱 가능
+		if (bIsSelected && InputManager.IsKeyDown(EKeyInput::F))
+		{
+			SelectActor(InActor, true);
+
+			// F키 포커싱 시 이름변경 모드 비활성화
 			FinishRenaming(false);
 		}
 	}
@@ -374,35 +383,22 @@ void USceneHierarchyWidget::FocusOnActor(TObjectPtr<UCamera> InCamera, TObjectPt
 
 	if (InCamera->GetCameraType() == ECameraType::ECT_Orthographic)
 	{
-		// 기본적으로 Actor 위치로 설정
+		// Orthographic 카메라의 경우, 오브젝트를 화면 중심에 위치시키기 위해
+		// 카메라의 현재 뷰 방향을 유지하면서 위치만 조정
 		FVector CurrentCameraLocation = InCamera->GetLocation();
 		FVector CameraForward = InCamera->GetForward();
 
-		// 각 축 별로 적절한 거리 유지
-		// Forward 벡터에서 가장 큰 성분을 기준으로 축 판단
-		FVector AbsForward = FVector::GetAbs(CameraForward);
+		// Actor 위치에서 카메라 위치로의 벡터
+		FVector ToCamera = CurrentCameraLocation - ActorLocation;
 
-		// Left / Right View: X축에서 보는 뷰
-		if (AbsForward.X > AbsForward.Y && AbsForward.X > AbsForward.Z)
-		{
-			TargetLocation.X = CurrentCameraLocation.X;
-			TargetLocation.Y = ActorLocation.Y;
-			TargetLocation.Z = ActorLocation.Z;
-		}
-		// Front / Back View: Y축에서 보는 뷰
-		else if (AbsForward.Y > AbsForward.X && AbsForward.Y > AbsForward.Z)
-		{
-			TargetLocation.X = ActorLocation.X;
-			TargetLocation.Y = CurrentCameraLocation.Y;
-			TargetLocation.Z = ActorLocation.Z;
-		}
-		// Top / Bottom View: Z축에서 보는 뷰
-		else
-		{
-			TargetLocation.X = ActorLocation.X;
-			TargetLocation.Y = ActorLocation.Y;
-			TargetLocation.Z = CurrentCameraLocation.Z;
-		}
+		// Forward 방향의 거리는 유지 (뷰 축과의 거리 유지)
+		float ForwardDistance = ToCamera.Dot(CameraForward);
+
+		// Actor 위치에서 Forward 방향으로 현재 거리만큼 떨어진 지점을 타겟으로 설정
+		// 이렇게 하면 오브젝트가 화면 중앙에 위치하게 됨
+		TargetLocation = ActorLocation + (CameraForward * ForwardDistance);
+
+		UE_LOG_SUCCESS("SceneHierarchy: Ortho 카메라 포커싱 완료");
 	}
 	else
 	{

@@ -46,7 +46,7 @@ private:
 	TMap<FName, FVector> CameraCurrentRotations;
 
 	// Heuristic constant
-	static constexpr float CAMERA_ANIMATION_DURATION = 0.8f;
+	static constexpr float CAMERA_ANIMATION_DURATION = 1.5f;
 	static constexpr float FOCUS_DISTANCE = 5.0f;
 
 	// Camera movement
