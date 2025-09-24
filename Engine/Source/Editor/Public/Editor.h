@@ -36,6 +36,7 @@ public:
 
 	UCamera* GetCamera() { return &Camera; }
 	UBatchLines* GetBatchLines() { return &BatchLines; }
+	UGizmo* GetGizmo() { return &Gizmo; }
 
 private:
 	UCamera Camera; // legacy editor camera (not used for picking)

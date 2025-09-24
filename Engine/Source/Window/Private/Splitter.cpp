@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "Window/Public/Splitter.h"
-#include "Window//Public/SplitterH.h"
+
+#include "Editor/Public/Editor.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
-// For hover detection using current mouse position
 #include "Manager/Input/Public/InputManager.h"
+#include "Manager/Level/Public/LevelManager.h"
 
 void SSplitter::SetChildren(SWindow* InLT, SWindow* InRB)
 {
@@ -72,6 +73,15 @@ void SSplitter::LayoutChildren()
 
 bool SSplitter::OnMouseDown(FPoint Coord, int Button)
 {
+    // 기즈모가 드래그 중이면 스플리터 조작 차단
+    if (UEditor* Editor = ULevelManager::GetInstance().GetEditor())
+    {
+        if (Editor->GetGizmo() && Editor->GetGizmo()->IsDragging())
+        {
+            return false;
+        }
+    }
+
     if (Button == 0 && IsHandleHover(Coord))
     {
         bDragging = true;
@@ -251,9 +261,26 @@ void SSplitter::OnPaint()
 
 SWindow* SSplitter::HitTest(FPoint ScreenCoord)
 {
-    // Handle has priority so splitter can capture drag
-    if (IsHandleHover(ScreenCoord))
-        return this;
+    // 기즈모가 드래그 중이면 스플리터 hit test 차단
+    if (UEditor* Editor = ULevelManager::GetInstance().GetEditor())
+    {
+        if (Editor->GetGizmo() && Editor->GetGizmo()->IsDragging())
+        {
+            // 기즈모 드래그 중에는 스플리터 hit test를 바이패스하고 자식에게 위임
+            // Handle has priority so splitter can capture drag
+            // 기즈모 드래그 중에는 스플리터가 캡처하지 않음
+        }
+        else if (IsHandleHover(ScreenCoord))
+        {
+            return this;
+        }
+    }
+    else
+    {
+        // Editor가 없는 경우 기존 로직 유지
+        if (IsHandleHover(ScreenCoord))
+            return this;
+    }
 
     // Delegate to children based on rect containment
     if (SideLT)

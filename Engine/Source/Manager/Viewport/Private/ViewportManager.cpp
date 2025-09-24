@@ -929,7 +929,7 @@ void UViewportManager::StartViewportAnimation(bool bSingleToQuad, int32 PromoteI
 	ViewportAnimation.bIsAnimating = true;
 
 	// 디버깅 로그
-	UE_LOG("[VIEWPORT ANIMATION] Started SWindow-based animation: %s, Duration: %.2f",
+	UE_LOG("ViewportManager: SWindow 애니메이션 시작: %s, Duration: %.2f",
 	       bSingleToQuad ? "SingleToQuad" : "QuadToSingle",
 	       ViewportAnimation.AnimationDuration);
 }
@@ -971,7 +971,7 @@ void UViewportManager::UpdateViewportAnimation()
 		ViewportAnimation.BackupRoot = nullptr; // 백업은 사용안함
 		ViewportAnimation.AnimationRoot = nullptr;
 
-		UE_LOG("[VIEWPORT ANIMATION] Animation completed!");
+		UE_LOG_SUCCESS("ViewportManager: SWindow 애니메이션 완료");
 		return;
 	}
 
