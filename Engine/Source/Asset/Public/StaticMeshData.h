@@ -33,17 +33,20 @@ struct FObjMaterialInfo
 	}
 };
 
+/**
+ * @brief 스태틱 메시 내 객체의 섹션 정보
+ * 각 섹션은 동일한 머티리얼을 사용하는 삼각형 그룹을 나타냄.
+ */
 struct FObjSectionInfo
 {
-	FString SectionName;	// OBJ 'g' 키워드로 정의된 섹션 이름
 	FString MaterialName;	// 섹션에서 사용할 머티리얼 이름
 	int32 StartIndex = 0;	// 섹션 시작 인덱스 (파싱된 인덱스 배열 기준)
 	int32 IndexCount = 0;	// 섹션에 포함된 인덱스 수
 
 	FObjSectionInfo() = default;
 
-	FObjSectionInfo(const FString& InSectionName, int32 InStartIndex)
-		: SectionName(InSectionName)
+	FObjSectionInfo(const FString& InMaterialName, int32 InStartIndex)
+		: MaterialName(InMaterialName)
 		, StartIndex(InStartIndex)
 	{
 	}
@@ -65,8 +68,8 @@ struct FObjInfo
 	TArray<uint32> VertexIndexList;				// OBJ 'f' 명령어의 정점 인덱스 (VertexList 참조)
 	TArray<uint32> UVIndexList;					// OBJ 'f' 명령어의 UV 인덱스 (UVList 참조)
 	TArray<uint32> NormalIndexList;			// OBJ 'f' 명령어의 노멀 인덱스 (NormalList 참조)
-	TArray<FObjSectionInfo> Sections;		// OBJ 그룹과 머티리얼을 위한 섹션 정보
-	TMap<FString, FObjMaterialInfo> MaterialInfos;	// 이 객체에서 참조하는 머티리얼 정보
+	TArray<FObjSectionInfo> Sections;		// OBJ 'usemtl' 명령어에 따라 분리된 동일 머티리얼을 사용하는 섹션 정보
+	TMap<FString, FObjMaterialInfo> MaterialInfos;	// 참조하는 머티리얼 정보. Sections에서 MaterialName을 사용해 MaterialInfos 찾음.
 
 	FObjInfo() = default;
 
