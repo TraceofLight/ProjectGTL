@@ -173,7 +173,10 @@ private:
 	TMap<FRasterKey, ID3D11RasterizerState*, FRasterKeyHasher> RasterCache;
 
 	ID3D11RasterizerState* GetRasterizerState(const FRenderState& InRenderState);
-	void RenderStaticMeshSection(const FStaticMeshSection& InSection, const TArray<UMaterialInterface*>& InMaterialSlots, const FVector4& InFallbackColor);
+	void RenderStaticMeshSection(const FStaticMeshSection& InSection
+		, const TArray<UMaterialInterface*>& InMaterialSlots
+		, const UStaticMeshComponent* InStaticMeshComp
+		, const FVector4& InFallbackColor);
 	void ApplyMaterial(UMaterialInterface* InMaterial, const FVector4& InFallbackColor);
 	bool bIsResizing = false;
 

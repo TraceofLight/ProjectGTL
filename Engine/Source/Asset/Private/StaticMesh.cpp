@@ -263,7 +263,8 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 			bool bFound = false;
 			for (UMaterial* Material : MakeObjectRange<UMaterial>())
 			{
-				if (Material->GetMaterialName() == MaterialInfo.MaterialName)
+				// TODO: nullptr 체크 안 하면 nullptr 참조로 터지는 경우 있음. 원인 조사 필요.
+				if (Material && Material->GetMaterialName() == MaterialInfo.MaterialName)
 				{
 					MaterialSlots[i] = Material;
 					bFound = true;
