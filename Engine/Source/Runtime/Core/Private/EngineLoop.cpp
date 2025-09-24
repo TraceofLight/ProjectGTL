@@ -206,6 +206,7 @@ void FEngineLoop::Exit() const
 	URenderer::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();
 	ULevelManager::GetInstance().Shutdown();
+	UViewportManager::GetInstance().Release();
 
 	// Release되지 않은 UObject의 메모리 할당 해제
 	// TODO(KHJ): 추후 GC가 처리할 것

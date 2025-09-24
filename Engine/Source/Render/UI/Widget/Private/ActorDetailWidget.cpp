@@ -48,6 +48,11 @@ void UActorDetailWidget::RenderWidget()
 
 	ImGui::Separator();
 
+	// UV Scroll 체크박스 추가 (시연용 기능)
+	ImGui::Checkbox("UV Scroll", &bUseUVScroll);
+
+	ImGui::Separator();
+
 	// 컴포넌트 트리 렌더링
 	RenderComponentTree(SelectedActor);
 }

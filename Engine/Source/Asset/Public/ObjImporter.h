@@ -57,13 +57,11 @@ private:
 	 * @param GlobalNormals 전역 노멀 목록
 	 */
 	static void ParseOBJLine(const FString& Line,
-		FObjInfo& CurrentObject,
-		TArray<FObjInfo>& AllObjects,
+		FObjInfo& ObjectInfo,
 		TArray<FVector>& GlobalVertices,
 		TArray<FVector2>& GlobalUVs,
 		TArray<FVector>& GlobalNormals,
 		int32& CurrentSectionIndex,
-		FString& CurrentGroupName,
 		FString& CurrentMaterialName,
 		TMap<FString, FObjMaterialInfo>& MaterialLibrary,
 		const FString& ObjDirectory);

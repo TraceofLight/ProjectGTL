@@ -15,7 +15,7 @@ cbuffer PerFrame : register(b1)
 cbuffer Material : register(b2)
 {
 	float4 DiffuseColor;	// 디퓨즈 색상
-	float4 MaterialUsage;	// x: 버텍스 컬러 사용 여부, y: 디퓨즈 텍스처 사용 여부
+	float4 MaterialUsage;	// x: 버텍스 컬러 사용 여부, y: 디퓨즈 텍스처 사용 여부, z: UV 스크롤 사용 여부, w: 델타 타임
 }
 
 // 텍스처 및 샘플러
@@ -48,9 +48,23 @@ PS_INPUT mainVS(VS_INPUT input)
 	float4 viewPos = mul(worldPos, View);
 	output.Position = mul(viewPos, Projection);
 
-	// 색상 및 텍스처 좌표 전달
+	// 색상 전달
 	output.Color = input.Color;
-	output.TexCoord = input.TexCoord;
+
+	float2 texCoord = input.TexCoord;
+	const float bUseUVScroll = MaterialUsage.z;
+	const float AccTime = MaterialUsage.w;
+	if (bUseUVScroll > 0.5f)
+	{
+		// X축 방향으로 무한 스크롤링
+		float scrollSpeed = 0.25f; // 스크롤 속도 조정
+		texCoord.x += scrollSpeed * AccTime;
+
+		// 1.0을 넘어가면 0.0으로 순환
+		texCoord.x = frac(texCoord.x);
+	}
+
+	output.TexCoord = texCoord;
 
 	return output;
 }

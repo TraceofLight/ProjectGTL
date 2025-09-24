@@ -18,6 +18,7 @@ public:
 	void Initialize(FAppWindow* InWindow);
 	void Update();
 	void RenderOverlay();
+	void Release();
 
 	// 마우스 입력을 스플리터/윈도우 트리에 라우팅 (드래그/리사이즈 처리)
 	void TickInput();

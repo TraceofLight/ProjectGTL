@@ -577,6 +577,42 @@ void UViewportManager::RenderOverlay()
 	}
 }
 
+void UViewportManager::Release()
+{
+	Capture = nullptr;
+	ActiveRmbViewportIdx = -1;
+
+	for (FViewportClient* Client : Clients)
+	{
+		delete Client;
+	}
+
+	for (FViewport* Viewport : Viewports)
+	{
+		delete Viewport;
+	}
+
+
+	for (UCamera* Cam : OrthoGraphicCameras)
+	{
+		delete Cam;
+	}
+
+
+	for (UCamera* Cam : PerspectiveCameras)
+	{
+		delete Cam;
+	}
+
+	if (Root)
+	{
+		delete Root;
+		Root = nullptr;
+	}
+
+	AppWindow = nullptr;
+}
+
 
 void UViewportManager::InitializeViewportAndClient()
 {
