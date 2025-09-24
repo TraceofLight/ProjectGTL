@@ -383,7 +383,33 @@ FVector UEditor::GetGizmoDragLocationForPerspective(const FRay& InWorldRay, UCam
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{Gizmo.GetGizmoLocation()};
-	FVector GizmoAxis = Gizmo.GetGizmoAxis();
+
+	// 현재 마우스가 있는 뷰포트의 기즈모 방향 사용
+	auto& ViewportManager = UViewportManager::GetInstance();
+	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	ViewportIndex = max(ViewportIndex, 0);
+	EGizmoDirection CurrentDirection = Gizmo.GetGizmoDirectionForViewport(ViewportIndex);
+
+	// 방향에 따른 축 벡터 계산
+	FVector GizmoAxis;
+	switch (CurrentDirection)
+	{
+	// X축
+	case EGizmoDirection::Forward:
+		GizmoAxis = FVector(1, 0, 0);
+		break;
+	// Y축
+	case EGizmoDirection::Right:
+		GizmoAxis = FVector(0, 1, 0);
+		break;
+	// Z축
+	case EGizmoDirection::Up:
+		GizmoAxis = FVector(0, 0, 1);
+		break;
+	// 선택된 축이 없으면 현재 위치 반환
+	default:
+		return Gizmo.GetGizmoLocation();
+	}
 
 	if (!Gizmo.IsWorldMode())
 	{
@@ -538,7 +564,7 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const UCamera& InCamera)
  * @param OutUp Up 벡터
  */
 void UEditor::CalculateBasisVectorsForViewType(EViewType InViewType, FVector& OutForward, FVector& OutRight,
-											   FVector& OutUp)
+                                               FVector& OutUp)
 {
 	// ViewportManager::UpdateOrthoGraphicCameraPoint의 로직 참고
 	switch (InViewType)
@@ -580,7 +606,34 @@ FVector UEditor::GetGizmoDragRotation(const FRay& InWorldRay)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{Gizmo.GetGizmoLocation()};
-	FVector GizmoAxis = Gizmo.GetGizmoAxis();
+
+	// 현재 마우스가 있는 뷰포트의 기즈모 방향 사용
+	auto& ViewportManager = UViewportManager::GetInstance();
+	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	ViewportIndex = max(ViewportIndex, 0);
+	EGizmoDirection CurrentDirection = Gizmo.GetGizmoDirectionForViewport(ViewportIndex);
+
+	// 방향에 따른 축 벡터 계산
+	FVector GizmoAxis;
+	switch (CurrentDirection)
+	{
+	// X축
+	case EGizmoDirection::Forward:
+		GizmoAxis = FVector(1, 0, 0);
+		break;
+	// Y축
+	case EGizmoDirection::Right:
+		GizmoAxis = FVector(0, 1, 0);
+		break;
+	// Z축
+	case EGizmoDirection::Up:
+		GizmoAxis = FVector(0, 0, 1);
+		break;
+	default: return Gizmo.GetActorRotation(); // 선택된 축이 없으면 현재 회전값 반환
+	}
+
+	// Local 모드 변환 전 원본 축 저장
+	FVector OriginalAxis = GizmoAxis;
 
 	if (!Gizmo.IsWorldMode())
 	{
@@ -603,7 +656,10 @@ FVector UEditor::GetGizmoDragRotation(const FRay& InWorldRay)
 		}
 		//return Gizmo.GetDragStartActorRotation() + GizmoAxis * FVector::GetRadianToDegree(Angle);
 		FQuaternion StartRotQuat = FQuaternion::FromEuler(Gizmo.GetDragStartActorRotation());
-		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(Gizmo.GetGizmoAxis(), Angle);
+
+		// World 모드에서는 원본 축, Local 모드에서는 변환된 축을 사용
+		FVector RotationAxis = Gizmo.IsWorldMode() ? OriginalAxis : GizmoAxis;
+		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(RotationAxis, Angle);
 		if (Gizmo.IsWorldMode())
 		{
 			FQuaternion NewRotQuat = DeltaRotQuat * StartRotQuat;
@@ -632,7 +688,33 @@ FVector UEditor::GetGizmoDragScale(const FRay& InWorldRay, UCamera& InCamera)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin = Gizmo.GetGizmoLocation();
-	FVector CardinalAxis = Gizmo.GetGizmoAxis();
+
+	// 현재 마우스가 있는 뷰포트의 기즈모 방향 사용
+	auto& ViewportManager = UViewportManager::GetInstance();
+	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	ViewportIndex = max(ViewportIndex, 0);
+	EGizmoDirection CurrentDirection = Gizmo.GetGizmoDirectionForViewport(ViewportIndex);
+
+	// 방향에 따른 축 벡터 계산
+	FVector CardinalAxis;
+	switch (CurrentDirection)
+	{
+	// X축
+	case EGizmoDirection::Forward:
+		CardinalAxis = FVector(1, 0, 0);
+		break;
+	// Y축
+	case EGizmoDirection::Right:
+		CardinalAxis = FVector(0, 1, 0);
+		break;
+	// Z축
+	case EGizmoDirection::Up:
+		CardinalAxis = FVector(0, 0, 1);
+		break;
+	// 선택된 축이 없으면 현재 스케일값 반환
+	default:
+		return Gizmo.GetActorScale();
+	}
 
 	FVector4 GizmoAxis4{CardinalAxis.X, CardinalAxis.Y, CardinalAxis.Z, 0.0f};
 	FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetActorRotation());

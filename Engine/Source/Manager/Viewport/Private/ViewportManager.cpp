@@ -614,7 +614,7 @@ void UViewportManager::InitializeOrthoGraphicCamera()
 	OrthoGraphicCameras[1]->SetFarZ(150.0f);
 
 	// 왼쪽
-	OrthoGraphicCameras[2]->SetLocation(FVector(00.0f, 100.0f, 0.0f));
+	OrthoGraphicCameras[2]->SetLocation(FVector(0.0f, 100.0f, 0.0f));
 	OrthoGraphicCameras[2]->SetRotation(FVector(0.0f, 0.0f, -90.0f));
 	OrthoGraphicCameras[2]->SetCameraType(ECameraType::ECT_Orthographic);
 	OrthoGraphicCameras[2]->SetFarZ(150.0f);
