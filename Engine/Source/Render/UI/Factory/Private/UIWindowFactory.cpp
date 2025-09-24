@@ -60,10 +60,10 @@ void UUIWindowFactory::CreateDefaultUILayout()
 	UIManager.RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow>(MainMenu));
 
 	// 기본 레이아웃 생성
-	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateConsoleWindow(EUIDockDirection::Bottom)));
-	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateControlPanelWindow(EUIDockDirection::Left)));
 	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateOutlinerWindow(EUIDockDirection::Center)));
 	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateDetailWindow(EUIDockDirection::Right)));
+	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateConsoleWindow(EUIDockDirection::Bottom)));
+	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateControlPanelWindow(EUIDockDirection::Left)));
 	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateExperimentalFeatureWindow(EUIDockDirection::Right)));
 	UE_LOG_SUCCESS("UIWindowFactory: UI 생성이 성공적으로 완료되었습니다");
 }

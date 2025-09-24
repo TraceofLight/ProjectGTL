@@ -13,14 +13,14 @@ UDetailWindow::UDetailWindow()
 {
 	FUIWindowConfig Config;
 	Config.WindowTitle = "Details";
-	Config.DefaultSize = ImVec2(330, 440);
+	Config.DefaultSize = ImVec2(340, 440);
 	Config.DefaultPosition = ImVec2(1565, 590);
-	Config.MinSize = ImVec2(250, 300);
+	Config.MinSize = ImVec2(200, 300);
 	Config.DockDirection = EUIDockDirection::Right;
 	Config.Priority = 20;
 	Config.bResizable = true;
-	Config.bMovable = true;
-	Config.bCollapsible = true;
+	Config.bMovable = false;
+	Config.bCollapsible = false;
 
 	Config.UpdateWindowFlags();
 	SetConfig(Config);

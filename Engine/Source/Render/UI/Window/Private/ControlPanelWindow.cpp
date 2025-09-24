@@ -36,4 +36,7 @@ UControlPanelWindow::UControlPanelWindow()
 void UControlPanelWindow::Initialize()
 {
 	UE_LOG("ControlPanelWindow: Initialized");
+
+	// Hidden으로 초기 설정
+	SetWindowState(EUIWindowState::Hidden);
 }

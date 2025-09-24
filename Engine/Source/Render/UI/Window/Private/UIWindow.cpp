@@ -4,6 +4,7 @@
 #include "ImGui/imgui_internal.h"
 
 #include "Render/UI/Widget/Public/Widget.h"
+#include "Manager/UI/Public/UIManager.h"
 
 int UUIWindow::IssuedWindowID = 0;
 
@@ -20,6 +21,7 @@ UUIWindow::UUIWindow(const FUIWindowConfig& InConfig)
 	// 초기 상태 설정
 	LastWindowSize = Config.DefaultSize;
 	LastWindowPosition = Config.DefaultPosition;
+	bIsWindowOpen = true;
 
 	if (IssuedWindowID == 1)
 	{
@@ -254,12 +256,31 @@ void UUIWindow::RenderWindow()
 	ImGui::End();
 
 	// 윈도우가 닫혔는지 확인
-	if (bIsWindowOpen)
+	if (!bIsOpen && bIsWindowOpen)
 	{
+		// bClosable이 false인 경우
+		if (!Config.bClosable)
+		{
+			// 열린 상태로 유지
+			bIsWindowOpen = true;
+			return;
+		}
+
+		// X 버튼이 클릭됨
 		if (OnWindowClose())
 		{
 			bIsWindowOpen = false;
 			SetWindowState(EUIWindowState::Hidden);
+
+			const FString& Title = Config.WindowTitle.ToString();
+			if (Title == "Outliner" || Title == "Details")
+			{
+				UUIManager::GetInstance().ForceArrangeRightPanels();
+			}
+
+			// 윈도우 숨김 이벤트 호출
+			OnWindowHidden();
+			UE_LOG("UIWindow: Window closed: %s", Config.WindowTitle.ToString().data());
 		}
 		else
 		{

@@ -7,12 +7,12 @@ UOutlinerWindow::UOutlinerWindow()
 {
 	FUIWindowConfig Config;
 	Config.WindowTitle = "Outliner";
-	Config.DefaultSize = ImVec2(330, 520);
+	Config.DefaultSize = ImVec2(340, 520); // 오른편 초기화에서 맞춰주므로 상관 없는 값
 	Config.DefaultPosition = ImVec2(1565, 56); // 메뉴바만큼 하향 이동
-	Config.MinSize = ImVec2(270, 50);
+	Config.MinSize = ImVec2(200, 50);
 	Config.bResizable = true;
-	Config.bMovable = true;
-	Config.bCollapsible = true;
+	Config.bMovable = false;
+	Config.bCollapsible = false;
 	Config.DockDirection = EUIDockDirection::Center;
 
 	Config.UpdateWindowFlags();
