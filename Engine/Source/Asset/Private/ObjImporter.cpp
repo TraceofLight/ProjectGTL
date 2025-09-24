@@ -25,57 +25,52 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 		ObjDirectory = InFilePath.substr(0, LastSlash + 1); // 마지막 역슬래시까지 포함
 	}
 
+	// 단일 오브젝트로 통합 파싱
+	FObjInfo SingleObject("CombinedObject");
 	TMap<FString, FObjMaterialInfo> MaterialLibrary;
 
-	FObjInfo* CurrentObject = nullptr;
-	int32 CurrentSectionIndex = -1;
-	FString CurrentGroupName;
-	FString CurrentMaterialName;
+	// 현재 섹션 상태
+	int32   CurrentSectionIndex = -1;   // 활성 섹션 인덱스(없으면 -1)
+	FString CurrentMaterialName = "";   // 마지막 usemtl 이름(없으면 빈 문자열)
 
-	std::string Line;
-	while (std::getline(File, Line))
+	FString ObjLine;
+	while (std::getline(File, ObjLine))
 	{
-		FString ObjLine(Line.c_str());
-
-		// 첫 번째 객체가 없으면 임시 객체 생성
-		if (CurrentObject == nullptr)
-		{
-			OutObjectInfos.emplace_back("TempObject");
-			CurrentObject = &OutObjectInfos.back();
-			CurrentGroupName = CurrentObject->ObjectName;
-			CurrentSectionIndex = -1;
-			CurrentMaterialName.clear();
-		}
-
 		ParseOBJLine(ObjLine,
-			*CurrentObject,
-			OutObjectInfos,
+			SingleObject,
 			GlobalVertices,
 			GlobalUVs,
 			GlobalNormals,
 			CurrentSectionIndex,
-			CurrentGroupName,
 			CurrentMaterialName,
 			MaterialLibrary,
 			ObjDirectory);
-
-		// 새 객체가 추가되었으면 CurrentObject 업데이트
-		if (!OutObjectInfos.empty())
-		{
-			CurrentObject = &OutObjectInfos.back();
-		}
 	}
 
 	File.close();
 
-	// 쉬운 처리를 위해 각 객체에 전역 데이터 복사
-	for (FObjInfo& ObjectInfo : OutObjectInfos)
+	// 전역 배열을 단일 오브젝트에 바인딩
+	SingleObject.VertexList = GlobalVertices;
+	SingleObject.UVList = GlobalUVs;
+	SingleObject.NormalList = GlobalNormals;
+
+	// 섹션 후처리: 하나도 없는데 인덱스가 있으면 디폴트 섹션 생성(MaterialName = "")
+	// TODO: 이렇게 하면 처음엔 머티리얼 섹션 없이 f 나오다가 중간부터 usemtl 나오는 경우 처리 안 되는 섹션 발생
+	// 렌더링을 섹션 단위로 돌 것이기 때문에 섹션들을 전부 모았을 때 모든 인덱스 범위가 커버되어야 함.
+	// 파싱 시작 때 머티리얼 네임 없는 섹션 하나 만들어두고 시작하도록 수정 필요
+	if (SingleObject.Sections.empty() && !SingleObject.VertexIndexList.empty())
 	{
-		ObjectInfo.VertexList = GlobalVertices;
-		ObjectInfo.UVList = GlobalUVs;
-		ObjectInfo.NormalList = GlobalNormals;
+		FObjSectionInfo DefaultSection("", 0);
+		DefaultSection.IndexCount = static_cast<int32>(SingleObject.VertexIndexList.size());
+		SingleObject.Sections.push_back(DefaultSection);
 	}
 
+	// 이 OBJ에서 참조한 머티리얼들 기록
+	SingleObject.MaterialInfos = MaterialLibrary;
+
+	// 결과: 단 하나의 FObjInfo만 반환
+	OutObjectInfos.clear();
+	OutObjectInfos.push_back(std::move(SingleObject));
 	return true;
 }
 
@@ -86,13 +81,13 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TMap<FStri
 	{
 		return false;
 	}
-	UE_LOG_WARNING("Loading MTL file: %s", InMTLFilePath.c_str());
+	UE_LOG("Loading MTL file: %s", InMTLFilePath.c_str());
 	FObjMaterialInfo* CurrentMaterial = nullptr;
 
-	std::string Line;
-	while (std::getline(File, Line))
+	FString MTLLine;
+	while (std::getline(File, MTLLine))
 	{
-		FString MTLLine = TrimString(FString(Line.c_str()));
+		MTLLine = TrimString(MTLLine.c_str());
 
 		if (MTLLine.empty() || MTLLine[0] == '#')
 		{
@@ -255,13 +250,11 @@ bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutS
 
 
 void FObjImporter::ParseOBJLine(const FString& Line,
-	FObjInfo& CurrentObject,
-	TArray<FObjInfo>& AllObjects,
+	FObjInfo& ObjectInfo,
 	TArray<FVector>& GlobalVertices,
 	TArray<FVector2>& GlobalUVs,
 	TArray<FVector>& GlobalNormals,
 	int32& CurrentSectionIndex,
-	FString& CurrentGroupName,
 	FString& CurrentMaterialName,
 	TMap<FString, FObjMaterialInfo>& MaterialLibrary,
 	const FString& ObjDirectory)
@@ -279,6 +272,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 		return;
 	}
 
+	// --- Geometry Data ---
 	if (Tokens[0] == "v" && Tokens.size() >= 4)
 	{
 		// 정점 위치 - UE 좌표계로 변환
@@ -308,10 +302,11 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 		);
 		GlobalNormals.push_back(PositionToUEBasis(ObjNormal));
 	}
+
+	// --- Face Data ---
 	else if (Tokens[0] == "f" && Tokens.size() >= 4)
 	{
-		// 면 데이터
-		FString FaceData = "";
+		FString FaceData;
 		for (size_t i = 1; i < Tokens.size(); ++i)
 		{
 			if (i > 1)
@@ -321,74 +316,29 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 			FaceData += Tokens[i];
 		}
 
-		int32 PreviousIndexCount = static_cast<int32>(CurrentObject.VertexIndexList.size());
-		int32 AddedIndices = ParseFaceData(FaceData, CurrentObject);
+		int32 PreviousIndexCount = static_cast<int32>(ObjectInfo.VertexIndexList.size());
+		int32 AddedIndices = ParseFaceData(FaceData, ObjectInfo);
 		if (AddedIndices > 0)
 		{
+			// 활성 섹션이 없으면 디폴트 섹션 생성
 			if (CurrentSectionIndex < 0)
 			{
-				FString SectionName = !CurrentGroupName.empty() ? CurrentGroupName : CurrentObject.ObjectName;
-				CurrentObject.Sections.emplace_back(SectionName, PreviousIndexCount);
-				CurrentSectionIndex = static_cast<int32>(CurrentObject.Sections.size()) - 1;
-
-				if (!CurrentMaterialName.empty())
-				{
-					CurrentObject.Sections[CurrentSectionIndex].MaterialName = CurrentMaterialName;
-				}
+				// 디폴트 섹션 (MaterialName = "")
+				FObjSectionInfo DefaultSection("", PreviousIndexCount);
+				DefaultSection.IndexCount = 0; // 누적 방식
+				ObjectInfo.Sections.push_back(DefaultSection);
+				CurrentSectionIndex = static_cast<int32>(ObjectInfo.Sections.size()) - 1;
 			}
 
-			if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(CurrentObject.Sections.size()))
+			// 활성 섹션에 인덱스 개수 누적 (디폴트 섹션이든 usemtl 섹션이든 상관없이)
+			if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(ObjectInfo.Sections.size()))
 			{
-				FObjSectionInfo& ActiveSection = CurrentObject.Sections[CurrentSectionIndex];
-				if (ActiveSection.IndexCount == 0)
-				{
-					ActiveSection.StartIndex = PreviousIndexCount;
-				}
-				ActiveSection.IndexCount += AddedIndices;
+				ObjectInfo.Sections[CurrentSectionIndex].IndexCount += AddedIndices;
 			}
 		}
 	}
-	else if (Tokens[0] == "o" && Tokens.size() > 1)
-	{
-		if (!AllObjects.empty() && AllObjects[0].ObjectName == "TempObject")
-		{
-			AllObjects[0].ObjectName = Tokens[1];
-			CurrentGroupName = Tokens[1];
-		}
-		else
-		{
-			AllObjects.emplace_back(Tokens[1]);
-		}
 
-		CurrentSectionIndex = -1;
-		CurrentMaterialName.clear();
-	}
-	else if (Tokens[0] == "g" && Tokens.size() > 1)
-	{
-		FString SectionName = Tokens[1];
-		CurrentGroupName = SectionName;
-		if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(CurrentObject.Sections.size()))
-		{
-			FObjSectionInfo& ActiveSection = CurrentObject.Sections[CurrentSectionIndex];
-			if (ActiveSection.IndexCount == 0)
-			{
-				ActiveSection.SectionName = SectionName;
-				if (!CurrentMaterialName.empty())
-				{
-					ActiveSection.MaterialName = CurrentMaterialName;
-				}
-				return;
-			}
-		}
-
-		int32 SectionStart = static_cast<int32>(CurrentObject.VertexIndexList.size());
-		CurrentObject.Sections.emplace_back(SectionName, SectionStart);
-		CurrentSectionIndex = static_cast<int32>(CurrentObject.Sections.size()) - 1;
-		if (!CurrentMaterialName.empty())
-		{
-			CurrentObject.Sections[CurrentSectionIndex].MaterialName = CurrentMaterialName;
-		}
-	}
+	// --- Material Data ---
 	else if ((Tokens[0] == "mtllib" || Tokens[0] == "matlib") && Tokens.size() > 1)
 	{
 		FString LibraryName = Tokens[1];
@@ -403,46 +353,24 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	else if (Tokens[0] == "usemtl" && Tokens.size() > 1)
 	{
 		CurrentMaterialName = Tokens[1];
-		auto MaterialIt = MaterialLibrary.find(CurrentMaterialName);
-		if (MaterialIt != MaterialLibrary.end())
+
+		// MaterialInfos에 등록(있으면 갱신, 없으면 기본 생성)
+		auto it = MaterialLibrary.find(CurrentMaterialName);
+		if (it != MaterialLibrary.end())
 		{
-			CurrentObject.MaterialInfos[CurrentMaterialName] = MaterialIt->second;
+			ObjectInfo.MaterialInfos[CurrentMaterialName] = it->second;
 		}
 		else
 		{
-			CurrentObject.MaterialInfos[CurrentMaterialName] = FObjMaterialInfo(CurrentMaterialName);
+			ObjectInfo.MaterialInfos[CurrentMaterialName] = FObjMaterialInfo(CurrentMaterialName);
 		}
 
-		bool bCreateNewSection = false;
-		if (CurrentSectionIndex < 0)
-		{
-			bCreateNewSection = true;
-		}
-		else if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(CurrentObject.Sections.size()))
-		{
-			FObjSectionInfo& ActiveSection = CurrentObject.Sections[CurrentSectionIndex];
-			if (!ActiveSection.MaterialName.empty() && ActiveSection.MaterialName != CurrentMaterialName)
-			{
-				bCreateNewSection = true;
-			}
-			else if (ActiveSection.IndexCount > 0 && ActiveSection.MaterialName != CurrentMaterialName)
-			{
-				bCreateNewSection = true;
-			}
-		}
-
-		if (bCreateNewSection)
-		{
-			int32 SectionStart = static_cast<int32>(CurrentObject.VertexIndexList.size());
-			FString SectionName = !CurrentGroupName.empty() ? CurrentGroupName : CurrentMaterialName;
-			CurrentObject.Sections.emplace_back(SectionName, SectionStart);
-			CurrentSectionIndex = static_cast<int32>(CurrentObject.Sections.size()) - 1;
-		}
-
-		if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(CurrentObject.Sections.size()))
-		{
-			CurrentObject.Sections[CurrentSectionIndex].MaterialName = CurrentMaterialName;
-		}
+		// 새 섹션 시작: 이후 f 인덱스가 여기에 누적됨
+		const int32 start = static_cast<int32>(ObjectInfo.VertexIndexList.size());
+		FObjSectionInfo NewSec(CurrentMaterialName, start);
+		NewSec.IndexCount = 0;
+		ObjectInfo.Sections.push_back(NewSec);
+		CurrentSectionIndex = static_cast<int32>(ObjectInfo.Sections.size()) - 1;
 	}
 }
 
