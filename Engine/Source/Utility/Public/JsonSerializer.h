@@ -1,7 +1,8 @@
 #pragma once
 
-namespace json {
-    class JSON;
+namespace json
+{
+	class JSON;
 }
 
 using JSON = json::JSON;
@@ -10,6 +11,15 @@ enum class EPrimitiveType : uint8_t;
 struct FLevelMetadata;
 struct FPrimitiveMetadata;
 struct FCameraMetadata;
+
+// FontRenderer를 위한 문자 메트릭 구조체
+struct CharacterMetric
+{
+	int x = 0, y = 0; // 아틀라스에서의 위치
+	int width = 6, height = 16; // 문자 크기
+	int left = 0, top = 16; // 오프셋
+	int advance_x = 6; // 다음 문자와의 간격
+};
 
 /**
  * @brief Level 직렬화에 관여하는 클래스
@@ -48,6 +58,12 @@ public:
 
 	static FLevelStats GenerateLevelStats(const FLevelMetadata& InLevelData);
 	static void PrintLevelInfo(const FLevelMetadata& InLevelData);
+
+	// 폰트 메트릭 처리 함수들
+	static bool LoadFontMetrics(TMap<uint32, CharacterMetric>& OutFontMetrics,
+	                            float& OutAtlasWidth, float& OutAtlasHeight, const path& InFilePath);
+	static CharacterMetric JsonToCharacterMetric(const JSON& InJsonData);
+	static CharacterMetric GetDefaultCharacterMetric();
 
 private:
 	static bool HandleJsonError(const exception& InException, const string& InContext,

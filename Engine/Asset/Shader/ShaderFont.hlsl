@@ -12,9 +12,8 @@ cbuffer ViewProjectionBuffer : register(b1)
 
 cbuffer FontDataBuffer : register(b2)
 {
-    float2 AtlasSize;      // 512.0, 512.0
-    float2 GlyphSize;      // 16.0, 16.0  
-    float2 GridSize;       // 32.0, 32.0
+    float2 AtlasSize;
+    float2 GlyphSize;
     float2 Padding;
 };
 
@@ -43,25 +42,14 @@ PSInput mainVS(VSInput Input)
 	PSInput Output;
 
 	// 월드 좌표계로 변환
-	float4 worldPos = mul(float4(Input.position, 1.0f), WorldMatrix);
-	
+	float4 WorldPosition = mul(float4(Input.position, 1.0f), WorldMatrix);
+
 	// 뷰-프로젝션 변환
-	Output.position = mul(worldPos, View);
+	Output.position = mul(WorldPosition, View);
 	Output.position = mul(Output.position, Projection);
-	
-	// ASCII 문자를 16x16 그리드로 매핑 (범용적 처리)
-	// ASCII 코드를 기반으로 그리드 위치 계산
-	uint col = Input.charIndex % 16;  // 열 (0-15)
-	uint row = Input.charIndex / 16;  // 행 (0-15)
-	float2 gridPos = float2(float(col), float(row));
-	
-	// 16x16 그리드 셀 크기 계산
-	float2 cellSize = float2(1.0f / 16.0f, 1.0f / 16.0f);
-	
-	// 최종 UV 좌표 계산: 그리드 위치 + 셀 내부 오프셋
-	float2 atlasUV = (gridPos * cellSize) + (Input.texCoord * cellSize);
-	Output.texCoord = atlasUV;
-	
+
+	// FontRenderer에서 이미 정확한 UV 좌표를 계산해서 보내기 때문에 그대로 사용
+	Output.texCoord = Input.texCoord;
 	Output.charIndex = Input.charIndex;
 
 	return Output;
@@ -72,13 +60,14 @@ float4 mainPS(PSInput Input) : SV_TARGET
 {
 	// 폰트 텍스처에서 색상 샘플링
 	float4 AtlasColor = FontAtlas.Sample(FontSampler, Input.texCoord);
-	
-	// 흰색 글자에 알파 블렌딩 적용
-	float4 FinalColor = float4(1.0f, 1.0f, 1.0f, AtlasColor.r);
-	
-	// 투명한 픽셀은 폐기 (선택사항 - 성능 향상)
-	if (FinalColor.a < 0.01f)
+
+	// 임계값 0.5를 기준으로 0.0 또는 1.0으로 만듦
+	float Alpha = step(0.5f, AtlasColor.r);
+
+	// 알파 값이 0 또는 1이기 때문에 0에 가까운 경우 픽셀을 폐기
+	if (Alpha < 0.1f)
 		discard;
-	
-	return FinalColor;
+
+	// 텍스트 부분은 무조건 명확한 흰색으로 출력
+	return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

@@ -536,8 +536,6 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 		Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
 		UpdateConstant(InPrimitiveComponent->GetColor());
 	}
-	//const FViewProjConstants& ViewProjConstants = ULevelManager::GetInstance().GetEditor()->GetViewProjConstData();
-
 }
 
 /**
@@ -838,9 +836,9 @@ void URenderer::RenderBillBoardDirect(UBillBoardComponent* InBillBoardComponent,
 	// Actor의 UUID를 표시 텍스트로 설정
 	FString DisplayText = "Unknown";
 	if (auto* Owner = InBillBoardComponent->GetOwner())
-		DisplayText = "UUID:" + std::to_string(Owner->GetUUID());
+		DisplayText = "아이디:" + std::to_string(Owner->GetUUID());
 
-	FontRenderer->RenderText(DisplayText.c_str(), RTMatrix, InViewProj);
+	FontRenderer->RenderText(DisplayText, RTMatrix, InViewProj);
 }
 
 /**

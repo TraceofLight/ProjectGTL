@@ -389,8 +389,7 @@ bool FJsonSerializer::ValidateLevelData(const FLevelMetadata& InLevelData, FStri
  * @brief 두 레벨 데이터 병합 (중복 ID는 덮어 씀)
  * XXX(KHJ): 현재는 필요하지 않은 상황인데 필요한 경우가 존재할지 고민 후 제거해도 될 듯
  */
-FLevelMetadata FJsonSerializer::MergeLevelData(const FLevelMetadata& InBaseLevel,
-                                                const FLevelMetadata& InMergeLevel)
+FLevelMetadata FJsonSerializer::MergeLevelData(const FLevelMetadata& InBaseLevel, const FLevelMetadata& InMergeLevel)
 {
 	FLevelMetadata ResultLevel = InBaseLevel;
 
@@ -413,7 +412,7 @@ FLevelMetadata FJsonSerializer::MergeLevelData(const FLevelMetadata& InBaseLevel
  * @brief 특정 타입의 프리미티브들만 필터링
  */
 TArray<FPrimitiveMetadata> FJsonSerializer::FilterPrimitivesByType(const FLevelMetadata& InLevelData,
-                                                                    EPrimitiveType InType)
+                                                                   EPrimitiveType InType)
 {
 	TArray<FPrimitiveMetadata> FilteredPrimitives;
 
@@ -518,8 +517,156 @@ void FJsonSerializer::PrintLevelInfo(const FLevelMetadata& InLevelData)
  * @brief JSON 파싱 오류 처리 함수
  */
 bool FJsonSerializer::HandleJsonError(const exception& InException, const FString& InContext,
-                                       FString& OutErrorMessage)
+                                      FString& OutErrorMessage)
 {
 	OutErrorMessage = InContext + ": " + InException.what();
 	return false;
+}
+
+/**
+ * @brief 폰트 메트릭 JSON 파일 로드
+ */
+bool FJsonSerializer::LoadFontMetrics(TMap<uint32, CharacterMetric>& OutFontMetrics,
+                                      float& OutAtlasWidth, float& OutAtlasHeight, const path& InFilePath)
+{
+	UE_LOG("JsonParser: Font Metric JSON Parsing 시작: %s", InFilePath.string().data());
+
+	try
+	{
+		// JSON 파일 읽기
+		ifstream File(InFilePath);
+		if (!File.is_open())
+		{
+			UE_LOG_ERROR("JsonParser: JSON 파일 열기 실패: %s", InFilePath.string().data());
+			return false;
+		}
+
+		string JsonContent((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
+		File.close();
+
+		// JSON 파싱
+		JSON RootJson = JSON::Load(JsonContent);
+		if (RootJson.JSONType() != JSON::Class::Object)
+		{
+			UE_LOG_ERROR("JsonParser: JSON 루트가 객체가 아님");
+			return false;
+		}
+
+		// characters 객체 파싱
+		if (!RootJson.hasKey("characters"))
+		{
+			UE_LOG_ERROR("JsonParser: JSON에 'characters' 키가 없음");
+			return false;
+		}
+
+		JSON CharactersJson = RootJson.at("characters");
+		if (CharactersJson.JSONType() != JSON::Class::Object)
+		{
+			UE_LOG_ERROR("JsonParser: 'characters' 가 객체가 아님");
+			return false;
+		}
+
+		int MaxWidth = 0;
+		int MaxHeight = 0;
+
+		// 각 문자 메트릭 파싱
+		size_t TotalCharacters = 0;
+		for (const auto& [Key, Value] : CharactersJson.ObjectRange())
+		{
+			CharacterMetric Metric = JsonToCharacterMetric(Value);
+
+			// 유니코드에 대응하는 메트릭 저장
+			uint32 CharCode = UTF8ToUnicode(Key, 0);
+			OutFontMetrics[CharCode] = Metric;
+			++TotalCharacters;
+			UE_LOG("JsonParser: 문자를 유니코드로 저장 완료: '%s' -> %u", Key.data(), CharCode);
+
+			// 아틀라스 크기 계산 (모든 문자에 대해)
+			MaxWidth = max(MaxWidth, Metric.x + Metric.width);
+			MaxHeight = max(MaxHeight, Metric.y + Metric.height);
+		}
+
+		// 아틀라스 크기 설정
+		OutAtlasWidth = static_cast<float>(MaxWidth);
+		OutAtlasHeight = static_cast<float>(MaxHeight);
+
+		UE_LOG_SUCCESS("JsonParser: 폰트 메트릭 로드 완료 (JSON에서 %zu개 문자 발견, 유니코드 맵에 %zu개 저장, Atlas Size: %fx%f)",
+		               TotalCharacters, OutFontMetrics.size(), OutAtlasWidth, OutAtlasHeight);
+
+		return true;
+	}
+	catch (const exception& Exception)
+	{
+		UE_LOG_ERROR("JsonParser: JSON 파싱 오류: %s", Exception.what());
+		return false;
+	}
+}
+
+/**
+ * @brief JSON 데이터를 CharacterMetric으로 변환
+ */
+CharacterMetric FJsonSerializer::JsonToCharacterMetric(const JSON& InJsonData)
+{
+	CharacterMetric Metric = GetDefaultCharacterMetric();
+
+	try
+	{
+		if (InJsonData.JSONType() == JSON::Class::Object)
+		{
+			if (InJsonData.hasKey("x"))
+			{
+				Metric.x = InJsonData.at("x").ToInt();
+			}
+			if (InJsonData.hasKey("y"))
+			{
+				Metric.y = InJsonData.at("y").ToInt();
+			}
+			if (InJsonData.hasKey("width"))
+			{
+				Metric.width = InJsonData.at("width").ToInt();
+			}
+			if (InJsonData.hasKey("height"))
+			{
+				Metric.height = InJsonData.at("height").ToInt();
+			}
+			if (InJsonData.hasKey("left"))
+			{
+				Metric.left = InJsonData.at("left").ToInt();
+			}
+			if (InJsonData.hasKey("top"))
+			{
+				Metric.top = InJsonData.at("top").ToInt();
+			}
+			if (InJsonData.hasKey("advance_x"))
+			{
+				Metric.advance_x = InJsonData.at("advance_x").ToInt();
+			}
+		}
+
+		// UE_LOG_DEBUG("Parser: x: %d, y: %d", Metric.x, Metric.y);
+	}
+	catch (const exception&)
+	{
+		// 파싱 실패 시 기본값 유지
+	}
+
+	return Metric;
+}
+
+/**
+ * @brief 기본 문자 메트릭 반환
+ * 공백 문자에 사용할 용도의 함수
+ */
+CharacterMetric FJsonSerializer::GetDefaultCharacterMetric()
+{
+	CharacterMetric DefaultMetric;
+	DefaultMetric.x = 2;
+	DefaultMetric.y = 2;
+	DefaultMetric.width = 0;
+	DefaultMetric.height = 0;
+	DefaultMetric.left = 0;
+	DefaultMetric.top = 0;
+	DefaultMetric.advance_x = 6;
+
+	return DefaultMetric;
 }
