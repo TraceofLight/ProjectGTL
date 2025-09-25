@@ -367,20 +367,50 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 		return;
 	}
 
+	FViewportClient* Client = Clients[ViewportIndex];
+	if (!Client)
+	{
+		return;
+	}
+
 	if (NewType == EViewType::Perspective)
 	{
 		// Perspective 카메라 바인딩
-		// ViewportManager에서 PerspectiveCameras 배열에 접근하는 공개 메서드가 필요
-		// 임시로 기본 동작만 수행
-		UE_LOG("ViewportControl: Perspective 카메라로 변경 (ViewportIndex: %d)", ViewportIndex);
+		const auto& PerspectiveCameras = ViewportManager.GetPerspectiveCameras();
+		if (ViewportIndex < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[ViewportIndex])
+		{
+			UCamera* PerspCamera = PerspectiveCameras[ViewportIndex];
+			Client->SetPerspectiveCamera(PerspCamera);
+			PerspCamera->SetCameraType(ECameraType::ECT_Perspective);
+			PerspCamera->Update();
+			UE_LOG("ViewportControl: Perspective 카메라로 변경됨 (ViewportIndex: %d)", ViewportIndex);
+		}
 	}
 	else
 	{
 		// Orthographic 카메라 바인딩
-		const int OrthoIdx = TypeIndex - 1;
-		UE_LOG("ViewportControl: Orthographic 카메라로 변경 (ViewportIndex: %d, OrthoIdx: %d)", ViewportIndex, OrthoIdx);
+		const auto& OrthoCameras = ViewportManager.GetOrthographicCameras();
+		
+		// ViewType에 따라 적절한 OrthoCameras 인덱스 매핑
+		int32 OrthoIdx = -1;
+		switch (NewType)
+		{
+		case EViewType::OrthoTop: OrthoIdx = 0; break;
+		case EViewType::OrthoBottom: OrthoIdx = 1; break;
+		case EViewType::OrthoLeft: OrthoIdx = 2; break;
+		case EViewType::OrthoRight: OrthoIdx = 3; break;
+		case EViewType::OrthoFront: OrthoIdx = 4; break;
+		case EViewType::OrthoBack: OrthoIdx = 5; break;
+		default: return;
+		}
+		
+		if (OrthoIdx >= 0 && OrthoIdx < static_cast<int32>(OrthoCameras.size()) && OrthoCameras[OrthoIdx])
+		{
+			UCamera* OrthoCamera = OrthoCameras[OrthoIdx];
+			Client->SetOrthoCamera(OrthoCamera);
+			OrthoCamera->SetCameraType(ECameraType::ECT_Orthographic);
+			OrthoCamera->Update();
+			UE_LOG("ViewportControl: Orthographic 카메라로 변경됨 (ViewportIndex: %d, OrthoIdx: %d)", ViewportIndex, OrthoIdx);
+		}
 	}
-
-	// 실제 카메라 바인딩은 ViewportManager에서 처리되도록 하거나
-	// 별도의 public 인터페이스를 통해 접근해야 함
 }
