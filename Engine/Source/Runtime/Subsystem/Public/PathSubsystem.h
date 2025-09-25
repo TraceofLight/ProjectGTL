@@ -13,7 +13,7 @@ class UPathSubsystem :
 	DECLARE_CLASS(UPathSubsystem, UEngineSubsystem)
 
 public:
-	virtual void Initialize() override;
+	void Initialize() override;
 
 	// Base Path
 	const path& GetRootPath() const { return RootPath; }
@@ -27,6 +27,7 @@ public:
 	const path& GetWorldPath() const { return WorldPath; }
 	const path& GetConfigPath() const { return ConfigPath; }
 	const path& GetFontPath() const { return FontPath; }
+	const path& GetDataPath() const { return DataPath; }
 
 private:
 	path RootPath;
@@ -38,6 +39,7 @@ private:
 	path WorldPath;
 	path ConfigPath;
 	path FontPath;
+	path DataPath;
 
 	void InitializeRootPath();
 	void GetEssentialPath();

@@ -43,6 +43,7 @@ void UPathSubsystem::GetEssentialPath()
 	WorldPath = AssetPath / "World";
 	ConfigPath = AssetPath / "Config";
 	FontPath = AssetPath / "Font";
+	DataPath = RootPath / L"Data";
 }
 
 /**

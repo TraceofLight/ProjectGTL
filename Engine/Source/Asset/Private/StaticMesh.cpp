@@ -9,6 +9,8 @@ IMPLEMENT_CLASS(UStaticMesh, UObject)
 
 UStaticMesh::UStaticMesh()
 {
+	StaticClass()->IncrementGenNumber();
+	UE_LOG_SUCCESS("StaticMesh: Create %uth new static mesh", GetNextGenNumber());
 }
 
 UStaticMesh::~UStaticMesh()

@@ -29,6 +29,7 @@ class FJsonSerializer
 {
 public:
 	static JSON VectorToJson(const FVector& InVector);
+	static JSON FloatToJson(const float& InValue);
 	static FVector JsonToVector(const JSON& InJsonData);
 	static string PrimitiveTypeToWideString(EPrimitiveType InType);
 	static EPrimitiveType StringToPrimitiveType(const string& InTypeString);

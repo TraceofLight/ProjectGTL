@@ -34,6 +34,7 @@ public:
 
 	// Texture 관련 함수들
 	ComPtr<ID3D11ShaderResourceView> LoadTexture(const FString& InFilePath, const FName& InName = FName::FName_None);
+	static FString FindFileRecursive(const path& InDirectory, const path& InFileName);
 	ComPtr<ID3D11ShaderResourceView> GetTexture(const FString& InFilePath);
 	void ReleaseTexture(const FString& InFilePath);
 	bool HasTexture(const FString& InFilePath) const;

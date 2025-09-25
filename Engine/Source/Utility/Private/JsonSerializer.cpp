@@ -16,6 +16,13 @@ JSON FJsonSerializer::VectorToJson(const FVector& InVector)
 	return VectorArray;
 }
 
+JSON FJsonSerializer::FloatToJson(const float& InValue)
+{
+	JSON VectorArray = JSON::Make(JSON::Class::Array);
+	VectorArray.append(InValue);
+	return VectorArray;
+}
+
 /**
  * @brief JSON을 FVector로 변환
  * 적절하지 않은 JSON을 입력 받았을 경우 혹은 파싱에서 오류가 발생한 경우에 Zero Vector를 반환한다
@@ -135,8 +142,8 @@ JSON FJsonSerializer::CameraMetadataToJson(const FCameraMetadata& InCamera)
 	CameraJson["Location"] = VectorToJson(InCamera.Location);
 	CameraJson["Rotation"] = VectorToJson(InCamera.Rotation);
 	CameraJson["FOV"] = InCamera.FOV;
-	CameraJson["NearClip"] = InCamera.NearClip;
-	CameraJson["FarClip"] = InCamera.FarClip;
+	CameraJson["NearClip"] = FloatToJson(InCamera.NearClip);
+	CameraJson["FarClip"] = FloatToJson(InCamera.FarClip);
 	return CameraJson;
 }
 

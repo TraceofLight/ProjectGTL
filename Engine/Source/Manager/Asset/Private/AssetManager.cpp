@@ -140,14 +140,39 @@ ComPtr<ID3D11ShaderResourceView> UAssetManager::LoadTexture(const FString& InFil
 		return Iter->second;
 	}
 
+	// Data Path 내에서 재귀 탐색한 파일 경로를 확인
+	auto* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
+	path FullPath = FindFileRecursive(PathSubsystem->GetDataPath(), InFilePath);
+
 	// 새로운 텍스처 로드
-	ID3D11ShaderResourceView* TextureSRV = CreateTextureFromFile(InFilePath);
+	ID3D11ShaderResourceView* TextureSRV = CreateTextureFromFile(FullPath);
 	if (TextureSRV)
 	{
 		TextureCache[InFilePath] = TextureSRV;
 	}
 
 	return TextureSRV;
+}
+
+/**
+ * @brief 지정된 디렉토리부터 시작하여 하위 모든 폴더에서 파일을 재귀적으로 검색하는 함수
+ * @param InDirectory 검색을 시작할 최상위 디렉토리
+ * @param InFileName 찾을 파일의 이름 (example: "my_texture.png")
+ * @return 파일의 전체 경로를 반환 | 찾지 못하면 빈 문자열을 반환
+ */
+FString UAssetManager::FindFileRecursive(const path& InDirectory, const path& InFileName)
+{
+	// recursive_directory_iterator를 사용하여 모든 하위 디렉토리를 순회
+	for (const auto& Entry : std::filesystem::recursive_directory_iterator(InDirectory))
+	{
+		if (Entry.is_regular_file() && Entry.path().filename() == InFileName)
+		{
+			// 파일을 찾았으면 해당 파일의 전체 경로를 반환
+			return Entry.path().string();
+		}
+	}
+	// 파일을 찾지 못했으면 빈 문자열 반환
+	return "";
 }
 
 /**
@@ -311,11 +336,11 @@ ID3D11ShaderResourceView* UAssetManager::CreateTextureFromFile(const path& InFil
 
 			if (SUCCEEDED(ResultHandle))
 			{
-				UE_LOG_SUCCESS("ResourceManager: WIC 텍스처 로드 성공 - %ls", InFilePath.c_str());
+				UE_LOG_SUCCESS("ResourceManager: WIC 텍스처 로드 성공: %ls", InFilePath.c_str());
 			}
 			else
 			{
-				UE_LOG_ERROR("ResourceManager: WIC 텍스처 로드 실패 - %ls (HRESULT: 0x%08lX)"
+				UE_LOG_ERROR("ResourceManager: WIC 텍스처 로드 실패: %ls (HRESULT: 0x%08lX)"
 				             , InFilePath.c_str(), ResultHandle);
 			}
 		}
@@ -476,6 +501,9 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 		}
 	}
 
+	auto* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
+	path FullPath = PathSubsystem->GetRootPath() / InFilePath;
+
 	// 새 StaticMesh 로드
 	TObjectPtr<UStaticMesh> NewStaticMesh = NewObject<UStaticMesh>();
 	if (!NewStaticMesh)
@@ -487,9 +515,9 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 	UE_LOG_WARNING("현재 테스트를 위해 스태틱 메시 바이너리 캐시 파일을 이용한 로드가 비활성화 되어있습니다.(UAssetManager::LoadStaticMesh)");
 	// 바이너리 캐시가 유효한지 확인
-	if (UStaticMesh::IsBinaryCacheValid(InFilePath))
+	if (UStaticMesh::IsBinaryCacheValid(FullPath.string()))
 	{
-		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
+		FString BinaryPath = UStaticMesh::GetBinaryFilePath(FullPath.string());
 		UE_LOG("AssetManager: Loading from binary cache: %s", BinaryPath.c_str());
 
 		// 바이너리에서 로드 시도
@@ -497,7 +525,7 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 		if (bLoadSuccess)
 		{
-			UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", InFilePath.c_str());
+			UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", BinaryPath.c_str());
 			return NewStaticMesh;
 		}
 		else
@@ -507,10 +535,10 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 	}
 
 	// 바이너리 캐시가 없거나 실패한 경우 OBJ 파싱
-	UE_LOG("AssetManager: Parsing OBJ file: %s", InFilePath.c_str());
+	UE_LOG("AssetManager: Parsing OBJ file: %ls", FullPath.c_str());
 	FStaticMesh StaticMeshData;
 	TArray<FObjInfo> ObjInfos;
-	bLoadSuccess = FObjImporter::ImportStaticMesh(InFilePath, StaticMeshData, ObjInfos);
+	bLoadSuccess = FObjImporter::ImportStaticMesh(FullPath.string(), StaticMeshData, ObjInfos);
 
 	if (bLoadSuccess)
 	{
@@ -767,7 +795,7 @@ void UAssetManager::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<
 	OutMaterialNameToSlot.clear();
 
 	// ObjInfos를 이루는 각 FObjInfo 객체에 명시된 머티리얼 전부 모아 저장
-	TArray<FString> MaterialNames; 
+	TArray<FString> MaterialNames;
 	CollectSectionMaterialNames(ObjInfos, MaterialNames);
 
 	for (const FString& MaterialName : MaterialNames)
@@ -795,7 +823,7 @@ void UAssetManager::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<
 * @brief FStaticMesh 데이터 내 Section 순회하며 MaterialSlotIndex 설정
 * @param StaticMeshData 대상 FStaticMesh 데이터. 내부에 Section 데이터 포함
 * @param MaterialNameToSlot 머티리얼 이름 - 슬롯 인덱스 매핑
-*/ 
+*/
 void UAssetManager::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const
 {
 	TArray<FStaticMeshSection>& Sections = StaticMeshData.Sections;
