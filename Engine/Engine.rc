@@ -8,7 +8,7 @@ LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
 //
 // Icon
 //
-IDI_ICON1               ICON                    "Asset\\Icon\\project_gtl.ico"
+IDI_ICON1               ICON                    "Asset\\Icon\\logo.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
