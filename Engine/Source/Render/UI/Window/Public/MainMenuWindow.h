@@ -1,8 +1,10 @@
 #pragma once
 #include "UIWindow.h"
+#include "Render/UI/Widget/Public/BottomBarWidget.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
 
 class UMainBarWidget;
+class UBottomBarWidget;
 
 /**
  * @brief 메인 메뉴바를 관리하는 UI 윈도우 클래스
@@ -20,11 +22,14 @@ public:
 	void Cleanup() override;
 
 	float GetMenuBarHeight() const { return MainBarWidget ? MainBarWidget->GetMenuBarHeight() : 0.0f; }
+	float GetBottomBarHeight() const { return BottomBarWidget ? BottomBarWidget->GetBarHeight() : 0.0f; }
 	TObjectPtr<UMainBarWidget> GetMainBarWidget() const { return MainBarWidget; }
+	TObjectPtr<UBottomBarWidget> GetBottomBarWidget() const { return BottomBarWidget; }
 	bool IsSingleton() override { return true; }
 
 private:
 	TObjectPtr<UMainBarWidget> MainBarWidget = nullptr;
+	TObjectPtr<UBottomBarWidget> BottomBarWidget = nullptr;
 
 	void SetupMainMenuConfig();
 };

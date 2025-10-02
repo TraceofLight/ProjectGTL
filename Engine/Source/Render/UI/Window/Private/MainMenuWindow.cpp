@@ -3,6 +3,7 @@
 
 #include "Render/UI/Widget/Public/ActorTerminationWidget.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
+#include "Render/UI/Widget/Public/BottomBarWidget.h"
 #include "Render/UI/Widget/Public/ViewportControlWidget.h"
 
 IMPLEMENT_SINGLETON_CLASS(UMainMenuWindow, UUIWindow)
@@ -31,6 +32,19 @@ void UMainMenuWindow::Initialize()
 		return;
 	}
 
+	// BottomBarWidget 생성 및 초기화
+	BottomBarWidget = new UBottomBarWidget;
+	if (BottomBarWidget)
+	{
+		BottomBarWidget->Initialize();
+		AddWidget(BottomBarWidget);
+		UE_LOG("MainMenuWindow: BottomBarWidget이 생성되고 초기화되었습니다");
+	}
+	else
+	{
+		UE_LOG("MainMenuWindow: Error: BottomBarWidget 생성에 실패했습니다!");
+	}
+
 	UE_LOG("MainMenuWindow: 메인 메뉴 윈도우가 초기화되었습니다");
 
 	// TODO(KHJ): 어디에 붙어있는 것이 적합한지 아직은 모르겠어서 MainMenu로 이관
@@ -44,6 +58,11 @@ void UMainMenuWindow::Cleanup()
 	if (MainBarWidget && !MainBarWidget->IsSingleton())
 	{
 		SafeDelete(MainBarWidget);
+	}
+
+	if (BottomBarWidget && !BottomBarWidget->IsSingleton())
+	{
+		SafeDelete(BottomBarWidget);
 	}
 
 	UUIWindow::Cleanup();

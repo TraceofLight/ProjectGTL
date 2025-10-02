@@ -150,7 +150,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 					continue;
 				}
 
-				if (Window->GetWindowTitle() == "MainMenuBar")
+				if (Window->GetWindowTitle() == "MainMenuBar" || Window->GetWindowTitle() == "Console")
 				{
 					continue;
 				}

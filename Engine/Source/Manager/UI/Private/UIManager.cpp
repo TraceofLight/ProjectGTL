@@ -579,6 +579,19 @@ float UUIManager::GetMainMenuBarHeight() const
 }
 
 /**
+ * @brief 하단바의 높이를 반환하는 함수
+ */
+float UUIManager::GetBottomBarHeight() const
+{
+	if (MainMenuWindow)
+	{
+		return MainMenuWindow->GetBottomBarHeight();
+	}
+
+	return 0.0f;
+}
+
+/**
  * @brief 오른쪽 UI 패널(Outliner, Details)이 차지하는 너비를 계산하는 함수
  * @return 오른쪽 패널이 차지하는 픽셀 너비
  */
@@ -642,7 +655,8 @@ void UUIManager::ArrangeRightPanels()
 	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
 	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
 	const float MenuBarHeight = GetMainMenuBarHeight();
-	const float AvailableHeight = ScreenHeight - MenuBarHeight;
+	const float BottomBarHeight = GetBottomBarHeight();
+	const float AvailableHeight = ScreenHeight - MenuBarHeight - BottomBarHeight;
 
 	if (ScreenWidth <= 0.0f || AvailableHeight <= 0.0f)
 	{
@@ -955,6 +969,37 @@ void UUIManager::ForceArrangeRightPanels()
 
 	// 즉시 레이아웃 정리 실행
 	ArrangeRightPanels();
+}
+
+/**
+ * @brief Console 패널을 하단에 배치하는 함수
+ */
+void UUIManager::ArrangeConsolePanel()
+{
+	// Console 윈도우 찾기
+	TObjectPtr<UUIWindow> ConsoleWindow = FindUIWindow(FName("Console"));
+	if (!ConsoleWindow)
+	{
+		return;
+	}
+
+	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
+	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
+	const float MenuBarHeight = GetMainMenuBarHeight();
+	const float BottomBarHeight = GetBottomBarHeight();
+	const float RightPanelWidth = GetRightPanelWidth();
+
+	// 저장된 높이 사용 (최소/최대 제한 적용)
+	const float MinConsoleHeight = 100.0f;
+	const float MaxConsoleHeight = ScreenHeight - MenuBarHeight - BottomBarHeight - 100.0f;
+	const float ConsoleHeight = clamp(SavedConsoleHeight, MinConsoleHeight, MaxConsoleHeight);
+
+	const float ConsoleWidth = ScreenWidth - RightPanelWidth;
+	const float ConsolePosX = 0.0f;
+	const float ConsolePosY = ScreenHeight - BottomBarHeight - ConsoleHeight;
+
+	ConsoleWindow->SetLastWindowPosition(ImVec2(ConsolePosX, ConsolePosY));
+	ConsoleWindow->SetLastWindowSize(ImVec2(ConsoleWidth, ConsoleHeight));
 }
 
 /**
