@@ -35,7 +35,8 @@ void UImGuiHelper::Initialize(HWND InWindowHandle)
 
 	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
 	path FontFilePath = PathSubsystem->GetFontPath() / "Pretendard-Regular.otf";
-	IO.Fonts->AddFontFromFileTTF(FontFilePath.string().c_str(), 16.0f, nullptr, IO.Fonts->GetGlyphRangesKorean());
+	IO.Fonts->AddFontFromFileTTF(
+		reinterpret_cast<char*>(FontFilePath.u8string().data()), 16.0f, nullptr, IO.Fonts->GetGlyphRangesKorean());
 
 	auto& Renderer = URenderer::GetInstance();
 	ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
@@ -99,4 +100,3 @@ LRESULT UImGuiHelper::WndProcHandler(HWND hWnd, uint32 msg, WPARAM wParam, LPARA
 {
 	return ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 }
-
