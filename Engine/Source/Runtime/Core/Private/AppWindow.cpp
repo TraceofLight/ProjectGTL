@@ -60,7 +60,7 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 
 	ShowWindow(MainWindowHandle, InCmdShow);
 	UpdateWindow(MainWindowHandle);
-	SetNewTitle(L"Project GTL");
+	SetNewTitle(L"BrandNew Engine");
 
 	return true;
 }

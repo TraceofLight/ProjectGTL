@@ -579,6 +579,19 @@ float UUIManager::GetMainMenuBarHeight() const
 }
 
 /**
+ * @brief 하단바의 높이를 반환하는 함수
+ */
+float UUIManager::GetBottomBarHeight() const
+{
+	if (MainMenuWindow)
+	{
+		return MainMenuWindow->GetBottomBarHeight();
+	}
+
+	return 0.0f;
+}
+
+/**
  * @brief 오른쪽 UI 패널(Outliner, Details)이 차지하는 너비를 계산하는 함수
  * @return 오른쪽 패널이 차지하는 픽셀 너비
  */
@@ -642,7 +655,8 @@ void UUIManager::ArrangeRightPanels()
 	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
 	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
 	const float MenuBarHeight = GetMainMenuBarHeight();
-	const float AvailableHeight = ScreenHeight - MenuBarHeight;
+	const float BottomBarHeight = GetBottomBarHeight();
+	const float AvailableHeight = ScreenHeight - MenuBarHeight - BottomBarHeight;
 
 	if (ScreenWidth <= 0.0f || AvailableHeight <= 0.0f)
 	{
@@ -747,7 +761,7 @@ void UUIManager::ArrangeRightPanels()
 
 	// 동적 레이아웃 업데이트
 	ArrangeRightPanelsDynamic(OutlinerWindow, DetailWindow, ScreenWidth, ScreenHeight, MenuBarHeight, AvailableHeight,
-	                          TargetWidth);
+	                          TargetWidth, bOutlinerSizeChanged, bDetailSizeChanged);
 }
 
 /**
@@ -822,7 +836,8 @@ void UUIManager::ArrangeRightPanelsInitial(TObjectPtr<UUIWindow> InOutlinerWindo
  */
 void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindow, TObjectPtr<UUIWindow> InDetailWindow,
                                            float InScreenWidth, float InScreenHeight, float InMenuBarHeight,
-                                           float InAvailableHeight, float InTargetWidth) const
+                                           float InAvailableHeight, float InTargetWidth, bool bOutlinerChanged,
+                                           bool bDetailChanged) const
 {
 	// 너비는 항상 사용자가 조정한 InTargetWidth 사용 (동적 레이아웃에서는 사용자 조정 존중)
 	float ActualWidth = InTargetWidth;
@@ -843,6 +858,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 		// 두 패널 모두 있는 경우
 		const float CurrentOutlinerHeight = InOutlinerWindow->GetLastWindowSize().y;
 		const float CurrentDetailHeight = InDetailWindow->GetLastWindowSize().y;
+		const ImVec2 CurrentDetailPos = InDetailWindow->GetLastWindowPosition();
 
 		// 만약 한 패널이 전체 높이를 차지하고 있다면 저장된 레이아웃 복원
 		if (CurrentOutlinerHeight >= InAvailableHeight * 0.9f || CurrentDetailHeight >= InAvailableHeight * 0.9f)
@@ -886,6 +902,25 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 
 			UE_LOG("UIManager: 동적 레이아웃: 두 패널 초기 분할 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
 		}
+
+		// Detail 위쪽 경계 드래그 감지
+		else if (bDetailChanged && abs(CurrentDetailPos.y - (InMenuBarHeight + LastOutlinerSize.y)) > 1.0f)
+		{
+			// Detail의 위쪽을 드래그한 경우 -> Outliner 높이 조정
+			const float NewOutlinerHeight = CurrentDetailPos.y - InMenuBarHeight;
+
+			if (NewOutlinerHeight > 100.0f) // 최소 높이 체크
+			{
+				InOutlinerWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
+				InOutlinerWindow->SetLastWindowSize(ImVec2(ActualWidth, NewOutlinerHeight));
+
+				// Detail도 나머지 공간에 맞게 재조정
+				const float NewDetailHeight = InAvailableHeight - NewOutlinerHeight;
+				InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight + NewOutlinerHeight));
+				InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, NewDetailHeight));
+				UE_LOG_DEBUG("UIManager: Detail 위쪽 드래그 -> Outliner 조정 (%.1f)", NewOutlinerHeight);
+			}
+		}
 		else
 		{
 			// 기존 크기 유지하면서 너비만 조정
@@ -902,6 +937,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 			UE_LOG("UIManager: 동적 레이아웃: 두 패널 업데이트 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
 		}
 	}
+
 	// Outliner만 있는 경우: 저장된 너비 사용, Y 위치와 높이만 조정
 	else if (InOutlinerWindow)
 	{
@@ -910,6 +946,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 
 		UE_LOG("UIManager: 동적 레이아웃: Outliner만 업데이트 (너비: %.1fx%.1f)", ActualWidth, InAvailableHeight);
 	}
+
 	// Detail만 있는 경우: 저장된 너비 사용, Y 위치와 높이만 조정
 	else if (InDetailWindow)
 	{
@@ -932,6 +969,37 @@ void UUIManager::ForceArrangeRightPanels()
 
 	// 즉시 레이아웃 정리 실행
 	ArrangeRightPanels();
+}
+
+/**
+ * @brief Console 패널을 하단에 배치하는 함수
+ */
+void UUIManager::ArrangeConsolePanel()
+{
+	// Console 윈도우 찾기
+	TObjectPtr<UUIWindow> ConsoleWindow = FindUIWindow(FName("Console"));
+	if (!ConsoleWindow)
+	{
+		return;
+	}
+
+	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
+	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
+	const float MenuBarHeight = GetMainMenuBarHeight();
+	const float BottomBarHeight = GetBottomBarHeight();
+	const float RightPanelWidth = GetRightPanelWidth();
+
+	// 저장된 높이 사용 (최소/최대 제한 적용)
+	const float MinConsoleHeight = 100.0f;
+	const float MaxConsoleHeight = ScreenHeight - MenuBarHeight - BottomBarHeight - 100.0f;
+	const float ConsoleHeight = clamp(SavedConsoleHeight, MinConsoleHeight, MaxConsoleHeight);
+
+	const float ConsoleWidth = ScreenWidth - RightPanelWidth;
+	const float ConsolePosX = 0.0f;
+	const float ConsolePosY = ScreenHeight - BottomBarHeight - ConsoleHeight;
+
+	ConsoleWindow->SetLastWindowPosition(ImVec2(ConsolePosX, ConsolePosY));
+	ConsoleWindow->SetLastWindowSize(ImVec2(ConsoleWidth, ConsoleHeight));
 }
 
 /**

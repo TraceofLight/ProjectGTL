@@ -5,6 +5,7 @@
 
 #include "Render/UI/Widget/Public/Widget.h"
 #include "Manager/UI/Public/UIManager.h"
+#include "Render/UI/Window/Public/MainMenuWindow.h"
 
 int UUIWindow::IssuedWindowID = 0;
 
@@ -214,6 +215,12 @@ void UUIWindow::RenderWindow()
 
 	bool bIsOpen = bIsWindowOpen;
 
+	// Console 윈도우가 방금 열렸다면 Collapse 상태 해제
+	if (Config.WindowTitle == "Console" && bIsWindowOpen)
+	{
+		ImGui::SetNextWindowCollapsed(false, ImGuiCond_Always);
+	}
+
 	if (ImGui::Begin(Config.WindowTitle.ToString().data(), &bIsOpen, Config.WindowFlags))
 	{
 		// 잘 적용되지 않는 문제로 인해 여러 번 강제 적용 시도
@@ -253,6 +260,29 @@ void UUIWindow::RenderWindow()
 		bIsResized = false;
 	}
 
+	// Console 윈도우가 Collapse 상태인지 확인
+	if (Config.WindowTitle == "Console" && IsVisible())
+	{
+		if (ImGui::IsWindowCollapsed())
+		{
+			// Collapse 상태면 자동으로 Hidden 처리
+			bIsOpen = false;
+			bIsWindowOpen = false;
+			SetWindowState(EUIWindowState::Hidden);
+			OnWindowHidden();
+
+			// BottomBarWidget의 bShowConsole 플래그 동기화
+			auto& UIManager = UUIManager::GetInstance();
+			if (auto MainMenuWindow = UIManager.FindUIWindow(FName("MainMenuBar")))
+			{
+				if (auto BottomBarWidget = static_cast<UMainMenuWindow*>(MainMenuWindow.Get())->GetBottomBarWidget())
+				{
+					BottomBarWidget->SetShowConsole(false);
+				}
+			}
+		}
+	}
+
 	ImGui::End();
 
 	// 윈도우가 닫혔는지 확인
@@ -276,6 +306,18 @@ void UUIWindow::RenderWindow()
 			if (Title == "Outliner" || Title == "Details")
 			{
 				UUIManager::GetInstance().ForceArrangeRightPanels();
+			}
+			else if (Title == "Console")
+			{
+				// BottomBarWidget의 bShowConsole 플래그 동기화
+				auto& UIManager = UUIManager::GetInstance();
+				if (auto MainMenuWindow = UIManager.FindUIWindow(FName("MainMenuBar")))
+				{
+					if (auto BottomBarWidget = static_cast<UMainMenuWindow*>(MainMenuWindow.Get())->GetBottomBarWidget())
+					{
+						BottomBarWidget->SetShowConsole(false);
+					}
+				}
 			}
 
 			// 윈도우 숨김 이벤트 호출
@@ -386,6 +428,40 @@ void UUIWindow::UpdateWindowInfo()
 	// 윈도우 크기와 위치 업데이트
 	LastWindowSize = ImGui::GetWindowSize();
 	LastWindowPosition = ImGui::GetWindowPos();
+
+	// Console 윈도우인 경우 위치와 너비를 하단에 고정
+	if (Config.WindowTitle == "Console" && IsVisible())
+	{
+		auto& UIManager = UUIManager::GetInstance();
+		const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
+		const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
+		const float BottomBarHeight = UIManager.GetBottomBarHeight();
+		const float RightPanelWidth = UIManager.GetRightPanelWidth();
+
+		const float TargetX = 0.0f;
+		const float TargetWidth = ScreenWidth - RightPanelWidth;
+
+		// 너비 고정
+		if (abs(LastWindowSize.x - TargetWidth) > 1.0f)
+		{
+			LastWindowSize.x = TargetWidth;
+			ImGui::SetWindowSize(ImVec2(TargetWidth, LastWindowSize.y));
+		}
+
+		// Y 위치는 높이 조정 후 계산 (하단 고정)
+		const float TargetY = ScreenHeight - BottomBarHeight - LastWindowSize.y;
+
+		// 위치 고정
+		if (abs(LastWindowPosition.x - TargetX) > 1.0f || abs(LastWindowPosition.y - TargetY) > 1.0f)
+		{
+			LastWindowPosition.x = TargetX;
+			LastWindowPosition.y = TargetY;
+			ImGui::SetWindowPos(LastWindowPosition);
+		}
+
+		// 높이 저장
+		UIManager.SaveConsoleHeight(LastWindowSize.y);
+	}
 }
 
 /**

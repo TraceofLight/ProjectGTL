@@ -53,10 +53,15 @@ public:
 	// 메인 메뉴바 관련 메서드
 	void RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow> InMainMenuWindow);
 	float GetMainMenuBarHeight() const;
+	float GetBottomBarHeight() const;
 	float GetRightPanelWidth() const;
 	void ArrangeRightPanels();
 	void ForceArrangeRightPanels();
 	void OnPanelVisibilityChanged();
+
+	// Console 패널 레이아웃 함수
+	void ArrangeConsolePanel();
+	void SaveConsoleHeight(float InHeight) { SavedConsoleHeight = InHeight; }
 
 private:
 	TArray<TObjectPtr<UUIWindow>> UIWindows;
@@ -88,6 +93,9 @@ private:
 	float SavedPanelWidth = 0.0f; // 기억된 패널 너비
 	bool bHasSavedDualLayout = false; // 두 패널 레이아웃이 저장되어 있는지
 
+	// Console 패널 상태 추적 변수들
+	float SavedConsoleHeight = 200.0f; // 저장된 Console 높이
+
 	void SortUIWindowsByPriority();
 	void UpdateFocusState();
 
@@ -97,5 +105,6 @@ private:
 	                               float InAvailableHeight);
 	void ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindow, TObjectPtr<UUIWindow> InDetailWindow,
 	                               float InScreenWidth, float InScreenHeight, float InMenuBarHeight,
-	                               float InAvailableHeight, float InTargetWidth) const;
+	                               float InAvailableHeight, float InTargetWidth, bool bOutlinerChanged,
+	                               bool bDetailChanged) const;
 };

@@ -112,10 +112,12 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 	}
 
 	const int32 MenuH = static_cast<int32>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 BottomH = static_cast<int32>(UUIManager::GetInstance().GetBottomBarHeight());
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
+	const int32 ViewportHeight = Height - MenuH - BottomH;
 
-	const FRect Rect{0, MenuH, max(0, ViewportWidth), max(0, Height - MenuH)};
+	const FRect Rect{0, MenuH, max(0, ViewportWidth), max(0, ViewportHeight)};
 
 	// 2) 기존 캡처 해제 (안전)
 	Capture = nullptr;
@@ -153,10 +155,12 @@ void UViewportManager::BuildFourSplitLayout()
 	}
 
 	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 BottomH = static_cast<int32>(UUIManager::GetInstance().GetBottomBarHeight());
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
+	const int32 ViewportHeight = Height - MenuHeight - BottomH;
 
-	const FRect Rect{0, MenuHeight, max(0, ViewportWidth), max(0, Height - MenuHeight)};
+	const FRect Rect{0, MenuHeight, max(0, ViewportWidth), max(0, ViewportHeight)};
 
 	// 기존 캡처 해제 (안전)
 	Capture = nullptr;

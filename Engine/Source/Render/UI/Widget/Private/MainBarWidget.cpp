@@ -150,7 +150,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 					continue;
 				}
 
-				if (Window->GetWindowTitle() == "MainMenuBar")
+				if (Window->GetWindowTitle() == "MainMenuBar" || Window->GetWindowTitle() == "Console")
 				{
 					continue;
 				}
@@ -445,7 +445,7 @@ path UMainBarWidget::OpenSaveFileDialog()
 			// 3. 대화상자 옵션 설정
 			// 파일 타입 필터 설정
 			COMDLG_FILTERSPEC SpecificationRange[] = {
-				{L"JSON Files (*.json)", L"*.json"},
+				{L"Scene Files (*.scene)", L"*.scene"},
 				{L"All Files (*.*)", L"*.*"}
 			};
 			FileSaveDialogPtr->SetFileTypes(ARRAYSIZE(SpecificationRange), SpecificationRange);
@@ -531,7 +531,7 @@ path UMainBarWidget::OpenLoadFileDialog()
 		{
 			// 파일 타입 필터 설정
 			COMDLG_FILTERSPEC SpecificationRange[] = {
-				{L"JSON Files (*.json)", L"*.json"},
+				{L"Scene Files (*.scene)", L"*.scene"},
 				{L"All Files (*.*)", L"*.*"}
 			};
 
