@@ -10,6 +10,8 @@
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Window/Public/Window.h"
 
+#include <dwmapi.h>
+
 FAppWindow::FAppWindow(FEngineLoop* InOwner)
 	: Owner(InOwner), InstanceHandle(nullptr), MainWindowHandle(nullptr)
 {
@@ -42,7 +44,7 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 	RegisterClassW(&wndclass);
 
 	MainWindowHandle = CreateWindowExW(0, WindowClass, L"",
-		WS_POPUP | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+		WS_POPUP | WS_VISIBLE | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		Render::INIT_SCREEN_WIDTH, Render::INIT_SCREEN_HEIGHT,
 		nullptr, nullptr, InInstance, nullptr);
@@ -51,6 +53,10 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 	{
 		return false;
 	}
+
+	// DWM을 사용하여 클라이언트 영역을 non-client 영역까지 확장
+	MARGINS margins = { 1, 1, 1, 1 };
+	DwmExtendFrameIntoClientArea(MainWindowHandle, &margins);
 
 	if (hIcon)
 	{
@@ -122,6 +128,45 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 
 	switch (InMessage)
 	{
+	case WM_NCCALCSIZE:
+		{
+			// non-client 영역(타이틀바)을 완전히 제거
+			if (InWParam == TRUE)
+			{
+				// 전체 영역을 클라이언트 영역으로 사용
+				return 0;
+			}
+			break;
+		}
+
+	case WM_NCHITTEST:
+		{
+			// 기본 hit test 수행
+			LRESULT hit = DefWindowProc(InWindowHandle, InMessage, InWParam, InLParam);
+
+			// 클라이언트 영역이고 상단 메뉴바 영역이면 드래그 가능하도록 설정
+			if (hit == HTCLIENT)
+			{
+				POINT pt;
+				pt.x = static_cast<int16>(LOWORD(InLParam));
+				pt.y = static_cast<int16>(HIWORD(InLParam));
+				ScreenToClient(InWindowHandle, &pt);
+
+				// 메뉴바 높이만큼만 드래그 가능
+				// XXX(KHJ): 이거 하드코딩... 이대로 괜찮은가
+				if (pt.y >= 0 && pt.y <= 30)
+				{
+					// ImGui가 실제로 UI 요소(버튼, 메뉴 등) 위에 있는지 확인
+					if (ImGui::GetIO().WantCaptureMouse && ImGui::IsAnyItemHovered())
+					{
+						return HTCLIENT; // ImGui 요소 위에 있으면 클라이언트 영역으로 처리
+					}
+					return HTCAPTION; // 빈 공간이면 타이틀바처럼 동작
+				}
+			}
+			return hit;
+		}
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;

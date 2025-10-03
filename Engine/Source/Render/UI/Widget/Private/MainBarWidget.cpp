@@ -8,9 +8,6 @@
 #include "Runtime/Level/Public/Level.h"
 #include "Manager/Level/Public/LevelManager.h"
 
-// For viewport split toggling
-#include "Manager/Viewport/Public/ViewportManager.h"
-
 class ULevelManager;
 IMPLEMENT_CLASS(UMainBarWidget, UWidget)
 
@@ -32,6 +29,12 @@ void UMainBarWidget::Initialize()
 		return;
 	}
 
+	ImGuiViewport* Viewport = ImGui::GetMainViewport();
+	if (Viewport && Viewport->PlatformHandle)
+	{
+		MainWindowHandle = static_cast<HWND>(Viewport->PlatformHandle);
+	}
+
 	UE_LOG("MainBarWidget: 메인 메뉴바 위젯이 초기화되었습니다");
 }
 
@@ -47,6 +50,11 @@ void UMainBarWidget::RenderWidget()
 		MenuBarHeight = 0.0f;
 		return;
 	}
+
+	// 메뉴바 스타일 설정
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 8.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
 
 	// 메인 메뉴바 시작
 	if (ImGui::BeginMainMenuBar())
@@ -64,6 +72,9 @@ void UMainBarWidget::RenderWidget()
 		RenderWindowsMenu();
 		RenderHelpMenu();
 
+		// 윈도우 컨트롤 버튼 (우측 정렬)
+		RenderWindowControls();
+
 		// 메인 메뉴바 종료
 		ImGui::EndMainMenuBar();
 	}
@@ -71,6 +82,9 @@ void UMainBarWidget::RenderWidget()
 	{
 		MenuBarHeight = 0.0f;
 	}
+
+	ImGui::PopStyleColor();
+	ImGui::PopStyleVar(2);
 }
 
 /**
@@ -589,5 +603,56 @@ path UMainBarWidget::OpenLoadFileDialog()
 	}
 
 	return ResultPath;
+}
+
+/**
+ * @brief 윈도우 컨트롤 버튼 (최소화, 최대화, 닫기) 렌더링
+ */
+void UMainBarWidget::RenderWindowControls() const
+{
+	if (!MainWindowHandle)
+	{
+		return;
+	}
+
+	// 우측 정렬을 위해 여백 계산
+	const float ButtonWidth = 46.0f;
+	const float ButtonCount = 3.0f;
+	const float Padding = 30.0f; // 우측 여백
+	const float TotalWidth = ButtonWidth * ButtonCount + Padding;
+
+	ImGui::SameLine(ImGui::GetWindowWidth() - TotalWidth);
+
+	// 버튼 기본 스타일 설정
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+
+	// 최소화 버튼
+	if (ImGui::Button("-", ImVec2(ButtonWidth, 0)))
+	{
+		ShowWindow(MainWindowHandle, SW_MINIMIZE);
+	}
+
+	// 최대화/복원 버튼
+	ImGui::SameLine();
+	bool bIsMaximized = IsZoomed(MainWindowHandle);
+	if (ImGui::Button("□", ImVec2(ButtonWidth, 0)))
+	{
+		ShowWindow(MainWindowHandle, bIsMaximized ? SW_RESTORE : SW_MAXIMIZE);
+	}
+
+	ImGui::PopStyleColor(3);
+
+	// 닫기 버튼
+	ImGui::SameLine();
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
+	if (ImGui::Button("X", ImVec2(ButtonWidth, 0)))
+	{
+		PostMessageW(MainWindowHandle, WM_CLOSE, 0, 0);
+	}
+	ImGui::PopStyleColor(3);
 }
 
