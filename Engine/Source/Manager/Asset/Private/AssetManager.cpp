@@ -82,12 +82,16 @@ void UAssetManager::Release()
 	ReleaseDefaultTexture();
 	ReleaseAllTextures();
 
-	// StaticMesh 애셋 해제 - TObjectIterator를 사용하여 모든 StaticMesh 삭제
-	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	// StaticMesh 캐시 해제
+	for (auto& Pair : StaticMeshCache)
 	{
-		UStaticMesh* StaticMesh = *It;
-		delete StaticMesh;
+		UStaticMesh* StaticMesh = Pair.second.Get();
+		if (StaticMesh)
+		{
+			delete StaticMesh;
+		}
 	}
+	StaticMeshCache.clear();
 }
 
 TArray<FVertex>* UAssetManager::GetVertexData(EPrimitiveType InType)
@@ -466,14 +470,12 @@ void UAssetManager::ReleaseDefaultMaterial()
 // StaticMesh 관련 함수들
 TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 {
-	// 이미 로드된 StaticMesh인지 확인
-	for (TObjectIterator<UStaticMesh> Iter; Iter; ++Iter)
+	// 내부 캐시에서 이미 로드된 StaticMesh인지 확인
+	auto CacheIter = StaticMeshCache.find(InFilePath);
+	if (CacheIter != StaticMeshCache.end())
 	{
-		TObjectPtr<UStaticMesh> StaticMesh = TObjectPtr(*Iter);
-		if (StaticMesh->GetAssetPathFileName() == InFilePath)
-		{
-			return StaticMesh;
-		}
+		UE_LOG("캐시에서 StaticMesh 반환: %s", InFilePath.c_str());
+		return CacheIter->second;
 	}
 
 	// 새 StaticMesh 로드
@@ -497,8 +499,12 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 		if (bLoadSuccess)
 		{
-			UE_LOG_SUCCESS("StaticMesh 바이너리 캐시 로드 성공: %s", InFilePath.c_str());
-			return NewStaticMesh;
+			// 캐시에 저장
+			StaticMeshCache[InFilePath] = NewStaticMesh;
+		// 캐시에 저장
+		StaticMeshCache[InFilePath] = NewStaticMesh;
+		UE_LOG_SUCCESS("스테틱메시 OBJ 파싱 로드 성공: %s", InFilePath.c_str());
+		return NewStaticMesh;
 		}
 		else
 		{
@@ -552,44 +558,34 @@ TObjectPtr<UStaticMesh> UAssetManager::LoadStaticMesh(const FString& InFilePath)
 
 TObjectPtr<UStaticMesh> UAssetManager::GetStaticMesh(const FString& InFilePath)
 {
-	// TObjectIterator를 사용하여 로드된 StaticMesh 검색
-	for (TObjectIterator<UStaticMesh> Iter; Iter; ++Iter)
+	// 내부 캐시에서 StaticMesh 검색
+	auto CacheIter = StaticMeshCache.find(InFilePath);
+	if (CacheIter != StaticMeshCache.end())
 	{
-		TObjectPtr<UStaticMesh> StaticMesh = TObjectPtr(*Iter);
-		if (StaticMesh->GetAssetPathFileName() == InFilePath)
-		{
-			return StaticMesh;
-		}
+		return CacheIter->second;
 	}
 	return nullptr;
 }
 
 void UAssetManager::ReleaseStaticMesh(const FString& InFilePath)
 {
-	// TObjectIterator를 사용하여 해당 StaticMesh 찾아서 삭제
-	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	// 내부 캐시에서 해당 StaticMesh 찾아서 삭제
+	auto CacheIter = StaticMeshCache.find(InFilePath);
+	if (CacheIter != StaticMeshCache.end())
 	{
-		UStaticMesh* StaticMesh = *It;
-		if (StaticMesh->GetAssetPathFileName() == InFilePath)
+		UStaticMesh* StaticMesh = CacheIter->second.Get();
+		if (StaticMesh)
 		{
 			delete StaticMesh;
-			break;
 		}
+		StaticMeshCache.erase(CacheIter);
 	}
 }
 
 bool UAssetManager::HasStaticMesh(const FString& InFilePath) const
 {
-	// TObjectIterator를 사용하여 해당 StaticMesh가 존재하는지 확인
-	for (TObjectIterator<UStaticMesh> It; It; ++It)
-	{
-		UStaticMesh* StaticMesh = *It;
-		if (StaticMesh->GetAssetPathFileName() == InFilePath)
-		{
-			return true;
-		}
-	}
-	return false;
+	// 내부 캐시에서 해당 StaticMesh가 존재하는지 확인
+	return StaticMeshCache.find(InFilePath) != StaticMeshCache.end();
 }
 
 void UAssetManager::LoadStaticMeshShaders()
@@ -767,7 +763,7 @@ void UAssetManager::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<
 	OutMaterialNameToSlot.clear();
 
 	// ObjInfos를 이루는 각 FObjInfo 객체에 명시된 머티리얼 전부 모아 저장
-	TArray<FString> MaterialNames; 
+	TArray<FString> MaterialNames;
 	CollectSectionMaterialNames(ObjInfos, MaterialNames);
 
 	for (const FString& MaterialName : MaterialNames)
@@ -795,7 +791,7 @@ void UAssetManager::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<
 * @brief FStaticMesh 데이터 내 Section 순회하며 MaterialSlotIndex 설정
 * @param StaticMeshData 대상 FStaticMesh 데이터. 내부에 Section 데이터 포함
 * @param MaterialNameToSlot 머티리얼 이름 - 슬롯 인덱스 매핑
-*/ 
+*/
 void UAssetManager::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const
 {
 	TArray<FStaticMeshSection>& Sections = StaticMeshData.Sections;
