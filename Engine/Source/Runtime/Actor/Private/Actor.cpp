@@ -2,6 +2,7 @@
 #include "Runtime/Actor/Public/Actor.h"
 
 #include "Runtime/Component/Public/ActorComponent.h"
+#include "Runtime/Component/Public/SceneComponent.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 
@@ -9,13 +10,18 @@ IMPLEMENT_CLASS(AActor, UObject)
 
 AActor::AActor()
 {
-	BillBoardComponent = CreateDefaultSubobject<UBillBoardComponent>(FName::FName_None);
-	BillBoardComponent->SetDisplayName("BillBoardComponent_" + to_string(UBillBoardComponent::GetNextGenNumber()));
+	// 기본 SceneComponent를 RootComponent로 생성
+	RootComponent = CreateDefaultSubobject<USceneComponent>(FName::FName_None);
+	RootComponent->SetDisplayName("DefaultSceneRoot");
 }
 
 AActor::AActor(UObject* InOuter)
 {
 	SetOuter(InOuter);
+
+	// 기본 SceneComponent를 RootComponent로 생성
+	RootComponent = CreateDefaultSubobject<USceneComponent>(FName::FName_None);
+	RootComponent->SetDisplayName("DefaultSceneRoot");
 }
 
 AActor::~AActor()

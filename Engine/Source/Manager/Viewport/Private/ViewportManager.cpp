@@ -113,12 +113,13 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 	}
 
 	const int32 MenuH = static_cast<int32>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
 	const int32 BottomH = static_cast<int32>(UUIManager::GetInstance().GetBottomBarHeight());
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
-	const int32 ViewportHeight = Height - MenuH - BottomH;
+	const int32 ViewportHeight = Height - MenuH - ToolbarH - BottomH;
 
-	const FRect Rect{0, MenuH, max(0, ViewportWidth), max(0, ViewportHeight)};
+	const FRect Rect{0, MenuH + ToolbarH, max(0, ViewportWidth), max(0, ViewportHeight)};
 
 	// 2) 기존 캡처 해제 (안전)
 	Capture = nullptr;
@@ -156,12 +157,13 @@ void UViewportManager::BuildFourSplitLayout()
 	}
 
 	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
 	const int32 BottomH = static_cast<int32>(UUIManager::GetInstance().GetBottomBarHeight());
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
-	const int32 ViewportHeight = Height - MenuHeight - BottomH;
+	const int32 ViewportHeight = Height - MenuHeight - ToolbarH - BottomH;
 
-	const FRect Rect{0, MenuHeight, max(0, ViewportWidth), max(0, ViewportHeight)};
+	const FRect Rect{0, MenuHeight + ToolbarH, max(0, ViewportWidth), max(0, ViewportHeight)};
 
 	// 기존 캡처 해제 (안전)
 	Capture = nullptr;
@@ -315,12 +317,13 @@ void UViewportManager::Update()
 	}
 
 	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
 
 	if (Width > 0 && Height > 0)
 	{
-		Root->OnResize(FRect{0, MenuHeight, max(0, ViewportWidth), max(0, Height - MenuHeight)});
+		Root->OnResize(FRect{0, MenuHeight + ToolbarH, max(0, ViewportWidth), max(0, Height - MenuHeight - ToolbarH)});
 	}
 
 
@@ -1066,9 +1069,10 @@ void UViewportManager::CreateAnimationSplitters()
 	}
 
 	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
-	const FRect ViewportRect{0, MenuHeight, max(0, ViewportWidth), max(0, Height - MenuHeight)};
+	const FRect ViewportRect{0, MenuHeight + ToolbarH, max(0, ViewportWidth), max(0, Height - MenuHeight - ToolbarH)};
 
 	if (ViewportAnimation.bSingleToQuad) // SingleToQuad
 	{
@@ -1329,10 +1333,11 @@ void UViewportManager::FinalizeSingleLayoutFromAnimation()
 	}
 
 	const int32 MenuH = static_cast<int32>(UUIManager::GetInstance().GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
 
-	const FRect Rect{0, MenuH, max(0, ViewportWidth), max(0, Height - MenuH)};
+	const FRect Rect{0, MenuH + ToolbarH, max(0, ViewportWidth), max(0, Height - MenuH - ToolbarH)};
 
 	// 새 루트 구성 (싱글)
 	SWindow* Single = new SWindow();

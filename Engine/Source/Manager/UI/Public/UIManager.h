@@ -53,6 +53,7 @@ public:
 	// 메인 메뉴바 관련 메서드
 	void RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow> InMainMenuWindow);
 	float GetMainMenuBarHeight() const;
+	float GetToolbarHeight() const;
 	float GetBottomBarHeight() const;
 	float GetRightPanelWidth() const;
 	void ArrangeRightPanels();
