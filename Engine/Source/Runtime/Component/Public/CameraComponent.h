@@ -49,20 +49,8 @@ public:
 	float GetNearZ() const { return NearZ; }
 	float GetFarZ() const { return FarZ; }
 	ECameraType GetCameraType() const { return CameraType; }
-
-	/**
-	 * @brief 행렬 형태로 저장된 좌표와 변환 행렬과의 연산한 결과를 반환합니다.
-	 */
-	inline FVector4 MultiplyPointWithMatrix(const FVector4& Point, const FMatrix& Matrix) const
-	{
-		FVector4 Result = Point * Matrix;
-		/**
-		 * @brief 좌표가 왜곡된 공간에 남는 것을 방지합니다.
-		 */
-		if (Result.W != 0.f) { Result *= (1.f / Result.W); }
-
-		return Result;
-	}
+	float GetOrthographicHeight() const;
+	static FVector4 MultiplyPointWithMatrix(const FVector4& InPoint, const FMatrix& InMatrix);
 
 	void UpdateVectors();
 

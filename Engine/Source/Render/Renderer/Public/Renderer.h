@@ -59,6 +59,10 @@ public:
 	void RenderPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState);
 	void RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState,
 	                            bool bInUseBaseConstantBuffer, uint32 InStride, uint32 InIndexBufferStride);
+	// 기즈모 전용 렌더링 함수 (화면 공간 기반 고정 크기)
+	void RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState,
+	                         const FVector& InCameraLocation, float InViewportWidth, float InViewportHeight, 
+	                         float InDesiredPixelSize = 120.0f);
 
 	// 공통 렌더링 함수들
 	void RenderPrimitiveComponent(class UPrimitiveComponent* InPrimitiveComponent);

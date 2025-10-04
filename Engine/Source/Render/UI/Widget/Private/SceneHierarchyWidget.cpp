@@ -355,8 +355,6 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 					FocusOnActor(OrthoCamera, InActor);
 				}
 			}
-
-			UE_LOG_INFO("SceneHierarchy: %s에 모든 카메라 포커싱 시작", InActor->GetName().ToString().data());
 		}
 		else
 		{
@@ -379,10 +377,9 @@ void USceneHierarchyWidget::FocusOnActor(TObjectPtr<ACameraActor> InCamera, TObj
 
 	FName CameraName = InCamera->GetName();
 
-	// 이미 해당 카메라가 애니메이션 중이면 무시 (중간 위치 저장 방지)
+	// 이미 해당 카메라가 애니메이션 중이면 무시
 	if (CameraAnimatingStates[CameraName])
 	{
-		UE_LOG("SceneHierarchy: 카메라 '%s' 애니메이션 진행 중이므로 포커싱을 무시합니다", CameraName.ToString().c_str());
 		return;
 	}
 

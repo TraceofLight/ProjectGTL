@@ -389,8 +389,36 @@ void UViewportManager::Update()
 				{
 					if (Client->GetOrthoCamera())
 					{
-						constexpr float DollyStep = 5.0f; // 튜닝 가능
-						SharedFovY -= WheelDelta * DollyStep;
+						constexpr float DollyStep = 5.0f; // 튤닝 가능
+						constexpr float MinFovY = 10.0f; // 최소 FovY 값
+						constexpr float MaxFovY = 500.0f; // 최대 FovY 값
+						
+						float NewFovY = SharedFovY - (WheelDelta * DollyStep);
+						
+						// 갑작스러운 점프 방지를 위해 점진적 제한
+						if (NewFovY < MinFovY)
+						{
+							// 최소값 근처에서는 점점 느려지게 제한
+							float DistanceFromMin = SharedFovY - MinFovY;
+							if (DistanceFromMin > 0.0f)
+							{
+								// 최소값에 가까울수록 진행 속도 감소
+								float ProgressRatio = min(1.0f, DistanceFromMin / 20.0f); // 20 범위에서 점진적 감소
+								SharedFovY = max(MinFovY, SharedFovY - (WheelDelta * DollyStep * ProgressRatio));
+							}
+							else
+							{
+								SharedFovY = MinFovY; // 최소값 고정
+							}
+						}
+						else if (NewFovY > MaxFovY)
+						{
+							SharedFovY = MaxFovY; // 최대값 제한
+						}
+						else
+						{
+							SharedFovY = NewFovY; // 정상 범위 내에서 업데이트
+						}
 
 						UInputManager::GetInstance().SetMouseWheelDelta(0.0f);
 					}
@@ -402,6 +430,15 @@ void UViewportManager::Update()
 	UpdateOrthoGraphicCameraPoint();
 
 	UpdateOrthoGraphicCameraFov();
+	
+	// FovY 업데이트 후 모든 직교 카메라의 행렬 갱신
+	for (ACameraActor* Camera : OrthoGraphicCameras)
+	{
+		if (Camera && Camera->GetCameraComponent())
+		{
+			Camera->GetCameraComponent()->UpdateMatrixByOrth();
+		}
+	}
 
 	//ApplySharedOrthoCenterToAllCameras();
 

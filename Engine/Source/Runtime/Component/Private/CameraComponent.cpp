@@ -6,11 +6,11 @@ IMPLEMENT_CLASS(UCameraComponent, USceneComponent)
 
 UCameraComponent::UCameraComponent()
 	: ViewProjConstants(FViewProjConstants())
-	, FovY(90.f)
-	, Aspect(float(Render::INIT_SCREEN_WIDTH) / Render::INIT_SCREEN_HEIGHT)
-	, NearZ(0.1f)
-	, FarZ(1000.f)
-	, CameraType(ECameraType::ECT_Perspective)
+	  , FovY(90.f)
+	  , Aspect(float(Render::INIT_SCREEN_WIDTH) / Render::INIT_SCREEN_HEIGHT)
+	  , NearZ(0.1f)
+	  , FarZ(1000.f)
+	  , CameraType(ECameraType::ECT_Perspective)
 {
 }
 
@@ -23,7 +23,7 @@ void UCameraComponent::UpdateVectors()
 	Forward.Normalize();
 
 	FVector4 worldUp4 = FVector4(0, 0, 1, 1) * rotationMatrix;
-	FVector worldUp = { worldUp4.X, worldUp4.Y, worldUp4.Z };
+	FVector worldUp = {worldUp4.X, worldUp4.Y, worldUp4.Z};
 	Right = Forward.Cross(worldUp);
 	Right.Normalize();
 	Up = Right.Cross(Forward);
@@ -80,8 +80,10 @@ void UCameraComponent::UpdateMatrixByOrth()
 	/**
 	 * @brief Projection 행렬 연산
 	 */
-	OrthoWidth = 2.0f * std::tanf(FVector::GetDegreeToRadian(FovY) * 0.5f);
-	const float OrthoHeight = OrthoWidth / Aspect;
+	// FovY 안전성 검사 추가
+	float SafeFovY = max(5.0f, min(179.0f, abs(FovY)));
+	OrthoWidth = 2.0f * std::tanf(FVector::GetDegreeToRadian(SafeFovY) * 0.5f);
+	const float OrthoHeight = OrthoWidth / max(0.1f, Aspect);
 	const float Left = -OrthoWidth * 0.5f;
 	const float Right = OrthoWidth * 0.5f;
 	const float Bottom = -OrthoHeight * 0.5f;
@@ -110,21 +112,23 @@ const FViewProjConstants UCameraComponent::GetFViewProjConstantsInverse() const
 
 	if (CameraType == ECameraType::ECT_Orthographic)
 	{
-		const float OrthoHeight = OrthoWidth / Aspect;
-		const float Left = -OrthoWidth * 0.5f;
-		const float Right = OrthoWidth * 0.5f;
+		// 안전한 OrthoWidth 사용 (음수나 비정상 값 방지)
+		float SafeOrthoWidth = max(0.1f, abs(OrthoWidth));
+		const float OrthoHeight = SafeOrthoWidth / max(0.1f, Aspect);
+		const float Left = -SafeOrthoWidth * 0.5f;
+		const float Right = SafeOrthoWidth * 0.5f;
 		const float Bottom = -OrthoHeight * 0.5f;
 		const float Top = OrthoHeight * 0.5f;
 
 		FMatrix P = FMatrix::Identity();
 		// A^{-1} (대각)
-		P.Data[0][0] = (Right - Left) * 0.5f;  // (r-l)/2
+		P.Data[0][0] = (Right - Left) * 0.5f; // (r-l)/2
 		P.Data[1][1] = (Top - Bottom) * 0.5f; // (t-b)/2
-		P.Data[2][2] = (FarZ - NearZ);               // (zf-zn)
+		P.Data[2][2] = (FarZ - NearZ); // (zf-zn)
 		// -b A^{-1} (마지막 행의 x,y,z)
-		P.Data[3][0] = (Right + Left) * 0.5f;   // (r+l)/2
+		P.Data[3][0] = (Right + Left) * 0.5f; // (r+l)/2
 		P.Data[3][1] = (Top + Bottom) * 0.5f; // (t+b)/2
-		P.Data[3][2] = NearZ;                      // zn
+		P.Data[3][2] = NearZ; // zn
 		P.Data[3][3] = 1.0f;
 		Result.Projection = P;
 	}
@@ -144,6 +148,44 @@ const FViewProjConstants UCameraComponent::GetFViewProjConstantsInverse() const
 		P.Data[3][2] = 1.0f;
 		P.Data[3][3] = FarZ / (NearZ * FarZ);
 		Result.Projection = P;
+	}
+
+	return Result;
+}
+
+float UCameraComponent::GetOrthographicHeight() const
+{
+	// 직교 투영에서 FovY로부터 실제 화면 높이 계산
+	// FovY 값 안전성 검사 추가 (음수나 비정상 값 방지)
+	float SafeFovY = max(5.0f, min(179.0f, abs(FovY))); // 절대값 사용 + 5도~179도 제한
+	float FovYRadians = FVector::GetDegreeToRadian(SafeFovY);
+	float TanHalfFov = std::tanf(FovYRadians * 0.5f);
+	
+	// TanHalfFov 값도 안전성 검사
+	if (TanHalfFov <= 0.0f || !isfinite(TanHalfFov))
+	{
+		return 10.0f; // 비정상 값이면 기본값 반환
+	}
+	
+	float OrthoWidth = 2.0f * TanHalfFov;
+	float SafeAspect = max(0.1f, Aspect); // Aspect 비율 안전 보장
+	float OrthographicHeight = OrthoWidth / SafeAspect;
+	
+	// 최소/최대 크기 보장 (기즈모가 사라지거나 너무 커지지 않도록)
+	return max(0.1f, min(1000.0f, OrthographicHeight));
+}
+
+/**
+ * @brief 행렬 형태로 저장된 좌표와 변환 행렬과의 연산한 결과를 반환합니다.
+ */
+FVector4 UCameraComponent::MultiplyPointWithMatrix(const FVector4& InPoint, const FMatrix& InMatrix)
+{
+	FVector4 Result = InPoint * InMatrix;
+
+	// 좌표가 왜곡된 공간에 남는 것을 방지합니다.
+	if (Result.W != 0.f)
+	{
+		Result *= (1.f / Result.W);
 	}
 
 	return Result;
