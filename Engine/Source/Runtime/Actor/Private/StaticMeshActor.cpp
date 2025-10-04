@@ -23,8 +23,8 @@ AStaticMeshActor::AStaticMeshActor(UObject* InOuter)
 	AStaticMeshActor::GetClass()->IncrementGenNumber();
 
 	// StaticMeshComponent 생성 및 RootComponent로 설정
-	StaticMeshComponent =CreateDefaultSubobject<UStaticMeshComponent>(
-			"StaticMeshComponent_" + to_string(UStaticMeshComponent::GetNextGenNumber()));
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(
+		"StaticMeshComponent_" + to_string(UStaticMeshComponent::GetNextGenNumber()));
 
 	SetRootComponent(StaticMeshComponent);
 }
