@@ -3,6 +3,7 @@
 
 #include "Render/UI/Widget/Public/ActorTerminationWidget.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
+#include "Render/UI/Widget/Public/ToolbarWidget.h"
 #include "Render/UI/Widget/Public/BottomBarWidget.h"
 #include "Render/UI/Widget/Public/ViewportControlWidget.h"
 
@@ -32,6 +33,19 @@ void UMainMenuWindow::Initialize()
 		return;
 	}
 
+	// ToolbarWidget 생성 및 초기화
+	ToolbarWidget = new UToolbarWidget;
+	if (ToolbarWidget)
+	{
+		ToolbarWidget->Initialize();
+		AddWidget(ToolbarWidget);
+		UE_LOG("MainMenuWindow: ToolbarWidget이 생성되고 초기화되었습니다");
+	}
+	else
+	{
+		UE_LOG("MainMenuWindow: Error: ToolbarWidget 생성에 실패했습니다!");
+	}
+
 	// BottomBarWidget 생성 및 초기화
 	BottomBarWidget = new UBottomBarWidget;
 	if (BottomBarWidget)
@@ -58,6 +72,11 @@ void UMainMenuWindow::Cleanup()
 	if (MainBarWidget && !MainBarWidget->IsSingleton())
 	{
 		SafeDelete(MainBarWidget);
+	}
+
+	if (ToolbarWidget && !ToolbarWidget->IsSingleton())
+	{
+		SafeDelete(ToolbarWidget);
 	}
 
 	if (BottomBarWidget && !BottomBarWidget->IsSingleton())

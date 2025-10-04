@@ -5,7 +5,7 @@
 
 bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& OutObjectInfos)
 {
-	std::ifstream File(InFilePath.c_str());
+	std::ifstream File(InFilePath);
 	if (!File.is_open())
 	{
 		return false;
@@ -30,21 +30,21 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 	TMap<FString, FObjMaterialInfo> MaterialLibrary;
 
 	// 현재 섹션 상태
-	int32   CurrentSectionIndex = -1;   // 활성 섹션 인덱스(없으면 -1)
-	FString CurrentMaterialName = "";   // 마지막 usemtl 이름(없으면 빈 문자열)
+	int32 CurrentSectionIndex = -1; // 활성 섹션 인덱스(없으면 -1)
+	FString CurrentMaterialName; // 마지막 usemtl 이름(없으면 빈 문자열)
 
 	FString ObjLine;
 	while (std::getline(File, ObjLine))
 	{
 		ParseOBJLine(ObjLine,
-			SingleObject,
-			GlobalVertices,
-			GlobalUVs,
-			GlobalNormals,
-			CurrentSectionIndex,
-			CurrentMaterialName,
-			MaterialLibrary,
-			ObjDirectory);
+		             SingleObject,
+		             GlobalVertices,
+		             GlobalUVs,
+		             GlobalNormals,
+		             CurrentSectionIndex,
+		             CurrentMaterialName,
+		             MaterialLibrary,
+		             ObjDirectory);
 	}
 
 	File.close();
@@ -74,9 +74,10 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 	return true;
 }
 
-bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TMap<FString, FObjMaterialInfo>& OutMaterialLibrary)
+bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath,
+                                        TMap<FString, FObjMaterialInfo>& OutMaterialLibrary)
 {
-	std::ifstream File(InMTLFilePath.c_str());
+	std::ifstream File(InMTLFilePath);
 	if (!File.is_open())
 	{
 		return false;
@@ -87,7 +88,7 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TMap<FStri
 	FString MTLLine;
 	while (std::getline(File, MTLLine))
 	{
-		MTLLine = TrimString(MTLLine.c_str());
+		MTLLine = TrimString(MTLLine);
 
 		if (MTLLine.empty() || MTLLine[0] == '#')
 		{
@@ -125,34 +126,34 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath, TMap<FStri
 			else if (Tokens[0] == "Ka" && Tokens.size() > 3)
 			{
 				CurrentMaterial->AmbientColorScalar = FVector(
-					std::stof(Tokens[1].c_str()),
-					std::stof(Tokens[2].c_str()),
-					std::stof(Tokens[3].c_str())
+					std::stof(Tokens[1]),
+					std::stof(Tokens[2]),
+					std::stof(Tokens[3])
 				);
 			}
 			else if (Tokens[0] == "Kd" && Tokens.size() > 3)
 			{
 				CurrentMaterial->DiffuseColorScalar = FVector(
-					std::stof(Tokens[1].c_str()),
-					std::stof(Tokens[2].c_str()),
-					std::stof(Tokens[3].c_str())
+					std::stof(Tokens[1]),
+					std::stof(Tokens[2]),
+					std::stof(Tokens[3])
 				);
 			}
 			else if (Tokens[0] == "Ks" && Tokens.size() > 3)
 			{
 				CurrentMaterial->SpecularColorScalar = FVector(
-					std::stof(Tokens[1].c_str()),
-					std::stof(Tokens[2].c_str()),
-					std::stof(Tokens[3].c_str())
+					std::stof(Tokens[1]),
+					std::stof(Tokens[2]),
+					std::stof(Tokens[3])
 				);
 			}
 			else if (Tokens[0] == "Ns" && Tokens.size() > 1)
 			{
-				CurrentMaterial->ShininessScalar = std::stof(Tokens[1].c_str());
+				CurrentMaterial->ShininessScalar = std::stof(Tokens[1]);
 			}
 			else if (Tokens[0] == "d" && Tokens.size() > 1)
 			{
-				CurrentMaterial->TransparencyScalar = std::stof(Tokens[1].c_str());
+				CurrentMaterial->TransparencyScalar = std::stof(Tokens[1]);
 			}
 		}
 	}
@@ -212,7 +213,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 			}
 
 			FStaticMeshSection MeshSection;
-			MeshSection.StartIndex = IndexOffset + SectionInfo.StartIndex;
+			MeshSection.StartIndex = static_cast<uint32>(IndexOffset) + SectionInfo.StartIndex;
 			MeshSection.IndexCount = ClampedCount;
 			MeshSection.MaterialSlotIndex = -1;
 			MeshSection.MaterialName = SectionInfo.MaterialName;
@@ -233,7 +234,8 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 }
 
 
-bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh, TArray<FObjInfo>& OutObjectInfos)
+bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh,
+                                    TArray<FObjInfo>& OutObjectInfos)
 {
 	TArray<FObjInfo> ObjectInfos;
 
@@ -250,14 +252,14 @@ bool FObjImporter::ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutS
 
 
 void FObjImporter::ParseOBJLine(const FString& Line,
-	FObjInfo& ObjectInfo,
-	TArray<FVector>& GlobalVertices,
-	TArray<FVector2>& GlobalUVs,
-	TArray<FVector>& GlobalNormals,
-	int32& CurrentSectionIndex,
-	FString& CurrentMaterialName,
-	TMap<FString, FObjMaterialInfo>& MaterialLibrary,
-	const FString& ObjDirectory)
+                                FObjInfo& ObjectInfo,
+                                TArray<FVector>& GlobalVertices,
+                                TArray<FVector2>& GlobalUVs,
+                                TArray<FVector>& GlobalNormals,
+                                int32& CurrentSectionIndex,
+                                FString& CurrentMaterialName,
+                                TMap<FString, FObjMaterialInfo>& MaterialLibrary,
+                                const FString& ObjDirectory)
 {
 	FString TrimmedLine = TrimString(Line);
 	if (TrimmedLine.empty() || TrimmedLine[0] == '#')
@@ -277,9 +279,9 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	{
 		// 정점 위치 - UE 좌표계로 변환
 		FVector ObjPosition(
-			std::stof(Tokens[1].c_str()),
-			std::stof(Tokens[2].c_str()),
-			std::stof(Tokens[3].c_str())
+			std::stof(Tokens[1]),
+			std::stof(Tokens[2]),
+			std::stof(Tokens[3])
 		);
 		GlobalVertices.push_back(PositionToUEBasis(ObjPosition));
 	}
@@ -287,8 +289,8 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	{
 		// 텍스처 좌표 - UE 좌표계로 변환
 		FVector2 ObjUV(
-			std::stof(Tokens[1].c_str()),
-			std::stof(Tokens[2].c_str())
+			std::stof(Tokens[1]),
+			std::stof(Tokens[2])
 		);
 		GlobalUVs.push_back(UVToUEBasis(ObjUV));
 	}
@@ -296,9 +298,9 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	{
 		// 정점 노멀 - UE 좌표계로 변환
 		FVector ObjNormal(
-			std::stof(Tokens[1].c_str()),
-			std::stof(Tokens[2].c_str()),
-			std::stof(Tokens[3].c_str())
+			std::stof(Tokens[1]),
+			std::stof(Tokens[2]),
+			std::stof(Tokens[3])
 		);
 		GlobalNormals.push_back(PositionToUEBasis(ObjNormal));
 	}
@@ -331,7 +333,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 			}
 
 			// 활성 섹션에 인덱스 개수 누적 (디폴트 섹션이든 usemtl 섹션이든 상관없이)
-			if (CurrentSectionIndex >= 0 && CurrentSectionIndex < static_cast<int32>(ObjectInfo.Sections.size()))
+			if (CurrentSectionIndex >= 0 && CurrentSectionIndex < std::ssize(ObjectInfo.Sections))
 			{
 				ObjectInfo.Sections[CurrentSectionIndex].IndexCount += AddedIndices;
 			}
@@ -341,9 +343,10 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	// --- Material Data ---
 	else if ((Tokens[0] == "mtllib" || Tokens[0] == "matlib") && Tokens.size() > 1)
 	{
-		FString LibraryName = Tokens[1];
+		const FString& LibraryName = Tokens[1];
 		FString LibraryPath = LibraryName;
-		bool bIsAbsolute = (LibraryName.find(':') != FString::npos) || (!LibraryName.empty() && (LibraryName[0] == '/' || LibraryName[0] == '\\'));
+		bool bIsAbsolute = (LibraryName.find(':') != FString::npos) || (!LibraryName.empty() && (LibraryName[0] == '/'
+			|| LibraryName[0] == '\\'));
 		if (!bIsAbsolute)
 		{
 			LibraryPath = ObjDirectory + LibraryName;
@@ -396,17 +399,17 @@ int32 FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObje
 			// 삼각형의 각 정점에 대한 인덱스 추가
 			if (!VertexComponents[j].empty() && !VertexComponents[j][0].empty())
 			{
-				CurrentObject.VertexIndexList.push_back(std::stoi(VertexComponents[j][0].c_str()) - 1); // OBJ 인덱스는 1부터 시작
+				CurrentObject.VertexIndexList.push_back(std::stoi(VertexComponents[j][0]) - 1); // OBJ 인덱스는 1부터 시작
 			}
 
 			if (VertexComponents[j].size() > 1 && !VertexComponents[j][1].empty())
 			{
-				CurrentObject.UVIndexList.push_back(std::stoi(VertexComponents[j][1].c_str()) - 1);
+				CurrentObject.UVIndexList.push_back(std::stoi(VertexComponents[j][1]) - 1);
 			}
 
 			if (VertexComponents[j].size() > 2 && !VertexComponents[j][2].empty())
 			{
-				CurrentObject.NormalIndexList.push_back(std::stoi(VertexComponents[j][2].c_str()) - 1);
+				CurrentObject.NormalIndexList.push_back(std::stoi(VertexComponents[j][2]) - 1);
 			}
 		}
 	}
@@ -417,8 +420,8 @@ int32 FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObje
 
 
 void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
-	TArray<FVertex>& OutVertices,
-	TArray<uint32>& OutIndices)
+                                         TArray<FVertex>& OutVertices,
+                                         TArray<uint32>& OutIndices)
 {
 	OutVertices.clear();
 	OutIndices.clear();
@@ -433,9 +436,11 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 			const auto& normal = std::get<2>(v);
 
 			// 간단한 해시 조합
-			std::size_t h1 = std::hash<float>{}(pos.X) ^ (std::hash<float>{}(pos.Y) << 1) ^ (std::hash<float>{}(pos.Z) << 2);
+			std::size_t h1 = std::hash<float>{}(pos.X) ^ (std::hash<float>{}(pos.Y) << 1) ^ (std::hash<float>{}(pos.Z)
+				<< 2);
 			std::size_t h2 = std::hash<float>{}(uv.X) ^ (std::hash<float>{}(uv.Y) << 1);
-			std::size_t h3 = std::hash<float>{}(normal.X) ^ (std::hash<float>{}(normal.Y) << 1) ^ (std::hash<float>{}(normal.Z) << 2);
+			std::size_t h3 = std::hash<float>{}(normal.X) ^ (std::hash<float>{}(normal.Y) << 1) ^ (std::hash<float>
+				{}(normal.Z) << 2);
 
 			return h1 ^ (h2 << 1) ^ (h3 << 2);
 		}
@@ -445,7 +450,7 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 	struct VertexEqual
 	{
 		bool operator()(const std::tuple<FVector, FVector2, FVector>& lhs,
-		               const std::tuple<FVector, FVector2, FVector>& rhs) const
+		                const std::tuple<FVector, FVector2, FVector>& rhs) const
 		{
 			const auto& pos1 = std::get<0>(lhs);
 			const auto& uv1 = std::get<1>(lhs);
@@ -456,11 +461,13 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 			const auto& normal2 = std::get<2>(rhs);
 
 			// float 비교를 위한 epsilon 사용
-			const float epsilon = 1e-6f;
+			constexpr float epsilon = 1e-6f;
 
-			return (abs(pos1.X - pos2.X) < epsilon && abs(pos1.Y - pos2.Y) < epsilon && abs(pos1.Z - pos2.Z) < epsilon) &&
-			       (abs(uv1.X - uv2.X) < epsilon && abs(uv1.Y - uv2.Y) < epsilon) &&
-			       (abs(normal1.X - normal2.X) < epsilon && abs(normal1.Y - normal2.Y) < epsilon && abs(normal1.Z - normal2.Z) < epsilon);
+			return (abs(pos1.X - pos2.X) < epsilon && abs(pos1.Y - pos2.Y) < epsilon && abs(pos1.Z - pos2.Z) < epsilon)
+				&&
+				(abs(uv1.X - uv2.X) < epsilon && abs(uv1.Y - uv2.Y) < epsilon) &&
+				(abs(normal1.X - normal2.X) < epsilon && abs(normal1.Y - normal2.Y) < epsilon && abs(
+					normal1.Z - normal2.Z) < epsilon);
 		}
 	};
 
@@ -538,7 +545,8 @@ FString FObjImporter::TrimString(const FString& String)
 	size_t Start = 0;
 	size_t End = String.length() - 1;
 
-	while (Start <= End && (String[Start] == ' ' || String[Start] == '\t' || String[Start] == '\r' || String[Start] == '\n'))
+	while (Start <= End && (String[Start] == ' ' || String[Start] == '\t' || String[Start] == '\r' || String[Start] ==
+		'\n'))
 	{
 		Start++;
 	}
@@ -559,7 +567,7 @@ void FObjImporter::SplitString(const FString& String, char Delimiter, TArray<FSt
 
 	while (std::getline(StringStream, Token, Delimiter))
 	{
-		FString TrimmedToken = TrimString(FString(Token.c_str()));
+		FString TrimmedToken = TrimString(FString(Token));
 		if (!TrimmedToken.empty())
 		{
 			OutTokens.push_back(TrimmedToken);
@@ -569,10 +577,10 @@ void FObjImporter::SplitString(const FString& String, char Delimiter, TArray<FSt
 
 FVector FObjImporter::PositionToUEBasis(const FVector& InVector)
 {
-	return FVector(InVector.X, -InVector.Y, InVector.Z);
+	return {InVector.X, -InVector.Y, InVector.Z};
 }
 
 FVector2 FObjImporter::UVToUEBasis(const FVector2& InVector)
 {
-	return FVector2(InVector.X, 1.0f - InVector.Y);
+	return {InVector.X, 1.0f - InVector.Y};
 }

@@ -2,6 +2,7 @@
 #include "Runtime/Actor/Public/Actor.h"
 
 #include "Runtime/Component/Public/ActorComponent.h"
+#include "Runtime/Component/Public/SceneComponent.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 
@@ -9,13 +10,21 @@ IMPLEMENT_CLASS(AActor, UObject)
 
 AActor::AActor()
 {
-	BillBoardComponent = CreateDefaultSubobject<UBillBoardComponent>(FName::FName_None);
-	BillBoardComponent->SetDisplayName("BillBoardComponent_" + to_string(UBillBoardComponent::GetNextGenNumber()));
 }
 
 AActor::AActor(UObject* InOuter)
 {
 	SetOuter(InOuter);
+}
+
+void AActor::EnsureRootComponent()
+{
+	// RootComponent가 없으면 DefaultSceneRoot 생성
+	if (!RootComponent)
+	{
+		RootComponent = CreateDefaultSubobject<USceneComponent>(FName::FName_None);
+		RootComponent->SetDisplayName("DefaultSceneRoot");
+	}
 }
 
 AActor::~AActor()
@@ -71,19 +80,34 @@ bool AActor::IsUniformScale() const
 
 const FVector& AActor::GetActorLocation() const
 {
-	assert(RootComponent);
+	if (!RootComponent)
+	{
+		static FVector ZeroVector(0.0f, 0.0f, 0.0f);
+		UE_LOG_WARNING("AActor::GetActorLocation: %s has no RootComponent", GetName().ToString().c_str());
+		return ZeroVector;
+	}
 	return RootComponent->GetRelativeLocation();
 }
 
 const FVector& AActor::GetActorRotation() const
 {
-	assert(RootComponent);
+	if (!RootComponent)
+	{
+		static FVector ZeroVector(0.0f, 0.0f, 0.0f);
+		UE_LOG_WARNING("AActor::GetActorRotation: %s has no RootComponent", GetName().ToString().c_str());
+		return ZeroVector;
+	}
 	return RootComponent->GetRelativeRotation();
 }
 
 const FVector& AActor::GetActorScale3D() const
 {
-	assert(RootComponent);
+	if (!RootComponent)
+	{
+		static FVector OneVector(1.0f, 1.0f, 1.0f);
+		UE_LOG_WARNING("AActor::GetActorScale3D: %s has no RootComponent", GetName().ToString().c_str());
+		return OneVector;
+	}
 	return RootComponent->GetRelativeScale3D();
 }
 

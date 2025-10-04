@@ -579,6 +579,19 @@ float UUIManager::GetMainMenuBarHeight() const
 }
 
 /**
+ * @brief 툴바의 높이를 반환하는 함수
+ */
+float UUIManager::GetToolbarHeight() const
+{
+	if (MainMenuWindow)
+	{
+		return MainMenuWindow->GetToolbarHeight();
+	}
+
+	return 0.0f;
+}
+
+/**
  * @brief 하단바의 높이를 반환하는 함수
  */
 float UUIManager::GetBottomBarHeight() const
@@ -655,8 +668,9 @@ void UUIManager::ArrangeRightPanels()
 	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
 	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
 	const float MenuBarHeight = GetMainMenuBarHeight();
+	const float ToolbarHeight = GetToolbarHeight();
 	const float BottomBarHeight = GetBottomBarHeight();
-	const float AvailableHeight = ScreenHeight - MenuBarHeight - BottomBarHeight;
+	const float AvailableHeight = ScreenHeight - MenuBarHeight - ToolbarHeight - BottomBarHeight;
 
 	if (ScreenWidth <= 0.0f || AvailableHeight <= 0.0f)
 	{
@@ -703,7 +717,7 @@ void UUIManager::ArrangeRightPanels()
 		bFirstRun = false;
 
 		// 초기 위치 설정
-		ArrangeRightPanelsInitial(OutlinerWindow, DetailWindow, ScreenWidth, ScreenHeight, MenuBarHeight,
+		ArrangeRightPanelsInitial(OutlinerWindow, DetailWindow, ScreenWidth, ScreenHeight, MenuBarHeight + ToolbarHeight,
 		                          AvailableHeight);
 		return;
 	}
@@ -760,7 +774,7 @@ void UUIManager::ArrangeRightPanels()
 	LastDetailSize = CurrentDetailSize;
 
 	// 동적 레이아웃 업데이트
-	ArrangeRightPanelsDynamic(OutlinerWindow, DetailWindow, ScreenWidth, ScreenHeight, MenuBarHeight, AvailableHeight,
+	ArrangeRightPanelsDynamic(OutlinerWindow, DetailWindow, ScreenWidth, ScreenHeight, MenuBarHeight + ToolbarHeight, AvailableHeight,
 	                          TargetWidth, bOutlinerSizeChanged, bDetailSizeChanged);
 }
 
@@ -986,12 +1000,13 @@ void UUIManager::ArrangeConsolePanel()
 	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
 	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
 	const float MenuBarHeight = GetMainMenuBarHeight();
+	const float ToolbarHeight = GetToolbarHeight();
 	const float BottomBarHeight = GetBottomBarHeight();
 	const float RightPanelWidth = GetRightPanelWidth();
 
 	// 저장된 높이 사용 (최소/최대 제한 적용)
 	const float MinConsoleHeight = 100.0f;
-	const float MaxConsoleHeight = ScreenHeight - MenuBarHeight - BottomBarHeight - 100.0f;
+	const float MaxConsoleHeight = ScreenHeight - MenuBarHeight - ToolbarHeight - BottomBarHeight - 100.0f;
 	const float ConsoleHeight = clamp(SavedConsoleHeight, MinConsoleHeight, MaxConsoleHeight);
 
 	const float ConsoleWidth = ScreenWidth - RightPanelWidth;

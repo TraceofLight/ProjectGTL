@@ -87,4 +87,5 @@ extern float GDeltaTime;
 #pragma comment(lib, "d3dcompiler")
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "dwrite")
+#pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, DIRECTX_TOOL_KIT)

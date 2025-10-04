@@ -44,5 +44,5 @@ private:
 	TObjectPtr<UEditor> Editor;
 
 	// Helper Functions
-	void RestoreCameraFromMetadata(const struct FCameraMetadata& InCameraMetadata);
+	static void RestoreCameraFromMetadata(const struct FCameraMetadata& InCameraMetadata);
 };

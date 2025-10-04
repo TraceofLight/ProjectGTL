@@ -28,8 +28,10 @@ private:
 	bool bIsMenuBarVisible = true;
 	float MenuBarHeight = 0.0f;
 	TObjectPtr<UUIManager> UIManager = nullptr;
+	HWND MainWindowHandle = nullptr;
 
 	void RenderWindowsMenu() const;
+	void RenderWindowControls() const;
 
 	static void RenderFileMenu();
 	static void RenderViewMenu();

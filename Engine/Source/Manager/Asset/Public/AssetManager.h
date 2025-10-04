@@ -67,6 +67,9 @@ private:
 	// Texture Resource
 	TMap<FString, ID3D11ShaderResourceView*> TextureCache;
 
+	// StaticMesh Resource Cache
+	TMap<FString, TObjectPtr<UStaticMesh>> StaticMeshCache;
+
 	// Default Resources
 	ComPtr<ID3D11ShaderResourceView> DefaultTexture = nullptr;
 	UMaterialInterface* DefaultMaterial = nullptr;

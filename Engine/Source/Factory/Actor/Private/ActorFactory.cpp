@@ -67,6 +67,9 @@ void UActorFactory::PostCreateActor(AActor* InActor, const FTransform& InTransfo
 		return;
 	}
 
+	// RootComponent가 없으면 DefaultSceneRoot 생성
+	InActor->EnsureRootComponent();
+
 	// Transform 적용
 	InActor->SetActorLocation(InTransform.Location);
 	InActor->SetActorRotation(InTransform.Rotation);

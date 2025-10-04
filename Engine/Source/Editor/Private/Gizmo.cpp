@@ -5,7 +5,7 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Global/Quaternion.h"
-#include "Editor/Public/Camera.h"
+#include "Runtime/Actor/Public/CameraActor.h"
 
 IMPLEMENT_CLASS(UGizmo, UObject)
 
@@ -59,7 +59,7 @@ UGizmo::UGizmo()
 
 UGizmo::~UGizmo() = default;
 
-void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const UCamera* InCamera, float InViewportWidth,
+void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const ACameraActor* InCamera, float InViewportWidth,
                          float InViewportHeight, int32 ViewportIndex)
 {
 	TargetActor = InActor;
@@ -73,16 +73,19 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
 	auto& P = Primitives[Mode];
 	P.Location = TargetActor->GetActorLocation();
 
-	// 화면에서 일정한 픽셀 크기를 유지하기 위한 스케일 계산
-	float Scale = CalculateScreenSpaceScale(InCameraLocation, InCamera, InViewportWidth, InViewportHeight);
+	// 화면 공간 기반 렌더링을 위해 스케일은 기본값으로 설정
+	// 스케일 계산은 이제 렌더러에서 처리
+	float BaseScale = 1.0f;
 
-	// 피킹에서 사용할 현재 스케일 값 저장
-	CurrentRenderScale = Scale;
+	// 피킹을 위해 현재 렌더링 중인 스케일을 계산해서 저장
+	// (기존 CalculateScreenSpaceScale 로직은 피킹용으로만 사용)
+	float CalculatedScale = CalculateScreenSpaceScale(InCameraLocation, InCamera, InViewportWidth, InViewportHeight);
+	CurrentRenderScale = CalculatedScale;
 
-	TranslateCollisionConfig.Scale = Scale;
-	RotateCollisionConfig.Scale = Scale;
+	TranslateCollisionConfig.Scale = CalculatedScale;
+	RotateCollisionConfig.Scale = CalculatedScale;
 
-	P.Scale = FVector(Scale, Scale, Scale);
+	P.Scale = FVector(BaseScale, BaseScale, BaseScale);
 
 	// 드래그 중에는 나머지 축 유지되는 모드 (회전 후 새로운 로컬 기즈모 보여줌)
 	FQuaternion LocalRotation;
@@ -103,19 +106,19 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
 	FQuaternion RotationX = LocalRotation * FQuaternion::Identity();
 	P.Rotation = RotationX.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Forward, ViewportIndex);
-	Renderer.RenderPrimitive(P, RenderState);
+	Renderer.RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
 	// Y축 (Right) - 초록색 (Z축 주위로 90도 회전)
 	FQuaternion RotY = LocalRotation * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
 	P.Rotation = RotY.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Right, ViewportIndex);
-	Renderer.RenderPrimitive(P, RenderState);
+	Renderer.RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
 	// Z축 (Up) - 파란색 (Y축 주위로 -90도 회전)
 	FQuaternion RotZ = LocalRotation * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
 	P.Rotation = RotZ.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Up, ViewportIndex);
-	Renderer.RenderPrimitive(P, RenderState);
+	Renderer.RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 }
 
 void UGizmo::ChangeGizmoMode()
@@ -225,12 +228,12 @@ EGizmoDirection UGizmo::GetGizmoDirectionForViewport(int32 InViewportIndex) cons
 }
 
 /**
- * @brief 화면에서 일정한 픽셀 크기를 유지하는 스케일을 계산하는 함수
+ * @brief 화면에서 일정한 픽셀 크기를 유지하는 스케일을 계산하는 함수 (피킹용)
  */
-float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const UCamera* InCamera,
+float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const ACameraActor* InCamera,
                                         float InViewportWidth, float InViewportHeight, float InDesiredPixelSize) const
 {
-	if (!InCamera || !TargetActor || InViewportWidth <= 0.0f || InViewportHeight <= 0.0f)
+	if (!InCamera || !InCamera->GetCameraComponent() || !TargetActor || InViewportWidth <= 0.0f || InViewportHeight <= 0.0f)
 	{
 		return 1.0f;
 	}
@@ -240,40 +243,30 @@ float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const U
 	DistanceToCamera = max(DistanceToCamera, 0.1f);
 
 	// 원근 투영
-	if (InCamera->GetCameraType() == ECameraType::ECT_Perspective)
+	if (InCamera->GetCameraComponent()->GetCameraType() == ECameraType::ECT_Perspective)
 	{
 		// FOV와 거리를 이용한 화면 공간 크기 계산
-		float FovYRadians = InCamera->GetFovY() * (PI / 180.0f);
+		float FovYRadians = InCamera->GetCameraComponent()->GetFovY() * (PI / 180.0f);
 		float TanHalfFov = tanf(FovYRadians * 0.5f);
-
-		// 원근 투영에서 화면 끝으로 갈수록 커지는 현상 보정
-		// 기즈모 위치에서 카메라 중심까지의 벡터와 카메라 방향 벡터의 도트곱 계산
-		FVector CameraToGizmo = TargetActor->GetActorLocation() - InCameraLocation;
-		FVector CameraForward = InCamera->GetForward();
-		CameraToGizmo.Normalize();
-		CameraForward.Normalize();
-
-		// 카메라 중심축으로부터의 각도 계산 (코사인 값)
-		float CosAngle = CameraForward.Dot(CameraToGizmo);
-		CosAngle = max(0.1f, CosAngle); // 너무 가장자리에서의 기하급수적 증가 방지
-
-		// 시야각 보정을 위한 스케일 팩터
-		float ViewAngleCorrection = 1.0f / CosAngle;
 
 		// 화면 공간에서 1픽셀이 월드 공간에서 차지하는 크기
 		float WorldUnitsPerPixel = (2.0f * DistanceToCamera * TanHalfFov) / InViewportHeight;
 
-		// 원하는 픽셀 크기를 월드 스케일로 변환 (시야각 보정 적용)
-		return (WorldUnitsPerPixel * InDesiredPixelSize) / ViewAngleCorrection;
+		// 원하는 픽셀 크기를 월드 스케일로 변환
+		return WorldUnitsPerPixel * InDesiredPixelSize;
 	}
 	// 직교 투영
 	else
 	{
-		// FOV 값이 화면 높이를 의미함 (더 작은 크기로 조정)
-		float OrthographicHeight = InCamera->GetFovY();
-		float WorldUnitsPerPixel = OrthographicHeight / InViewportHeight;
+		// 직교 투영에서는 GetOrthographicHeight() 사용
+		float OrthographicHeight = InCamera->GetCameraComponent()->GetOrthographicHeight();
+		
+		if (OrthographicHeight <= 0.0f)
+		{
+			return 1.0f;
+		}
 
-		// 직교 투영에서는 좌표계 차이로 인해 더 작은 크기 사용 (휴리스틱하게 보정함)
-		return WorldUnitsPerPixel * (InDesiredPixelSize * 0.05f);
+		float WorldUnitsPerPixel = OrthographicHeight / InViewportHeight;
+		return WorldUnitsPerPixel * InDesiredPixelSize;
 	}
 }

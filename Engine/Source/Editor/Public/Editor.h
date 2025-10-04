@@ -1,6 +1,6 @@
 #pragma once
 #include "Runtime/Core/Public/Object.h"
-#include "Editor/Public/Camera.h"
+#include "Runtime/Actor/Public/CameraActor.h"
 #include "Editor/Public/Gizmo.h"
 #include "Editor/Public/Grid.h"
 #include "Editor/public/Axis.h"
@@ -31,15 +31,15 @@ public:
 	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
 	EViewModeIndex GetViewMode() const { return CurrentViewMode; }
 
-	FVector& GetCameraLocation() { return Camera.GetLocation(); }
-	FViewProjConstants GetViewProjConstData() const { return Camera.GetFViewProjConstants(); }
+	FVector GetCameraLocation() { return Camera ? Camera->GetCameraComponent()->GetRelativeLocation() : FVector(); }
+	FViewProjConstants GetViewProjConstData() const { return Camera ? Camera->GetCameraComponent()->GetFViewProjConstants() : FViewProjConstants(); }
 
-	UCamera* GetCamera() { return &Camera; }
+	ACameraActor* GetCamera() { return Camera.Get(); }
 	UBatchLines* GetBatchLines() { return &BatchLines; }
 	UGizmo* GetGizmo() { return &Gizmo; }
 
 private:
-	UCamera Camera; // legacy editor camera (not used for picking)
+	TObjectPtr<ACameraActor> Camera = nullptr;
 	UObjectPicker ObjectPicker;
 
 	const float MinScale = 0.01f;
@@ -53,19 +53,19 @@ private:
 	void HandleViewportInteraction();
 	void UpdateSelectionBounds();
 	void HandleGlobalShortcuts();
-	static FRay CreateWorldRayFromMouse(const UCamera* InPickingCamera);
-	void UpdateGizmoDrag(const FRay& InWorldRay, UCamera& InPickingCamera);
+	static FRay CreateWorldRayFromMouse(const ACameraActor* InPickingCamera);
+	void UpdateGizmoDrag(const FRay& InWorldRay, ACameraActor& InPickingCamera);
 	void HandleNewInteraction(const FRay& InWorldRay);
 	static TArray<UPrimitiveComponent*> FindCandidateActors(const ULevel* InLevel);
 
-	FVector GetGizmoDragLocation(const FRay& InWorldRay, UCamera& InCamera);
-	FVector GetGizmoDragLocationForPerspective(const FRay& InWorldRay, UCamera& InCamera);
-	FVector GetGizmoDragLocationForOrthographic(const UCamera& InCamera);
+	FVector GetGizmoDragLocation(const FRay& InWorldRay, ACameraActor& InCamera);
+	FVector GetGizmoDragLocationForPerspective(const FRay& InWorldRay, ACameraActor& InCamera);
+	FVector GetGizmoDragLocationForOrthographic(const ACameraActor& InCamera);
 	FVector GetGizmoDragRotation(const FRay& InWorldRay);
-	FVector GetGizmoDragScale(const FRay& InWorldRay, UCamera& InCamera);
+	FVector GetGizmoDragScale(const FRay& InWorldRay, ACameraActor& InCamera);
 
 	// View Type에 따른 기저 변환
 	static void CalculateBasisVectorsForViewType(EViewType InViewType, FVector& OutForward, FVector& OutRight, FVector& OutUp);
 
-	static UCamera* GetActivePickingCamera();
+	static ACameraActor* GetActivePickingCamera();
 };

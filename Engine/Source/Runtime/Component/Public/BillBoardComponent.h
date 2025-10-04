@@ -2,8 +2,8 @@
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Global/Matrix.h"
 
+class ACameraActor;
 class AActor;
-class UCamera;
 
 UCLASS()
 class UBillBoardComponent :
@@ -16,14 +16,14 @@ public:
 	UBillBoardComponent();
 	~UBillBoardComponent() override = default;
 
-	void UpdateRotationMatrix(const UCamera* InCamera);
+	void UpdateRotationMatrix(const ACameraActor* InCamera);
 
 	FMatrix GetRTMatrix() const { return RTMatrix; }
 
 	// 공통 렌더링 인터페이스 오버라이드
-	virtual bool HasRenderData() const override;
-	virtual bool UseIndexedRendering() const override;
-	virtual EShaderType GetShaderType() const override;
+	bool HasRenderData() const override;
+	bool UseIndexedRendering() const override;
+	EShaderType GetShaderType() const override;
 
 private:
 	FMatrix RTMatrix;

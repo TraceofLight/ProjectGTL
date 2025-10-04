@@ -21,6 +21,9 @@ public:
 	AActor(UObject* InOuter);
 	~AActor() override;
 
+	// RootComponent가 없을 때 DefaultSceneRoot 생성
+	void EnsureRootComponent();
+
 	void SetActorLocation(const FVector& InLocation) const;
 	void SetActorRotation(const FVector& InRotation) const;
 	void SetActorScale3D(const FVector& InScale) const;

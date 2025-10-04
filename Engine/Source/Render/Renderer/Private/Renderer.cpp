@@ -276,17 +276,17 @@ void URenderer::Update()
                     FViewportClient* ViewportObjectClient = ViewportObject->GetViewportClient();
 					if (ViewportObjectClient->GetViewType() == EViewType::Perspective) {
 						if (auto* Camera = ViewportObjectClient->GetPerspectiveCamera()) {
-							Camera->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
+							Camera->GetCameraComponent()->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
 							// 입력/움직임 갱신은 그대로 두고, 투영만 즉시 갱신하고 싶으면:
-							Camera->UpdateMatrixByPers(); // 또는 필요 시 Cam->Update() 호출
-							UpdateConstant(Camera->GetFViewProjConstants());
+							Camera->GetCameraComponent()->UpdateMatrixByPers(); // 또는 필요 시 Cam->Update() 호출
+							UpdateConstant(Camera->GetCameraComponent()->GetFViewProjConstants());
 						}
 					}
 					else {
 						if (auto* Camera = ViewportObjectClient->GetOrthoCamera()) {
-							Camera->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
-							Camera->UpdateMatrixByOrth(); // 또는 Cam->Update()
-							UpdateConstant(Camera->GetFViewProjConstants());
+							Camera->GetCameraComponent()->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
+							Camera->GetCameraComponent()->UpdateMatrixByOrth(); // 또는 Cam->Update()
+							UpdateConstant(Camera->GetCameraComponent()->GetFViewProjConstants());
 						}
 					}
                 }
@@ -399,7 +399,7 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 
 				if (!VC) return;
 
-				UCamera* CurrentCamera;
+				ACameraActor* CurrentCamera;
 				FViewProjConstants ViewProj;
 				if (VC->GetViewType() == EViewType::Perspective)
 				{
@@ -758,6 +758,108 @@ void URenderer::RenderPrimitive(const FEditorPrimitive& InPrimitive, const FRend
 	// Set vertex buffer and draw
 	Pipeline->SetVertexBuffer(InPrimitive.Vertexbuffer, Stride);
 	Pipeline->Draw(InPrimitive.NumVertices, 0);
+}
+
+/**
+ * @brief 기즈모 전용 렌더링 함수 - 화면 공간에서 일정한 크기 유지
+ * @param InPrimitive 렌더링할 에디터 프리미티브
+ * @param InRenderState 렌더링 상태
+ * @param InCameraLocation 카메라 위치
+ * @param InViewportWidth 뷰포트 폭
+ * @param InViewportHeight 뷰포트 높이
+ * @param InDesiredPixelSize 희망하는 픽셀 크기
+ */
+void URenderer::RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState,
+                                    const FVector& InCameraLocation, float InViewportWidth, float InViewportHeight,
+                                    float InDesiredPixelSize)
+{
+	// 기본 유효성 검사
+	if (InViewportWidth <= 0.0f || InViewportHeight <= 0.0f)
+	{
+		// 뷰포트 정보가 없으면 기본 렌더링으로 대체
+		RenderPrimitive(InPrimitive, InRenderState);
+		return;
+	}
+
+	// 기즈모와 카메라 간의 거리 계산
+	float DistanceToCamera = (InCameraLocation - InPrimitive.Location).Length();
+	DistanceToCamera = max(DistanceToCamera, 0.1f); // 최소 거리 보장
+
+	// ViewProj 행렬에서 FOV 추출 (현재 렌더링 중인 뷰포트의 카메라 사용)
+	auto& ViewportManager = UViewportManager::GetInstance();
+	const auto& Viewports = ViewportManager.GetViewports();
+	const auto& Clients = ViewportManager.GetClients();
+
+	if (ViewportIdx >= 0 && ViewportIdx < static_cast<int32>(Viewports.size()) &&
+		ViewportIdx < static_cast<int32>(Clients.size()) &&
+		Viewports[ViewportIdx] && Clients[ViewportIdx])
+	{
+		FViewportClient* CurrentClient = Clients[ViewportIdx];
+		ACameraActor* ViewportCamera = CurrentClient->IsOrtho()
+		                              ? CurrentClient->GetOrthoCamera()
+		                              : CurrentClient->GetPerspectiveCamera();
+
+		if (ViewportCamera && ViewportCamera->GetCameraComponent())
+		{
+			UCameraComponent* CameraComp = ViewportCamera->GetCameraComponent();
+			float ScreenSpaceScale = 1.0f;
+
+			// 카메라 타입에 따른 스케일 계산
+				if (CameraComp->GetCameraType() == ECameraType::ECT_Perspective)
+				{
+					// 원근 투영: FOV와 거리를 이용한 화면 공간 크기 계산
+					float FovYRadians = CameraComp->GetFovY() * (PI / 180.0f);
+					float TanHalfFov = tanf(FovYRadians * 0.5f);
+
+					// 화면 공간에서 1픽셀이 월드 공간에서 차지하는 크기
+					float WorldUnitsPerPixel = (2.0f * DistanceToCamera * TanHalfFov) / InViewportHeight;
+					
+					// 화면 가장자리 보정 (원근 투영에서 가장자리로 갈수록 커지는 현상 방지)
+					FVector CameraToGizmo = InPrimitive.Location - InCameraLocation;
+					FVector CameraForward = CameraComp->GetForward();
+					CameraToGizmo.Normalize();
+					CameraForward.Normalize();
+
+					// 카메라 중심축과의 각도 계산 (코사인 값)
+					float CosAngle = CameraForward.Dot(CameraToGizmo);
+					CosAngle = max(0.2f, CosAngle); // 최소 값 제한으로 가장자리에서 급격한 증가 방지
+
+					// 가장자리 보정 팩터 (가장자리로 갈수록 작아짐)
+					float EdgeCorrectionFactor = CosAngle;
+					
+					ScreenSpaceScale = (WorldUnitsPerPixel * InDesiredPixelSize) * EdgeCorrectionFactor;
+				}
+			else
+			{
+				// 직교 투영: 거리에 관계없이 일정한 크기
+				float OrthographicHeight = CameraComp->GetOrthographicHeight();
+				
+				if (OrthographicHeight > 0.0f && InViewportHeight > 0.0f)
+				{
+					float WorldUnitsPerPixel = OrthographicHeight / InViewportHeight;
+					ScreenSpaceScale = WorldUnitsPerPixel * InDesiredPixelSize;
+					
+					// 최소/최대 스케일 제한 (기즈모가 너무 작거나 커지는 방지)
+					ScreenSpaceScale = max(0.01f, min(100.0f, ScreenSpaceScale));
+				}
+				else
+				{
+					ScreenSpaceScale = 1.0f; // 기본값
+				}
+			}
+
+			// 계산된 스케일로 기존 프리미티브 스케일 조정
+			FEditorPrimitive ScaledPrimitive = InPrimitive;
+			ScaledPrimitive.Scale = FVector(ScreenSpaceScale, ScreenSpaceScale, ScreenSpaceScale);
+
+			// 일반적인 렌더링으로 처리
+			RenderPrimitive(ScaledPrimitive, InRenderState);
+			return;
+		}
+	}
+
+	// 카메라 정보를 찾을 수 없으면 기본 렌더링
+	RenderPrimitive(InPrimitive, InRenderState);
 }
 
 /**

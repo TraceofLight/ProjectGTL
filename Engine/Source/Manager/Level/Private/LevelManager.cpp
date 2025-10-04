@@ -9,8 +9,9 @@
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
-#include "Editor/Public/Camera.h"
 #include "Asset/Public/StaticMesh.h"
+#include "Render/Renderer/Public/Renderer.h"
+#include "Window/Public/Viewport.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(ULevelManager)
 
@@ -127,17 +128,43 @@ bool ULevelManager::SaveCurrentLevel(const FString& InFilePath) const
 		// 0번 ViewPort의 PerspectiveCamera 세팅을 Metadata에 포함
 		UViewportManager& ViewportManager = UViewportManager::GetInstance();
 		TArray<FViewportClient*>& Clients = ViewportManager.GetClients();
+		UE_LOG("LevelManager: SaveCurrentLevel - Saving camera from Client[0]");
 		if (!Clients.empty() && Clients[0])
 		{
-			UCamera* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
+			ACameraActor* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
 			if (PerspectiveCamera)
 			{
-				Metadata.PerspectiveCamera.FarClip = PerspectiveCamera->GetFarZ();
-				Metadata.PerspectiveCamera.NearClip = PerspectiveCamera->GetNearZ();
-				Metadata.PerspectiveCamera.FOV = PerspectiveCamera->GetFovY();
-				Metadata.PerspectiveCamera.Location = PerspectiveCamera->GetLocation();
-				Metadata.PerspectiveCamera.Rotation = PerspectiveCamera->GetRotation();
+				UCameraComponent* CamComp = PerspectiveCamera->GetCameraComponent();
+				if (CamComp)
+				{
+					Metadata.PerspectiveCamera.FarClip = CamComp->GetFarZ();
+					Metadata.PerspectiveCamera.NearClip = CamComp->GetNearZ();
+					Metadata.PerspectiveCamera.FOV = CamComp->GetFovY();
+					Metadata.PerspectiveCamera.Location = PerspectiveCamera->GetActorLocation();
+					Metadata.PerspectiveCamera.Rotation = PerspectiveCamera->GetActorRotation();
+
+					UE_LOG(
+						"LevelManager: Camera saved - Loc:(%.2f,%.2f,%.2f) Rot:(%.2f,%.2f,%.2f) FOV:%.2f Near:%.2f Far:%.2f",
+						Metadata.PerspectiveCamera.Location.X, Metadata.PerspectiveCamera.Location.Y,
+						Metadata.PerspectiveCamera.Location.Z,
+						Metadata.PerspectiveCamera.Rotation.X, Metadata.PerspectiveCamera.Rotation.Y,
+						Metadata.PerspectiveCamera.Rotation.Z,
+						Metadata.PerspectiveCamera.FOV, Metadata.PerspectiveCamera.NearClip,
+						Metadata.PerspectiveCamera.FarClip);
+				}
+				else
+				{
+					UE_LOG("LevelManager: WARNING - PerspectiveCamera has no CameraComponent, camera data not saved!");
+				}
 			}
+			else
+			{
+				UE_LOG("LevelManager: WARNING - Client[0] has no PerspectiveCamera, camera data not saved!");
+			}
+		}
+		else
+		{
+			UE_LOG("LevelManager: WARNING - No clients available, camera data not saved!");
 		}
 
 		bool bSuccess = FJsonSerializer::SaveLevelToFile(Metadata, FilePath.string());
@@ -393,7 +420,8 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 				if (TObjectPtr<AStaticMeshActor> StaticMeshActor = Cast<AStaticMeshActor>(NewActor))
 				{
 					UAssetManager& AssetManager = UAssetManager::GetInstance();
-					TObjectPtr<UStaticMesh> PrimitiveMesh = AssetManager.LoadStaticMesh(PrimitiveMeta.ObjStaticMeshAsset);
+					TObjectPtr<UStaticMesh> PrimitiveMesh = AssetManager.LoadStaticMesh(
+						PrimitiveMeta.ObjStaticMeshAsset);
 
 					if (PrimitiveMesh)
 					{
@@ -402,7 +430,7 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 					else
 					{
 						UE_LOG("LevelManager: Failed To Load StaticMesh From: %s",
-							PrimitiveMeta.ObjStaticMeshAsset.c_str());
+						       PrimitiveMeta.ObjStaticMeshAsset.c_str());
 						InLevel->DestroyActor(StaticMeshActor);
 					}
 				}
@@ -438,7 +466,6 @@ void ULevelManager::ClearCurrentLevel()
 	}
 }
 
-
 /**
  * @brief 메타데이터에서 카메라 정보를 복원
  */
@@ -446,17 +473,95 @@ void ULevelManager::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMet
 {
 	UViewportManager& ViewportManager = UViewportManager::GetInstance();
 	TArray<FViewportClient*>& Clients = ViewportManager.GetClients();
-	if (!Clients.empty() && Clients[0])
+
+	// FOV/Near/Far가 0이면 저장된 데이터가 손상되었으므로 기본값 사용
+	bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
+		InCameraMetadata.FarClip <= 0.0f);
+	if (bUseDefaults)
 	{
-		UCamera* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
-		if (PerspectiveCamera)
+		UE_LOG_WARNING("LevelManager: 경고: 카메라 메타데이터 손상, 기본값을 사용합니다");
+	}
+
+	// 모든 Perspective 카메라에 동일한 설정 적용
+	// 각 Viewport의 실제 크기를 기반으로 Aspect 설정
+	TArray<FViewport*>& Viewports = ViewportManager.GetViewports();
+
+	for (size_t i = 0; i < Clients.size(); ++i)
+	{
+		UE_LOG("LevelManager: Processing Client[%d]", static_cast<int>(i));
+
+		FViewportClient* Client = Clients[i];
+		if (!Client)
 		{
-			PerspectiveCamera->SetLocation(InCameraMetadata.Location);
-			PerspectiveCamera->SetRotation(InCameraMetadata.Rotation);
-			PerspectiveCamera->SetFovY(InCameraMetadata.FOV);
-			PerspectiveCamera->SetNearZ(InCameraMetadata.NearClip);
-			PerspectiveCamera->SetFarZ(InCameraMetadata.FarClip);
-			PerspectiveCamera->Update();
+			UE_LOG("LevelManager: Client[%d] is NULL", static_cast<int>(i));
+			continue;
+		}
+
+		ACameraActor* PerspectiveCamera = Client->GetPerspectiveCamera();
+		if (!PerspectiveCamera)
+		{
+			UE_LOG("LevelManager: Client[%d]는 PerspectiveCamera가 없습니다", static_cast<int>(i));
+			continue;
+		}
+
+		UCameraComponent* CameraComponent = PerspectiveCamera->GetCameraComponent();
+		if (!CameraComponent)
+		{
+			UE_LOG_WARNING("LevelManager: Client[%d]의 PerspectiveCamera가 CameraComponent가 없습니다", static_cast<int>(i));
+			continue;
+		}
+
+		UE_LOG("LevelManager: Client[%d]: 카메라 속성을 설정합니다", static_cast<int>(i));
+
+		// 카메라 설정 복원
+		PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
+		PerspectiveCamera->SetActorRotation(InCameraMetadata.Rotation);
+
+		// FOV/Near/Far는 유효성 검사 후 설정
+		if (!bUseDefaults)
+		{
+			CameraComponent->SetFovY(InCameraMetadata.FOV);
+			CameraComponent->SetNearZ(InCameraMetadata.NearClip);
+			CameraComponent->SetFarZ(InCameraMetadata.FarClip);
+		}
+		else
+		{
+			UE_LOG("LevelManager: Client[%d]: FOV/Near/Far 기본값을 사용합니다", static_cast<int>(i));
+		}
+
+		UE_LOG("LevelManager: Client[%d] - Camera set to Location:(%.2f,%.2f,%.2f) Rotation:(%.2f,%.2f,%.2f)",
+		       static_cast<int>(i),
+		       InCameraMetadata.Location.X, InCameraMetadata.Location.Y, InCameraMetadata.Location.Z,
+		       InCameraMetadata.Rotation.X, InCameraMetadata.Rotation.Y, InCameraMetadata.Rotation.Z);
+
+		// 각 Viewport의 실제 크기를 기반으로 Aspect 계산
+		if (i < Viewports.size() && Viewports[i])
+		{
+			const FRect& ViewportRect = Viewports[i]->GetRect();
+			const int32 ToolbarHeight = Viewports[i]->GetToolbarHeight();
+			const float ViewportWidth = static_cast<float>(ViewportRect.W);
+			const float ViewportHeight = static_cast<float>(max<LONG>(0, ViewportRect.H - ToolbarHeight));
+
+			UE_LOG("LevelManager: Client[%d] Viewport: Rect:(%ld,%ld,%ld,%ld) Toolbar:%d RenderSize:(%.2fx%.2f)",
+			       static_cast<int>(i),
+			       ViewportRect.X, ViewportRect.Y, ViewportRect.W, ViewportRect.H,
+			       ToolbarHeight, ViewportWidth, ViewportHeight);
+
+			if (ViewportHeight > 0.0f && ViewportWidth > 0.0f)
+			{
+				float Aspect = ViewportWidth / ViewportHeight;
+				CameraComponent->SetAspect(Aspect);
+				UE_LOG("LevelManager: Client[%d]: Aspect 설정: %.4f", static_cast<int>(i), Aspect);
+			}
+			else
+			{
+				UE_LOG("LevelManager: Client[%d]: 비정상적인 viewport size, aspect를 스킵합니다", static_cast<int>(i));
+			}
+		}
+		else
+		{
+			UE_LOG("LevelManager: Client[%d]: Viewport[%d]이 NULL이거나 범위 바깥입니다",
+			       static_cast<int>(i), static_cast<int>(i));
 		}
 	}
 }
