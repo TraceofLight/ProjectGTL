@@ -132,21 +132,73 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		ImGui::TextDisabled("|");
 		ImGui::SameLine(0.0f, 10.0f);
 
-		// ViewType 콤보박스
+		// ViewType 드롭다운 버튼
 		EViewType CurType = Clients[ViewportIndex]->GetViewType();
 		int32 CurrentIdx = static_cast<int32>(CurType);
+		const char* CurrentLabel = ViewTypeLabels[CurrentIdx];
 
 		ImGui::SetNextItemWidth(140.0f);
-		if (ImGui::Combo("##ViewType", &CurrentIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
+		if (ImGui::BeginCombo("##ViewType", CurrentLabel))
 		{
-			if (CurrentIdx >= 0 && CurrentIdx < IM_ARRAYSIZE(ViewTypeLabels))
+			for (int i = 0; i < IM_ARRAYSIZE(ViewTypeLabels); ++i)
 			{
-				EViewType NewType = static_cast<EViewType>(CurrentIdx);
-				Clients[ViewportIndex]->SetViewType(NewType);
-
-				// 카메라 바인딩 로직
-				HandleCameraBinding(ViewportIndex, NewType, CurrentIdx);
+				bool isSelected = (CurrentIdx == i);
+				if (ImGui::Selectable(ViewTypeLabels[i], isSelected))
+				{
+					EViewType NewType = static_cast<EViewType>(i);
+					Clients[ViewportIndex]->SetViewType(NewType);
+					HandleCameraBinding(ViewportIndex, NewType, i);
+				}
+				if (isSelected)
+					ImGui::SetItemDefaultFocus();
 			}
+
+			// Perspective 선택 시 하위 옵션 표시
+			if (CurType == EViewType::Perspective)
+			{
+				ImGui::Separator();
+				ImGui::TextDisabled("VIEW");
+
+				auto& ViewportManager = UViewportManager::GetInstance();
+				const auto& PerspectiveCameras = ViewportManager.GetPerspectiveCameras();
+
+				if (ViewportIndex < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[ViewportIndex])
+				{
+					ACameraActor* Camera = PerspectiveCameras[ViewportIndex];
+					if (Camera && Camera->GetCameraComponent())
+					{
+						UCameraComponent* CamComp = Camera->GetCameraComponent();
+
+						ImGui::Spacing();
+
+						// FOV
+						float fov = CamComp->GetFovY();
+						ImGui::SetNextItemWidth(180.0f);
+						if (ImGui::DragFloat("Field of View", &fov, 1.0f, 30.0f, 120.0f, "%.1f"))
+						{
+							CamComp->SetFovY(fov);
+						}
+
+						// Near Plane
+						float nearZ = CamComp->GetNearZ();
+						ImGui::SetNextItemWidth(180.0f);
+						if (ImGui::DragFloat("Near View Plane", &nearZ, 0.01f, 0.01f, 10.0f, "%.2f"))
+						{
+							CamComp->SetNearZ(nearZ);
+						}
+
+						// Far Plane
+						float farZ = CamComp->GetFarZ();
+						ImGui::SetNextItemWidth(180.0f);
+						if (ImGui::DragFloat("Far View Plane", &farZ, 10.0f, 100.0f, 10000.0f, "%.0f"))
+						{
+							CamComp->SetFarZ(farZ);
+						}
+					}
+				}
+			}
+
+			ImGui::EndCombo();
 		}
 
 		// 구분자

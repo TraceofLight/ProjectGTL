@@ -50,7 +50,7 @@ UPrimitiveComponent* UObjectPicker::PickPrimitive(const FRay& InWorldRay,
 void UObjectPicker::PickGizmo(const FRay& InWorldRay, UGizmo& InGizmo, FVector& InCollisionPoint, float InViewportWidth,
                               float InViewportHeight, int32 InViewportIndex)
 {
-	if (!Camera || !InGizmo.GetSelectedActor())
+	if (!Camera || !Camera->GetCameraComponent() || !InGizmo.GetSelectedActor())
 	{
 		InGizmo.SetGizmoDirectionForViewport(InViewportIndex, EGizmoDirection::None);
 		return;
@@ -60,7 +60,8 @@ void UObjectPicker::PickGizmo(const FRay& InWorldRay, UGizmo& InGizmo, FVector& 
 	if (InViewportWidth > 0.0f && InViewportHeight > 0.0f)
 	{
 		// 현재 뷰포트에 맞는 스케일 계산 후 기즈모에 적용
-		float CorrectScale = InGizmo.CalculateScreenSpaceScale(Camera->GetActorLocation(), Camera, InViewportWidth,
+		FVector CameraLocation = Camera->GetCameraComponent()->GetRelativeLocation();
+		float CorrectScale = InGizmo.CalculateScreenSpaceScale(CameraLocation, Camera, InViewportWidth,
 		                                                       InViewportHeight);
 		// 임시로 기즈모의 CurrentRenderScale을 업데이트 (피킹용)
 		InGizmo.SetCurrentRenderScaleForPicking(CorrectScale);
@@ -221,7 +222,7 @@ bool UObjectPicker::IsRayTriangleCollided(const FRay& InRay, const FVector& InVe
                                           const FVector& InVertex3,
                                           const FMatrix& InModelMatrix, float* InDistance)
 {
-	if (!Camera) { return false; }
+	if (!Camera || !Camera->GetCameraComponent()) { return false; }
 	FVector CameraForward = Camera->GetCameraComponent()->GetForward(); //카메라 정보 필요
 	float NearZ = Camera->GetCameraComponent()->GetNearZ();
 	float FarZ = Camera->GetCameraComponent()->GetFarZ();
