@@ -15,7 +15,7 @@ public:
 
 	/**
 	 * @brief OBJ 파일을 임포트하고 원시 객체 데이터로 파싱
-	 * @param FilePath 임포트할 OBJ 파일의 경로
+	 * @param InFilePath 임포트할 OBJ 파일의 경로
 	 * @param OutObjectInfos 파싱된 객체 정보 배열
 	 * @return 임포트 성공 시 true, 그렇지 않으면 false
 	 */
@@ -23,7 +23,7 @@ public:
 
 	/**
 	 * @brief 머티리얼 라이브러리 파일(.mtl)을 파싱
-	 * @param MTLFilePath MTL 파일의 경로
+	 * @param InMTLFilePath MTL 파일의 경로
 	 * @param OutMaterialLibrary 파싱된 머터리얼 정보 맵 (머터리얼 이름을 키로 사용)
 	 * @return 파싱 성공 시 true, 그렇지 않으면 false
 	 */
@@ -31,7 +31,7 @@ public:
 
 	/**
 	 * @brief 원시 객체 데이터를 쿠킹된 스태틱 메시 데이터로 변환
-	 * @param ObjectInfos 원시 객체 데이터 배열
+	 * @param InObjectInfos 원시 객체 데이터 배열
 	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
 	 * @return 변환 성공 시 true, 그렇지 않으면 false
 	 */
@@ -39,32 +39,36 @@ public:
 
 	/**
 	 * @brief 전체 임포트 파이프라인: OBJ → 원시 데이터 → 쿠킹된 데이터
-	 * @param FilePath 임포트할 OBJ 파일의 경로
+	 * @param InFilePath 임포트할 OBJ 파일의 경로
 	 * @param OutStaticMesh 결과로 생성된 쿠킹된 스태틱 메시 데이터
 	 * @param OutObjectInfos 머터리얼 로드를 위해 원시 객체 데이터도 반환
 	 * @return 전체 파이프라인 성공 시 true, 그렇지 않으면 false
 	 */
-	static bool ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh, TArray<FObjInfo>& OutObjectInfos);
+	static bool ImportStaticMesh(const FString& InFilePath, FStaticMesh& OutStaticMesh,
+	                             TArray<FObjInfo>& OutObjectInfos);
 
 private:
 	/**
 	 * @brief OBJ 파일의 한 줄을 파싱
 	 * @param Line 파싱할 줄
-	 * @param CurrentObject 현재 파싱 중인 객체
-	 * @param AllObjects 파싱 중인 모든 객체 (그룹 관리용)
+	 * @param ObjectInfo
 	 * @param GlobalVertices 전역 정점 목록
 	 * @param GlobalUVs 전역 UV 목록
 	 * @param GlobalNormals 전역 노멀 목록
+	 * @param CurrentSectionIndex
+	 * @param CurrentMaterialName
+	 * @param MaterialLibrary
+	 * @param ObjDirectory
 	 */
 	static void ParseOBJLine(const FString& Line,
-		FObjInfo& ObjectInfo,
-		TArray<FVector>& GlobalVertices,
-		TArray<FVector2>& GlobalUVs,
-		TArray<FVector>& GlobalNormals,
-		int32& CurrentSectionIndex,
-		FString& CurrentMaterialName,
-		TMap<FString, FObjMaterialInfo>& MaterialLibrary,
-		const FString& ObjDirectory);
+	                         FObjInfo& ObjectInfo,
+	                         TArray<FVector>& GlobalVertices,
+	                         TArray<FVector2>& GlobalUVs,
+	                         TArray<FVector>& GlobalNormals,
+	                         int32& CurrentSectionIndex,
+	                         FString& CurrentMaterialName,
+	                         TMap<FString, FObjMaterialInfo>& MaterialLibrary,
+	                         const FString& ObjDirectory);
 
 	/**
 	 * @brief OBJ 파일에서 면 데이터를 파싱
@@ -80,19 +84,19 @@ private:
 	 * @param OutIndices 삼각형을 위한 최종 인덱스 배열
 	 */
 	static void ConvertToTriangleList(const FObjInfo& ObjectInfo,
-		TArray<FVertex>& OutVertices,
-		TArray<uint32>& OutIndices);
+	                                  TArray<FVertex>& OutVertices,
+	                                  TArray<uint32>& OutIndices);
 
 	/**
 	 * @brief 문자열의 공백을 제거하는 헬퍼 함수
-	 * @param Str 공백을 제거할 문자열
+	 * @param String 공백을 제거할 문자열
 	 * @return 공백이 제거된 문자열
 	 */
 	static FString TrimString(const FString& String);
 
 	/**
 	 * @brief 구분자로 문자열을 분할하는 헬퍼 함수
-	 * @param Str 분할할 문자열
+	 * @param String 분할할 문자열
 	 * @param Delimiter 구분자 문자
 	 * @param OutTokens 결과 토큰 배열
 	 */
@@ -112,4 +116,3 @@ private:
 	 */
 	static FVector2 UVToUEBasis(const FVector2& InVector);
 };
-
