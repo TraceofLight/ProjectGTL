@@ -7,7 +7,6 @@
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
-#include "Editor/Public/Camera.h"
 #include "Window/Public/ViewportClient.h"
 
 USceneHierarchyWidget::USceneHierarchyWidget()
@@ -33,11 +32,11 @@ void USceneHierarchyWidget::Update()
 		for (FViewportClient* Client : ViewportManager.GetClients())
 		{
 			// Perspective 카메라 업데이트
-			TObjectPtr<UCamera> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
+			TObjectPtr<ACameraActor> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
 			UpdateCameraAnimation(PerspectiveCamera);
 
 			// Orthographic 카메라 업데이트
-			TObjectPtr<UCamera> OrthoCamera = TObjectPtr(Client->GetOrthoCamera());
+			TObjectPtr<ACameraActor> OrthoCamera = TObjectPtr(Client->GetOrthoCamera());
 			UpdateCameraAnimation(OrthoCamera);
 		}
 	}
@@ -342,13 +341,13 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 				// Perspective 카메라 포커싱
 				if (Client->GetViewType() == EViewType::Perspective)
 				{
-					TObjectPtr<UCamera> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
+					TObjectPtr<ACameraActor> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
 					FocusOnActor(PerspectiveCamera, InActor);
 				}
 				// Orthographic 카메라 포커싱
 				else
 				{
-					TObjectPtr<UCamera> OrthoCamera = TObjectPtr(Client->GetOrthoCamera());
+					TObjectPtr<ACameraActor> OrthoCamera = TObjectPtr(Client->GetOrthoCamera());
 					FocusOnActor(OrthoCamera, InActor);
 				}
 			}
@@ -367,7 +366,7 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
  * @param InCamera 포커싱 처리할 카메라
  * @param InActor 포커스할 Actor
  */
-void USceneHierarchyWidget::FocusOnActor(TObjectPtr<UCamera> InCamera, TObjectPtr<AActor> InActor)
+void USceneHierarchyWidget::FocusOnActor(TObjectPtr<ACameraActor> InCamera, TObjectPtr<AActor> InActor)
 {
 	if (!InCamera || !InActor)
 	{
@@ -375,18 +374,18 @@ void USceneHierarchyWidget::FocusOnActor(TObjectPtr<UCamera> InCamera, TObjectPt
 	}
 
 	// 현재 카메라의 위치와 회전을 저장
-	CameraStartLocations[InCamera->GetName()] = InCamera->GetLocation();
-	CameraCurrentRotations[InCamera->GetName()] = InCamera->GetRotation();
+	CameraStartLocations[InCamera->GetName()] = InCamera->GetActorLocation();
+	CameraCurrentRotations[InCamera->GetName()] = InCamera->GetActorRotation();
 
 	FVector ActorLocation = InActor->GetActorLocation();
 	FVector TargetLocation;
 
-	if (InCamera->GetCameraType() == ECameraType::ECT_Orthographic)
+	if (InCamera->GetCameraComponent()->GetCameraType() == ECameraType::ECT_Orthographic)
 	{
 		// Orthographic 카메라의 경우, 오브젝트를 화면 중심에 위치시키기 위해
 		// 카메라의 현재 뷰 방향을 유지하면서 위치만 조정
-		FVector CurrentCameraLocation = InCamera->GetLocation();
-		FVector CameraForward = InCamera->GetForward();
+		FVector CurrentCameraLocation = InCamera->GetActorLocation();
+		FVector CameraForward = InCamera->GetCameraComponent()->GetForward();
 
 		// Actor 위치에서 카메라 위치로의 벡터
 		FVector ToCamera = CurrentCameraLocation - ActorLocation;
@@ -404,7 +403,7 @@ void USceneHierarchyWidget::FocusOnActor(TObjectPtr<UCamera> InCamera, TObjectPt
 	{
 		// 카메라의 정확한 Forward 벡터를 사용하여 화면 중앙 배치 보정
 		// Camera 클래스에서 이미 계산된 정확한 Forward 벡터 사용
-		FVector CameraForward = InCamera->GetForward();
+		FVector CameraForward = InCamera->GetCameraComponent()->GetForward();
 		TargetLocation = ActorLocation - (CameraForward * FOCUS_DISTANCE);
 	}
 
@@ -421,7 +420,7 @@ void USceneHierarchyWidget::FocusOnActor(TObjectPtr<UCamera> InCamera, TObjectPt
  * @brief 단일 카메라 애니메이션을 업데이트하는 함수
  * 선형 보간을 활용한 부드러운 움직임을 구현함
  */
-void USceneHierarchyWidget::UpdateCameraAnimation(TObjectPtr<UCamera> InCamera)
+void USceneHierarchyWidget::UpdateCameraAnimation(TObjectPtr<ACameraActor> InCamera)
 {
 	if (!bIsCameraAnimating || !InCamera)
 	{
@@ -462,7 +461,7 @@ void USceneHierarchyWidget::UpdateCameraAnimation(TObjectPtr<UCamera> InCamera)
 
 	// 카메라 위치 설정
 	// 의도가 카메라의 위치만 옮겨서 화면 중앙에 오브젝트를 두는 것이었기 때문에 Rotation은 처리하지 않음
-	InCamera->SetLocation(CurrentLocation);
+	InCamera->SetActorLocation(CurrentLocation);
 
 	if (!bIsCameraAnimating)
 	{

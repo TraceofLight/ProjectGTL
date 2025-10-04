@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Editor/Public/ObjectPicker.h"
-#include "Editor/Public/Camera.h"
 #include "Editor/Public/Gizmo.h"
+#include "Runtime/Actor/Public/CameraActor.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 
 IMPLEMENT_CLASS(UObjectPicker, UObject)
@@ -60,7 +60,7 @@ void UObjectPicker::PickGizmo(const FRay& InWorldRay, UGizmo& InGizmo, FVector& 
 	if (InViewportWidth > 0.0f && InViewportHeight > 0.0f)
 	{
 		// 현재 뷰포트에 맞는 스케일 계산 후 기즈모에 적용
-		float CorrectScale = InGizmo.CalculateScreenSpaceScale(Camera->GetLocation(), Camera, InViewportWidth,
+		float CorrectScale = InGizmo.CalculateScreenSpaceScale(Camera->GetActorLocation(), Camera, InViewportWidth,
 		                                                       InViewportHeight);
 		// 임시로 기즈모의 CurrentRenderScale을 업데이트 (피킹용)
 		InGizmo.SetCurrentRenderScaleForPicking(CorrectScale);
@@ -210,10 +210,7 @@ bool UObjectPicker::IsRayPrimitiveCollided(const FRay& InModelRay, UPrimitiveCom
 
 		{
 			bIsHit = true;
-			if (Distance < *InShortestDistance)
-			{
-				*InShortestDistance = Distance;
-			}
+			*InShortestDistance = min(Distance, *InShortestDistance);
 		}
 	}
 
@@ -225,11 +222,9 @@ bool UObjectPicker::IsRayTriangleCollided(const FRay& InRay, const FVector& InVe
                                           const FMatrix& InModelMatrix, float* InDistance)
 {
 	if (!Camera) { return false; }
-	FVector CameraForward = Camera->GetForward(); //카메라 정보 필요
-	float NearZ = Camera->GetNearZ();
-	float FarZ = Camera->GetFarZ();
-	FMatrix ModelTransform; //Primitive로부터 얻어내야함.(카메라가 처리하는게 나을듯)
-
+	FVector CameraForward = Camera->GetCameraComponent()->GetForward(); //카메라 정보 필요
+	float NearZ = Camera->GetCameraComponent()->GetNearZ();
+	float FarZ = Camera->GetCameraComponent()->GetFarZ();
 
 	//삼각형 내의 점은 E1*V + E2*U + Vertex1.Position으로 표현 가능( 0<= U + V <=1,  Y>=0, V>=0 )
 	//Ray.Direction * T + Ray.Origin = E1*V + E2*U + Vertex1.Position을 만족하는 T U V값을 구해야 함.

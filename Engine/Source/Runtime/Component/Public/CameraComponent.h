@@ -1,5 +1,5 @@
 #pragma once
-#include "Runtime/Core/Public/Object.h"
+#include "Runtime/Component/Public/SceneComponent.h"
 #include "Manager/Config/Public/ConfigManager.h"
 
 enum class ECameraType
@@ -9,42 +9,21 @@ enum class ECameraType
 };
 
 UCLASS()
-class UCamera :
-	public UObject
+class UCameraComponent : public USceneComponent
 {
 	GENERATED_BODY()
-	DECLARE_CLASS(UCamera, UObject)
+	DECLARE_CLASS(UCameraComponent, USceneComponent)
 
 public:
-	// Camera Speed Constants
-	static constexpr float MIN_SPEED = 10.0f;
-	static constexpr float MAX_SPEED = 70.0f;
-	static constexpr float DEFAULT_SPEED = 20.0f;
-	static constexpr float SPEED_ADJUST_STEP = 10.0f;
+	UCameraComponent();
+	~UCameraComponent() override = default;
 
-	UCamera() :
-		ViewProjConstants(FViewProjConstants()),
-		RelativeLocation(FVector(-15.0f, 0.f, 10.0f)), RelativeRotation(FVector(0, 0, 0)),
-		FovY(90.f), Aspect(float(Render::INIT_SCREEN_WIDTH) / Render::INIT_SCREEN_HEIGHT),
-		NearZ(0.1f), FarZ(1000.f), CameraType(ECameraType::ECT_Perspective)
-	{
-		CurrentMoveSpeed = UConfigManager::GetInstance().GetCameraSensitivity();
-	}
-
-	~UCamera() override
-	{
-		UConfigManager::GetInstance().SetCameraSensitivity(CurrentMoveSpeed);
-	}
-
-	void Update();
 	void UpdateMatrixByPers();
 	void UpdateMatrixByOrth();
 
 	/**
 	 * @brief Setter
 	 */
-	void SetLocation(const FVector& InOtherPosition) { RelativeLocation = InOtherPosition; }
-	void SetRotation(const FVector& InOtherRotation) { RelativeRotation = InOtherRotation; }
 	void SetFovY(const float InOtherFovY) { FovY = InOtherFovY; }
 	void SetAspect(const float InOtherAspect) { Aspect = InOtherAspect; }
 	void SetNearZ(const float InOtherNearZ) { NearZ = InOtherNearZ; }
@@ -61,8 +40,7 @@ public:
 
 	FVector CalculatePlaneNormal(const FVector4& Axis);
 	FVector CalculatePlaneNormal(const FVector& Axis);
-	FVector& GetLocation() { return RelativeLocation; }
-	FVector& GetRotation() { return RelativeRotation; }
+
 	const FVector& GetForward() const { return Forward; }
 	const FVector& GetUp() const { return Up; }
 	const FVector& GetRight() const { return Right; }
@@ -72,24 +50,13 @@ public:
 	float GetFarZ() const { return FarZ; }
 	ECameraType GetCameraType() const { return CameraType; }
 
-	// Camera Movement Speed Control
-	float GetMoveSpeed() const { return CurrentMoveSpeed; }
-
-	void SetMoveSpeed(float InSpeed)
-	{
-		CurrentMoveSpeed = clamp(InSpeed, MIN_SPEED, MAX_SPEED);
-		// CurrentMoveSpeed = min(InSpeed, MAX_SPEED);
-	}
-
-	void AdjustMoveSpeed(float InDelta) { SetMoveSpeed(CurrentMoveSpeed + InDelta); }
-
-	/* *
+	/**
 	 * @brief 행렬 형태로 저장된 좌표와 변환 행렬과의 연산한 결과를 반환합니다.
 	 */
 	inline FVector4 MultiplyPointWithMatrix(const FVector4& Point, const FMatrix& Matrix) const
 	{
 		FVector4 Result = Point * Matrix;
-		/* *
+		/**
 		 * @brief 좌표가 왜곡된 공간에 남는 것을 방지합니다.
 		 */
 		if (Result.W != 0.f) { Result *= (1.f / Result.W); }
@@ -97,20 +64,17 @@ public:
 		return Result;
 	}
 
+	void UpdateVectors();
+
 private:
 	FViewProjConstants ViewProjConstants = {};
-	FVector RelativeLocation = {};
-	FVector RelativeRotation = {};
 	FVector Forward = {1, 0, 0};
 	FVector Up = {0, 0, 1};
 	FVector Right = {0, 1, 0};
-	float FovY = {};
-	float Aspect = {};
-	float NearZ = {};
-	float FarZ = {};
-	float OrthoWidth = {};
-	ECameraType CameraType = {};
-
-	// Dynamic Movement Speed
-	float CurrentMoveSpeed = DEFAULT_SPEED;
+	float FovY = 90.f;
+	float Aspect = float(Render::INIT_SCREEN_WIDTH) / Render::INIT_SCREEN_HEIGHT;
+	float NearZ = 0.1f;
+	float FarZ = 1000.f;
+	float OrthoWidth = 0.f;
+	ECameraType CameraType = ECameraType::ECT_Perspective;
 };

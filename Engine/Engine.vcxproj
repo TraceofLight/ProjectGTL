@@ -169,12 +169,14 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\ViewportControlWidget.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\ViewportWindow.h" />
     <ClInclude Include="Source\Runtime\Actor\Public\Actor.h" />
+    <ClInclude Include="Source\Runtime\Actor\Public\CameraActor.h" />
     <ClInclude Include="Source\Runtime\Actor\Public\StaticMeshActor.h" />
     <ClInclude Include="Source\Asset\Public\ObjImporter.h" />
     <ClInclude Include="Source\Asset\Public\StaticMesh.h" />
     <ClInclude Include="Source\Asset\Public\StaticMeshData.h" />
     <ClInclude Include="Source\Runtime\Component\Public\ActorComponent.h" />
     <ClInclude Include="Source\Runtime\Component\Public\BillBoardComponent.h" />
+    <ClInclude Include="Source\Runtime\Component\Public\CameraComponent.h" />
     <ClInclude Include="Source\Runtime\Component\Public\LineComponent.h" />
     <ClInclude Include="Source\Runtime\Component\Public\MeshComponent.h" />
     <ClInclude Include="Source\Runtime\Component\Public\PrimitiveComponent.h" />
@@ -202,7 +204,6 @@
     <ClInclude Include="Source\Editor\Public\Axis.h" />
     <ClInclude Include="Source\Editor\Public\BatchLines.h" />
     <ClInclude Include="Source\Editor\Public\BoundingBoxLines.h" />
-    <ClInclude Include="Source\Editor\Public\Camera.h" />
     <ClInclude Include="Source\Editor\Public\Editor.h" />
     <ClInclude Include="Source\Editor\Public\EditorPrimitive.h" />
     <ClInclude Include="Source\Editor\Public\Gizmo.h" />
@@ -231,6 +232,10 @@
     <ClInclude Include="Source\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Source\ImGui\imstb_textedit.h" />
     <ClInclude Include="Source\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\Engine.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\EngineEditor.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\GameInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\LocalPlayer.h" />
     <ClInclude Include="Source\Runtime\Level\Public\Level.h" />
     <ClInclude Include="Source\Manager\Asset\Public\AssetManager.h" />
     <ClInclude Include="Source\Manager\Config\Public\ConfigManager.h" />
@@ -247,7 +252,6 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\ActorDetailWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\BottomBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ActorTerminationWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\CameraControlWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ConsoleWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\FPSWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
@@ -297,11 +301,13 @@
     <ClCompile Include="Source\Material\Private\Material.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ViewportControlWidget.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\Actor.cpp" />
+    <ClCompile Include="Source\Runtime\Actor\Private\CameraActor.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\StaticMeshActor.cpp" />
     <ClCompile Include="Source\Asset\Private\ObjImporter.cpp" />
     <ClCompile Include="Source\Asset\Private\StaticMesh.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\ActorComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\BillBoardComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Component\Private\CameraComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\LineComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\MeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\PrimitiveComponent.cpp" />
@@ -321,7 +327,6 @@
     <ClCompile Include="Source\Editor\Private\Axis.cpp" />
     <ClCompile Include="Source\Editor\Private\BatchLines.cpp" />
     <ClCompile Include="Source\Editor\Private\BoundingBoxLines.cpp" />
-    <ClCompile Include="Source\Editor\Private\Camera.cpp" />
     <ClCompile Include="Source\Editor\Private\Editor.cpp" />
     <ClCompile Include="Source\Editor\Private\Gizmo.cpp" />
     <ClCompile Include="Source\Editor\Private\Grid.cpp" />
@@ -358,7 +363,6 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\ActorDetailWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\BottomBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ActorTerminationWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\CameraControlWIdget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ConsoleWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\FPSWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />

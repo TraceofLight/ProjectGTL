@@ -276,17 +276,17 @@ void URenderer::Update()
                     FViewportClient* ViewportObjectClient = ViewportObject->GetViewportClient();
 					if (ViewportObjectClient->GetViewType() == EViewType::Perspective) {
 						if (auto* Camera = ViewportObjectClient->GetPerspectiveCamera()) {
-							Camera->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
+							Camera->GetCameraComponent()->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
 							// 입력/움직임 갱신은 그대로 두고, 투영만 즉시 갱신하고 싶으면:
-							Camera->UpdateMatrixByPers(); // 또는 필요 시 Cam->Update() 호출
-							UpdateConstant(Camera->GetFViewProjConstants());
+							Camera->GetCameraComponent()->UpdateMatrixByPers(); // 또는 필요 시 Cam->Update() 호출
+							UpdateConstant(Camera->GetCameraComponent()->GetFViewProjConstants());
 						}
 					}
 					else {
 						if (auto* Camera = ViewportObjectClient->GetOrthoCamera()) {
-							Camera->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
-							Camera->UpdateMatrixByOrth(); // 또는 Cam->Update()
-							UpdateConstant(Camera->GetFViewProjConstants());
+							Camera->GetCameraComponent()->SetAspect(Viewport.Width / max(1.f, Viewport.Height));
+							Camera->GetCameraComponent()->UpdateMatrixByOrth(); // 또는 Cam->Update()
+							UpdateConstant(Camera->GetCameraComponent()->GetFViewProjConstants());
 						}
 					}
                 }
@@ -399,7 +399,7 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 
 				if (!VC) return;
 
-				UCamera* CurrentCamera;
+				ACameraActor* CurrentCamera;
 				FViewProjConstants ViewProj;
 				if (VC->GetViewType() == EViewType::Perspective)
 				{

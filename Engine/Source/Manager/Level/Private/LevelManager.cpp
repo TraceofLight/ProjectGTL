@@ -9,7 +9,6 @@
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
-#include "Editor/Public/Camera.h"
 #include "Asset/Public/StaticMesh.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(ULevelManager)
@@ -129,14 +128,14 @@ bool ULevelManager::SaveCurrentLevel(const FString& InFilePath) const
 		TArray<FViewportClient*>& Clients = ViewportManager.GetClients();
 		if (!Clients.empty() && Clients[0])
 		{
-			UCamera* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
+			ACameraActor* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
 			if (PerspectiveCamera)
 			{
-				Metadata.PerspectiveCamera.FarClip = PerspectiveCamera->GetFarZ();
-				Metadata.PerspectiveCamera.NearClip = PerspectiveCamera->GetNearZ();
-				Metadata.PerspectiveCamera.FOV = PerspectiveCamera->GetFovY();
-				Metadata.PerspectiveCamera.Location = PerspectiveCamera->GetLocation();
-				Metadata.PerspectiveCamera.Rotation = PerspectiveCamera->GetRotation();
+				Metadata.PerspectiveCamera.FarClip = PerspectiveCamera->GetCameraComponent()->GetFarZ();
+				Metadata.PerspectiveCamera.NearClip = PerspectiveCamera->GetCameraComponent()->GetNearZ();
+				Metadata.PerspectiveCamera.FOV = PerspectiveCamera->GetCameraComponent()->GetFovY();
+				Metadata.PerspectiveCamera.Location = PerspectiveCamera->GetActorLocation();
+				Metadata.PerspectiveCamera.Rotation = PerspectiveCamera->GetActorRotation();
 			}
 		}
 
@@ -448,15 +447,14 @@ void ULevelManager::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMet
 	TArray<FViewportClient*>& Clients = ViewportManager.GetClients();
 	if (!Clients.empty() && Clients[0])
 	{
-		UCamera* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
+		ACameraActor* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
 		if (PerspectiveCamera)
 		{
-			PerspectiveCamera->SetLocation(InCameraMetadata.Location);
-			PerspectiveCamera->SetRotation(InCameraMetadata.Rotation);
-			PerspectiveCamera->SetFovY(InCameraMetadata.FOV);
-			PerspectiveCamera->SetNearZ(InCameraMetadata.NearClip);
-			PerspectiveCamera->SetFarZ(InCameraMetadata.FarClip);
-			PerspectiveCamera->Update();
+			PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
+			PerspectiveCamera->SetActorRotation(InCameraMetadata.Rotation);
+			PerspectiveCamera->GetCameraComponent()->SetFovY(InCameraMetadata.FOV);
+			PerspectiveCamera->GetCameraComponent()->SetNearZ(InCameraMetadata.NearClip);
+			PerspectiveCamera->GetCameraComponent()->SetFarZ(InCameraMetadata.FarClip);
 		}
 	}
 }

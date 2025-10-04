@@ -4,7 +4,7 @@
 class UPrimitiveComponent;
 class AActor;
 class ULevel;
-class UCamera;
+class ACameraActor;
 class UGizmo;
 struct FRay;
 
@@ -18,7 +18,7 @@ class UObjectPicker :
 public:
 	UObjectPicker() = default;
 	// Assign camera to use for ray tests (per-frame/per-viewport)
-	void SetCamera(UCamera* InCamera) { Camera = InCamera; }
+	void SetCamera(ACameraActor* InCamera) { Camera = InCamera; }
 	UPrimitiveComponent* PickPrimitive(const FRay& InWorldRay, const TArray<UPrimitiveComponent*>& InCandidate,
 	                                   float* InDistance);
 	void PickGizmo(const FRay& InWorldRay, UGizmo& InGizmo, FVector& InCollisionPoint,
@@ -26,7 +26,7 @@ public:
 	bool IsRayCollideWithPlane(const FRay& InWorldRay, FVector InPlanePoint, FVector InNormal, FVector& InPointOnPlane);
 
 private:
-	UCamera* Camera = nullptr;
+	ACameraActor* Camera = nullptr;
 
 	bool IsRayPrimitiveCollided(const FRay& InModelRay, UPrimitiveComponent* InPrimitive, const FMatrix& InModelMatrix,
 	                            float* InShortestDistance);

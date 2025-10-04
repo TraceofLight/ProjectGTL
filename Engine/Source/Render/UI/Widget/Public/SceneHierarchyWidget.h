@@ -52,8 +52,8 @@ private:
 	// Camera movement
 	void RenderActorInfo(TObjectPtr<AActor> InActor, int32 InIndex);
 	void SelectActor(TObjectPtr<AActor> InActor, bool bInFocusCamera = false);
-	void FocusOnActor(TObjectPtr<UCamera> InCamera, TObjectPtr<AActor> InActor);
-	void UpdateCameraAnimation(TObjectPtr<UCamera> InCamera);
+	void FocusOnActor(TObjectPtr<ACameraActor> InCamera, TObjectPtr<AActor> InActor);
+	void UpdateCameraAnimation(TObjectPtr<ACameraActor> InCamera);
 
 	// 검색 기능
 	void RenderSearchBar();

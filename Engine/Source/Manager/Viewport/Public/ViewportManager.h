@@ -4,7 +4,7 @@
 class SWindow;
 class SSplitter;
 class FAppWindow;
-class UCamera;
+class ACameraActor;
 class FViewport;
 class FViewportClient;
 
@@ -44,8 +44,8 @@ public:
 	TArray<FViewportClient*>& GetClients() { return Clients; }
 
 	// 카메라 배열 접근자
-	const TArray<UCamera*>& GetOrthographicCameras() const { return OrthoGraphicCameras; }
-	const TArray<UCamera*>& GetPerspectiveCameras() const { return PerspectiveCameras; }
+	const TArray<ACameraActor*>& GetOrthographicCameras() const { return OrthoGraphicCameras; }
+	const TArray<ACameraActor*>& GetPerspectiveCameras() const { return PerspectiveCameras; }
 
 	// ViewportChange 상태 접근자
 	EViewportChange GetViewportChange() const { return ViewportChange; }
@@ -100,8 +100,8 @@ private:
 	TArray<FViewport*> Viewports;
 	TArray<FViewportClient*> Clients;
 
-	TArray<UCamera*> OrthoGraphicCameras;
-	TArray<UCamera*> PerspectiveCameras;
+	TArray<ACameraActor*> OrthoGraphicCameras;
+	TArray<ACameraActor*> PerspectiveCameras;
 
 	TArray<FVector> InitialOffsets;
 

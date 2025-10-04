@@ -9,7 +9,8 @@
 #include "Window/Public/SplitterH.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/ViewportClient.h"
-#include "Editor/Public/Camera.h"
+#include "Runtime/Actor/Public/CameraActor.h"
+#include "Runtime/Component/Public/CameraComponent.h"
 #include "Manager/UI/Public/UIManager.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UViewportManager)
@@ -422,13 +423,13 @@ void UViewportManager::Release()
 	}
 
 
-	for (UCamera* Cam : OrthoGraphicCameras)
+	for (ACameraActor* Cam : OrthoGraphicCameras)
 	{
 		delete Cam;
 	}
 
 
-	for (UCamera* Cam : PerspectiveCameras)
+	for (ACameraActor* Cam : PerspectiveCameras)
 	{
 		delete Cam;
 	}
@@ -472,46 +473,47 @@ void UViewportManager::InitializeOrthoGraphicCamera()
 {
 	for (int i = 0; i < 6; ++i)
 	{
-		UCamera* Cam = NewObject<UCamera>();
-		Cam->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
-		OrthoGraphicCameras.push_back(Cam);
+		ACameraActor* Camera = NewObject<ACameraActor>();
+		Camera->SetDisplayName("Camera_" + to_string(ACameraActor::GetNextGenNumber()));
+		OrthoGraphicCameras.push_back(Camera);
 	}
 
+	// TODO(KHJ): 좌표축 이슈 처리 시 해결해야 함
 	// 상단
-	OrthoGraphicCameras[0]->SetLocation(FVector(0.0f, 0.0f, 100.0f));
-	OrthoGraphicCameras[0]->SetRotation(FVector(0.0f, 90.0f, 180.0f));
-	OrthoGraphicCameras[0]->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[0]->SetFarZ(150.0f);
+	OrthoGraphicCameras[0]->SetActorLocation(FVector(0.0f, 0.0f, 100.0f));
+	OrthoGraphicCameras[0]->SetActorRotation(FVector(0.0f, 90.0f, 180.0f));
+	OrthoGraphicCameras[0]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[0]->GetCameraComponent()->SetFarZ(150.0f);
 
 	// 하단
-	OrthoGraphicCameras[1]->SetLocation(FVector(0.0f, 0.0f, -100.0f));
-	OrthoGraphicCameras[1]->SetRotation(FVector(0.0f, -90.0f, 0.0f));
-	OrthoGraphicCameras[1]->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[1]->SetFarZ(150.0f);
+	OrthoGraphicCameras[1]->SetActorLocation(FVector(0.0f, 0.0f, -100.0f));
+	OrthoGraphicCameras[1]->SetActorRotation(FVector(0.0f, -90.0f, 0.0f));
+	OrthoGraphicCameras[1]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[1]->GetCameraComponent()->SetFarZ(150.0f);
 
 	// 왼쪽
-	OrthoGraphicCameras[2]->SetLocation(FVector(0.0f, 100.0f, 0.0f));
-	OrthoGraphicCameras[2]->SetRotation(FVector(0.0f, 0.0f, -90.0f));
-	OrthoGraphicCameras[2]->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[2]->SetFarZ(150.0f);
+	OrthoGraphicCameras[2]->SetActorLocation(FVector(0.0f, 100.0f, 0.0f));
+	OrthoGraphicCameras[2]->SetActorRotation(FVector(0.0f, 0.0f, -90.0f));
+	OrthoGraphicCameras[2]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[2]->GetCameraComponent()->SetFarZ(150.0f);
 
 	// 오른쪽
-	OrthoGraphicCameras[3]->SetLocation(FVector(0.0f, -100.0f, 0.0f));
-	OrthoGraphicCameras[3]->SetRotation(FVector(0.0f, 0.0f, 90.0f));
-	OrthoGraphicCameras[3]->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[3]->SetFarZ(150.0f);
+	OrthoGraphicCameras[3]->SetActorLocation(FVector(0.0f, -100.0f, 0.0f));
+	OrthoGraphicCameras[3]->SetActorRotation(FVector(0.0f, 0.0f, 90.0f));
+	OrthoGraphicCameras[3]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[3]->GetCameraComponent()->SetFarZ(150.0f);
 
 	// 정면
-	OrthoGraphicCameras[4]->SetLocation(FVector(100.0f, 0.0f, 0.0f));
-	OrthoGraphicCameras[4]->SetRotation(FVector(180.0f, 180.0f, 0.0f));
-	OrthoGraphicCameras[4]->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[4]->SetFarZ(150.0f);
+	OrthoGraphicCameras[4]->SetActorLocation(FVector(100.0f, 0.0f, 0.0f));
+	OrthoGraphicCameras[4]->SetActorRotation(FVector(180.0f, 180.0f, 0.0f));
+	OrthoGraphicCameras[4]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[4]->GetCameraComponent()->SetFarZ(150.0f);
 
 	// 후면
-	OrthoGraphicCameras[5]->SetLocation(FVector(-100.0f, 0.0f, 0.0f));
-	OrthoGraphicCameras[5]->SetRotation(FVector(0.0f, 0.0f, 0.0f));
-	OrthoGraphicCameras[5]->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[5]->SetFarZ(150.0f);
+	OrthoGraphicCameras[5]->SetActorLocation(FVector(-100.0f, 0.0f, 0.0f));
+	OrthoGraphicCameras[5]->SetActorRotation(FVector(0.0f, 0.0f, 0.0f));
+	OrthoGraphicCameras[5]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
+	OrthoGraphicCameras[5]->GetCameraComponent()->SetFarZ(150.0f);
 
 	InitialOffsets.emplace_back(0.0f, 0.0f, 100.0f);
 	InitialOffsets.emplace_back(0.0f, 0.0f, -100.0f);
@@ -525,8 +527,13 @@ void UViewportManager::InitializePerspectiveCamera()
 {
 	for (int i = 0; i < 4; ++i)
 	{
-		UCamera* Camera = NewObject<UCamera>();
-		Camera->SetDisplayName("Camera" + to_string(UCamera::GetNextGenNumber()));
+		ACameraActor* Camera = NewObject<ACameraActor>();
+		Camera->SetDisplayName("Camera_" + to_string(ACameraActor::GetNextGenNumber()));
+
+		// 극적인 앵글로 초기 위치 설정
+		Camera->SetActorLocation(FVector(-25.0f, -20.0f, 18.0f));
+		Camera->SetActorRotation(FVector(0, 45.0f, 35.0f));
+
 		PerspectiveCameras.push_back(Camera);
 		Clients[i]->SetPerspectiveCamera(Camera);
 	}
@@ -575,7 +582,7 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 		return;
 	}
 
-	UCamera* OrthoCam = ViewportClient->GetOrthoCamera();
+	ACameraActor* OrthoCam = ViewportClient->GetOrthoCamera();
 	const EViewType ViewType = ViewportClient->GetViewType();
 
 	FVector OrthoCameraFoward;
@@ -619,7 +626,7 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 	if (Delta.X == 0.0f && Delta.Y == 0.0f) return;
 
 	const float Aspect = (Height > 0.f) ? (Width / Height) : 1.0f;
-	const float Rad = FVector::GetDegreeToRadian(OrthoCam->GetFovY());
+	const float Rad = FVector::GetDegreeToRadian(OrthoCam->GetCameraComponent()->GetFovY());
 	const float OrthoWidth = 2.0f * std::tanf(Rad * 0.5f);
 	const float OrthoHeight = (Aspect > 0.0f) ? (OrthoWidth / Aspect) : OrthoWidth;
 
@@ -637,9 +644,9 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 
 	for (int32 i = 0; i < static_cast<int32>(OrthoGraphicCameras.size()); ++i)
 	{
-		if (UCamera* Cam = OrthoGraphicCameras[i])
+		if (ACameraActor* Cam = OrthoGraphicCameras[i])
 		{
-			Cam->SetLocation(OrthoGraphicCamerapoint + InitialOffsets[i]);
+			Cam->SetActorLocation(OrthoGraphicCamerapoint + InitialOffsets[i]);
 		}
 	}
 }
@@ -648,7 +655,7 @@ void UViewportManager::UpdateOrthoGraphicCameraFov() const
 {
 	for (int i = 0; i < 6; ++i)
 	{
-		OrthoGraphicCameras[i]->SetFovY(SharedFovY);
+		OrthoGraphicCameras[i]->GetCameraComponent()->SetFovY(SharedFovY);
 	}
 }
 
@@ -683,8 +690,7 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 			if (i < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[i])
 			{
 				Client->SetPerspectiveCamera(PerspectiveCameras[i]);
-				PerspectiveCameras[i]->SetCameraType(ECameraType::ECT_Perspective);
-				PerspectiveCameras[i]->Update();
+				PerspectiveCameras[i]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
 			}
 		}
 		else
@@ -710,9 +716,8 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 
 			if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.size()))
 			{
-				UCamera* Camera = OrthoGraphicCameras[OrthoIdx];
+				ACameraActor* Camera = OrthoGraphicCameras[OrthoIdx];
 				Client->SetOrthoCamera(Camera);
-				Camera->Update();
 			}
 		}
 
@@ -726,13 +731,12 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 	auto Reposition = [&](int InCamIndex, const FVector& InCamFwd)
 	{
 		if (InCamIndex < 0 || InCamIndex >= static_cast<int>(OrthoGraphicCameras.size())) return;
-		if (UCamera* Camera = OrthoGraphicCameras[InCamIndex])
+		if (ACameraActor* Camera = OrthoGraphicCameras[InCamIndex])
 		{
-			const FVector Loc = Camera->GetLocation();
+			const FVector Loc = Camera->GetActorLocation();
 			const FVector ToC = Loc - OrthoGraphicCamerapoint;
 			const float Dist = std::fabs(ToC.Dot(InCamFwd));
-			Camera->SetLocation(OrthoGraphicCamerapoint - InCamFwd * Dist);
-			Camera->Update();
+			Camera->SetActorLocation(OrthoGraphicCamerapoint - InCamFwd * Dist);
 		}
 	};
 
@@ -750,12 +754,12 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 void UViewportManager::ApplySharedOrthoCenterToAllCameras() const
 {
 	// OrthoGraphicCamerapoint 기준으로 6개 오쏘 카메라 위치 갱신
-	for (UCamera* Camera : OrthoGraphicCameras)
+	for (ACameraActor* Camera : OrthoGraphicCameras)
 	{
 		if (!Camera) continue;
 
 		// 카메라 '전방'을 "센터 - 카메라 위치"로 잡으면, Top/Right/... 어떤 회전이라도 일관되게 작동
-		FVector Forward = (OrthoGraphicCamerapoint - Camera->GetLocation()).Normalized();
+		FVector Forward = (OrthoGraphicCamerapoint - Camera->GetActorLocation()).Normalized();
 
 		// 특이 케이스 보호: fwd가 0이면 월드 Z를 피벗으로 대체
 		if (Forward.IsNearlyZero())
@@ -764,11 +768,10 @@ void UViewportManager::ApplySharedOrthoCenterToAllCameras() const
 		}
 
 		// 현재 센터까지의 전방 거리 유지
-		const FVector toC = Camera->GetLocation() - OrthoGraphicCamerapoint;
+		const FVector toC = Camera->GetActorLocation() - OrthoGraphicCamerapoint;
 		const float Dist = std::fabs(toC.Dot(Forward));
 
-		Camera->SetLocation(OrthoGraphicCamerapoint - Forward * Dist);
-		Camera->Update();
+		Camera->SetActorLocation(OrthoGraphicCamerapoint - Forward * Dist);
 	}
 }
 

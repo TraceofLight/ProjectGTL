@@ -1,10 +1,9 @@
 #pragma once
 #include "Source/Global/CoreTypes.h"
 #include "Source/Global/Enum.h"
-#include "Editor/Public/Camera.h"
+#include "Runtime/Actor/Public/CameraActor.h"
 
 class FViewport;
-class UCamera;
 
 class FViewportClient
 {
@@ -22,12 +21,12 @@ public:
 
 
 	// 퍼스펙티브 카메라
-	void     SetPerspectiveCamera(UCamera* InPerspectiveCamera) { PerspectiveCamera = InPerspectiveCamera; }
-	UCamera* GetPerspectiveCamera() const { return PerspectiveCamera; }
+	void     SetPerspectiveCamera(ACameraActor* InPerspectiveCamera) { PerspectiveCamera = InPerspectiveCamera; }
+	ACameraActor* GetPerspectiveCamera() const { return PerspectiveCamera; }
 
     // 오쏘 카메라 (뷰포트별)
-    void     SetOrthoCamera(UCamera* InCamera) { OrthoGraphicCameras = InCamera; }
-    UCamera* GetOrthoCamera() const { return OrthoGraphicCameras; }
+    void     SetOrthoCamera(ACameraActor* InCamera) { OrthoGraphicCameras = InCamera; }
+    ACameraActor* GetOrthoCamera() const { return OrthoGraphicCameras; }
 
 
 	bool        IsOrtho() const { return ViewType != EViewType::Perspective; }
@@ -51,8 +50,8 @@ public:
 	static void OnClose() {}
 
 
-    FViewProjConstants GetPerspectiveViewProjConstData() const { return PerspectiveCamera->GetFViewProjConstants(); }
-    FViewProjConstants GetOrthoGraphicViewProjConstData() const { return OrthoGraphicCameras->GetFViewProjConstants(); }
+    FViewProjConstants GetPerspectiveViewProjConstData() const { return PerspectiveCamera->GetCameraComponent()->GetFViewProjConstants(); }
+    FViewProjConstants GetOrthoGraphicViewProjConstData() const { return OrthoGraphicCameras->GetCameraComponent()->GetFViewProjConstants(); }
 private:
 
 private:
@@ -60,8 +59,8 @@ private:
 	EViewType   ViewType = EViewType::Perspective;
 	EViewMode   ViewMode = EViewMode::Lit;
 
-    TObjectPtr<UCamera> PerspectiveCamera = nullptr;
-    TObjectPtr<UCamera> OrthoGraphicCameras = nullptr;
+    TObjectPtr<ACameraActor> PerspectiveCamera = nullptr;
+    TObjectPtr<ACameraActor> OrthoGraphicCameras = nullptr;
 
 
 	// 뷰/입력 상태

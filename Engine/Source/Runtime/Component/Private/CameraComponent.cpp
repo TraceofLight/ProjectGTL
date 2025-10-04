@@ -1,15 +1,22 @@
 #include "pch.h"
-#include "Editor/Public/Camera.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Component/Public/CameraComponent.h"
 #include "Render/Renderer/Public/Renderer.h"
 
-IMPLEMENT_CLASS(UCamera, UObject)
+IMPLEMENT_CLASS(UCameraComponent, USceneComponent)
 
-void UCamera::Update()
+UCameraComponent::UCameraComponent()
+	: ViewProjConstants(FViewProjConstants())
+	, FovY(90.f)
+	, Aspect(float(Render::INIT_SCREEN_WIDTH) / Render::INIT_SCREEN_HEIGHT)
+	, NearZ(0.1f)
+	, FarZ(1000.f)
+	, CameraType(ECameraType::ECT_Perspective)
 {
-	UInputManager& Input = UInputManager::GetInstance();
+}
 
-    FMatrix rotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
+void UCameraComponent::UpdateVectors()
+{
+	FMatrix rotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(GetRelativeRotation()));
 
 	FVector4 Forward4 = FVector4(1, 0, 0, 1) * rotationMatrix;
 	Forward = FVector(Forward4.X, Forward4.Y, Forward4.Z);
@@ -21,100 +28,19 @@ void UCamera::Update()
 	Right.Normalize();
 	Up = Right.Cross(Forward);
 	Up.Normalize();
-
-    /**
-     * @brief 마우스 우클릭 제어: 투영 타입별로 동작을 분기합니다.
-     */
-    if (Input.IsKeyDown(EKeyInput::MouseRight))
-    {
-        if (CameraType == ECameraType::ECT_Orthographic)
-        {
-            // 마우스 드래그 → 패닝 (스크린 공간 X→Right, Y→Up)
-            const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
-            if (MouseDelta.X != 0.0f || MouseDelta.Y != 0.0f)
-            {
-                // OrthoWidth/Height 기반 픽셀당 월드 단위 추정
-                float widthPx = 1.0f, heightPx = 1.0f;
-                if (URenderer::GetInstance().GetDeviceResources())
-                {
-                    widthPx = max(1.0f, URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Width);
-                    heightPx = max(1.0f, URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Height);
-                }
-                const float OrthoWidthNow = 2.0f * std::tanf(FVector::GetDegreeToRadian(FovY) * 0.5f);
-                const float OrthoHeightNow = OrthoWidthNow / max(0.0001f, Aspect);
-                const float worldPerPixelX = OrthoWidthNow / widthPx;
-                const float worldPerPixelY = OrthoHeightNow / heightPx;
-                RelativeLocation += (-Right * MouseDelta.X * worldPerPixelX) + (Up * MouseDelta.Y * worldPerPixelY);
-            }
-
-            // Ortho 휠 도리는 뷰포트 매니저에서 "마우스가 올라가 있는 뷰포트" 기준으로 처리함
-        }
-        else // Perspective
-        {
-            // 기존 FPS 스타일 유지 (WASD + 마우스 회전 + 휠로 속도 조절)
-            FVector Direction = { 0,0,0 };
-            if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right; }
-            if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right; }
-            if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward; }
-            if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward; }
-            if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up; }
-            if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up; }
-            Direction.Normalize();
-            RelativeLocation += Direction * CurrentMoveSpeed * GDeltaTime;
-
-            float WheelDelta = Input.GetMouseWheelDelta();
-            if (WheelDelta != 0.0f)
-            {
-                AdjustMoveSpeed(WheelDelta * SPEED_ADJUST_STEP);
-                Input.SetMouseWheelDelta(0.0f);
-            }
-
-            const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
-            RelativeRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel;
-            RelativeRotation.Y += MouseDelta.Y * KeySensitivityDegPerPixel;
-
-            if (RelativeRotation.Z > 180.0f) RelativeRotation.Z -= 360.0f;
-            if (RelativeRotation.Z < -180.0f) RelativeRotation.Z += 360.0f;
-            if (RelativeRotation.Y > 89.0f)  RelativeRotation.Y = 89.0f;
-            if (RelativeRotation.Y < -89.0f) RelativeRotation.Y = -89.0f;
-        }
-    }
-
-    if (URenderer::GetInstance().GetDeviceResources())
-    {
-        float Width = URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Width;
-        float Height = URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Height;
-        SetAspect(Width / Height);
-    }
-
-	switch (CameraType)
-	{
-	case ECameraType::ECT_Perspective:
-		UpdateMatrixByPers();
-		break;
-	case ECameraType::ECT_Orthographic:
-		UpdateMatrixByOrth();
-		break;
-	}
-
-	// TEST CODE
-	URenderer::GetInstance().UpdateConstant(ViewProjConstants);
-
 }
 
-void UCamera::UpdateMatrixByPers()
+void UCameraComponent::UpdateMatrixByPers()
 {
+	UpdateVectors();
+
 	/**
 	 * @brief View 행렬 연산
 	 */
-	FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
+	FMatrix T = FMatrix::TranslationMatrixInverse(GetRelativeLocation());
 	FMatrix R = FMatrix(Right, Up, Forward);
 	R = R.Transpose();
 	ViewProjConstants.View = T * R;
-	/*FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
-	FMatrix R = FMatrix::RotationMatrixInverse(FVector::GetDegreeToRadian(RelativeRotation));
-	ViewProjConstants.View = T * R;*/
-
 
 	/**
 	 * @brief Projection 행렬 연산
@@ -139,18 +65,17 @@ void UCamera::UpdateMatrixByPers()
 	ViewProjConstants.Projection = P;
 }
 
-void UCamera::UpdateMatrixByOrth()
+void UCameraComponent::UpdateMatrixByOrth()
 {
+	UpdateVectors();
+
 	/**
 	 * @brief View 행렬 연산
 	 */
-	FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
+	FMatrix T = FMatrix::TranslationMatrixInverse(GetRelativeLocation());
 	FMatrix R = FMatrix(Right, Up, Forward);
 	R = R.Transpose();
 	ViewProjConstants.View = T * R;
-	/*FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
-	FMatrix R = FMatrix::RotationMatrixInverse(FVector::GetDegreeToRadian(RelativeRotation));
-	ViewProjConstants.View = T * R;*/
 
 	/**
 	 * @brief Projection 행렬 연산
@@ -173,15 +98,14 @@ void UCamera::UpdateMatrixByOrth()
 	ViewProjConstants.Projection = P;
 }
 
-const FViewProjConstants UCamera::GetFViewProjConstantsInverse() const
+const FViewProjConstants UCameraComponent::GetFViewProjConstantsInverse() const
 {
 	/*
 	* @brief View^(-1) = R * T
 	*/
 	FViewProjConstants Result = {};
-	//FMatrix R = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
 	FMatrix R = FMatrix(Right, Up, Forward);
-	FMatrix T = FMatrix::TranslationMatrix(RelativeLocation);
+	FMatrix T = FMatrix::TranslationMatrix(GetRelativeLocation());
 	Result.View = R * T;
 
 	if (CameraType == ECameraType::ECT_Orthographic)
@@ -225,38 +149,36 @@ const FViewProjConstants UCamera::GetFViewProjConstantsInverse() const
 	return Result;
 }
 
-
-FRay UCamera::ConvertToWorldRay(float NdcX, float NdcY) const
+FRay UCameraComponent::ConvertToWorldRay(float NdcX, float NdcY) const
 {
-	/* *
+	/**
 	 * @brief 반환할 타입의 객체 선언
 	 */
 	FRay Ray = {};
 
 	const FViewProjConstants& ViewProjMatrix = GetFViewProjConstantsInverse();
 
-
-	/* *
+	/**
 	 * @brief NDC 좌표 정보를 행렬로 변환합니다.
 	 */
 	const FVector4 NdcNear(NdcX, NdcY, 0.0f, 1.0f);
 	const FVector4 NdcFar(NdcX, NdcY, 1.0f, 1.0f);
 
-	/* *
+	/**
 	 * @brief Projection 행렬을 View 행렬로 역투영합니다.
 	 * Model -> View -> Projection -> NDC
 	 */
 	const FVector4 ViewNear = MultiplyPointWithMatrix(NdcNear, ViewProjMatrix.Projection);
 	const FVector4 ViewFar = MultiplyPointWithMatrix(NdcFar, ViewProjMatrix.Projection);
 
-	/* *
+	/**
 	 * @brief View 행렬을 World 행렬로 역투영합니다.
 	 * Model -> View -> Projection -> NDC
 	 */
 	const FVector4 WorldNear = MultiplyPointWithMatrix(ViewNear, ViewProjMatrix.View);
 	const FVector4 WorldFar = MultiplyPointWithMatrix(ViewFar, ViewProjMatrix.View);
 
-	/* *
+	/**
 	 * @brief 카메라의 월드 좌표를 추출합니다.
 	 * Row-major 기준, 마지막 행 벡터는 위치 정보를 가지고 있음
 	 */
@@ -286,11 +208,12 @@ FRay UCamera::ConvertToWorldRay(float NdcX, float NdcY) const
 	return Ray;
 }
 
-FVector UCamera::CalculatePlaneNormal(const FVector4& Axis)
+FVector UCameraComponent::CalculatePlaneNormal(const FVector4& Axis)
 {
 	return Forward.Cross(FVector(Axis.X, Axis.Y, Axis.Z));
 }
-FVector UCamera::CalculatePlaneNormal(const FVector& Axis)
+
+FVector UCameraComponent::CalculatePlaneNormal(const FVector& Axis)
 {
 	return Forward.Cross(FVector(Axis.X, Axis.Y, Axis.Z));
 }

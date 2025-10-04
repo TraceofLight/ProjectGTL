@@ -59,36 +59,42 @@ void UEditor::RenderEditor()
 		FViewportClient* CurrentClient = Clients[CurrentViewportIndex];
 		FViewport* CurrentViewport = Viewports[CurrentViewportIndex];
 
-		UCamera* ViewportCamera = CurrentClient->IsOrtho()
+		ACameraActor* ViewportCamera = CurrentClient->IsOrtho()
 			                          ? CurrentClient->GetOrthoCamera()
 			                          : CurrentClient->GetPerspectiveCamera();
 
-		if (ViewportCamera)
+		if (ViewportCamera && ViewportCamera->GetCameraComponent())
 		{
 			const FRect& ViewportRect = CurrentViewport->GetRect();
 			float ViewportWidth = static_cast<float>(ViewportRect.W);
 			float ViewportHeight = static_cast<float>(ViewportRect.H - CurrentViewport->GetToolbarHeight());
 
 			// 뷰포트별로 카메라 정보를 이용해 기즈모 크기 계산
-			Gizmo.RenderGizmo(SelectedActor, ViewportCamera->GetLocation(), ViewportCamera, ViewportWidth,
+			Gizmo.RenderGizmo(SelectedActor, ViewportCamera->GetCameraComponent()->GetRelativeLocation(), ViewportCamera, ViewportWidth,
 			                  ViewportHeight, CurrentViewportIndex);
 		}
 		else
 		{
 			// 카메라 정보가 없으면 기본 방식 사용
-			Gizmo.RenderGizmo(SelectedActor, Camera.GetLocation());
+			if (Camera && Camera->GetCameraComponent())
+			{
+				Gizmo.RenderGizmo(SelectedActor, Camera->GetCameraComponent()->GetRelativeLocation());
+			}
 		}
 	}
 	else
 	{
 		// 뷰포트 인덱스가 유효하지 않으면 기본 방식 사용
-		if (UCamera* ActiveCam = GetActivePickingCamera())
+		if (ACameraActor* ActiveCam = GetActivePickingCamera())
 		{
-			Gizmo.RenderGizmo(SelectedActor, ActiveCam->GetLocation(), ActiveCam);
+			if (ActiveCam->GetCameraComponent())
+			{
+				Gizmo.RenderGizmo(SelectedActor, ActiveCam->GetCameraComponent()->GetRelativeLocation(), ActiveCam);
+			}
 		}
-		else
+		else if (Camera && Camera->GetCameraComponent())
 		{
-			Gizmo.RenderGizmo(SelectedActor, Camera.GetLocation(), &Camera);
+			Gizmo.RenderGizmo(SelectedActor, Camera->GetCameraComponent()->GetRelativeLocation(), Camera.Get());
 		}
 	}
 }
@@ -103,7 +109,7 @@ void UEditor::RenderEditor()
 void UEditor::HandleViewportInteraction()
 {
 	// Prepare
-	UCamera* PickingCamera = GetActivePickingCamera();
+	ACameraActor* PickingCamera = GetActivePickingCamera();
 	if (!PickingCamera)
 	{
 		return;
@@ -212,7 +218,7 @@ void UEditor::HandleGlobalShortcuts()
  * @param InPickingCamera 현재 사용 중인 에디터의 Picking Camera
  * @return 생성된 Ray 인스턴스
  */
-FRay UEditor::CreateWorldRayFromMouse(const UCamera* InPickingCamera)
+FRay UEditor::CreateWorldRayFromMouse(const ACameraActor* InPickingCamera)
 {
 	const auto& InputManager = UInputManager::GetInstance();
 	auto& ViewportManager = UViewportManager::GetInstance();
@@ -222,10 +228,14 @@ FRay UEditor::CreateWorldRayFromMouse(const UCamera* InPickingCamera)
 	bool bHaveLocalNDC = ViewportManager.ComputeLocalNDCForViewport(ViewportIndex, NdcX, NdcY);
 
 	// 뷰포트 로컬 좌표가 있으면 사용하고, 없으면 전체 화면 기준의 좌표를 사용
-	return InPickingCamera->ConvertToWorldRay(
-		bHaveLocalNDC ? NdcX : InputManager.GetMouseNDCPosition().X,
-		bHaveLocalNDC ? NdcY : InputManager.GetMouseNDCPosition().Y
-	);
+	if (InPickingCamera && InPickingCamera->GetCameraComponent())
+	{
+		return InPickingCamera->GetCameraComponent()->ConvertToWorldRay(
+			bHaveLocalNDC ? NdcX : InputManager.GetMouseNDCPosition().X,
+			bHaveLocalNDC ? NdcY : InputManager.GetMouseNDCPosition().Y
+		);
+	}
+	return FRay();
 }
 
 /**
@@ -233,7 +243,7 @@ FRay UEditor::CreateWorldRayFromMouse(const UCamera* InPickingCamera)
  * @param InWorldRay 마우스를 기준으로 생성된 충돌용 Ray
  * @param InPickingCamera 에디터의 카메라
  */
-void UEditor::UpdateGizmoDrag(const FRay& InWorldRay, UCamera& InPickingCamera)
+void UEditor::UpdateGizmoDrag(const FRay& InWorldRay, ACameraActor& InPickingCamera)
 {
 	if (!Gizmo.GetSelectedActor())
 	{
@@ -365,10 +375,15 @@ TArray<UPrimitiveComponent*> UEditor::FindCandidateActors(const ULevel* InLevel)
  * @param InCamera 현재 에디터의 뷰포트 카메라
  * @return 계산된 기즈모의 새로운 월드 공간 위치 벡터
  */
-FVector UEditor::GetGizmoDragLocation(const FRay& InWorldRay, UCamera& InCamera)
+FVector UEditor::GetGizmoDragLocation(const FRay& InWorldRay, ACameraActor& InCamera)
 {
+	if (!InCamera.GetCameraComponent())
+	{
+		return FVector();
+	}
+
 	// Orthographic
-	if (InCamera.GetCameraType() == ECameraType::ECT_Orthographic)
+	if (InCamera.GetCameraComponent()->GetCameraType() == ECameraType::ECT_Orthographic)
 	{
 		return GetGizmoDragLocationForOrthographic(InCamera);
 	}
@@ -379,7 +394,7 @@ FVector UEditor::GetGizmoDragLocation(const FRay& InWorldRay, UCamera& InCamera)
 	}
 }
 
-FVector UEditor::GetGizmoDragLocationForPerspective(const FRay& InWorldRay, UCamera& InCamera)
+FVector UEditor::GetGizmoDragLocationForPerspective(const FRay& InWorldRay, ACameraActor& InCamera)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{Gizmo.GetGizmoLocation()};
@@ -418,8 +433,8 @@ FVector UEditor::GetGizmoDragLocationForPerspective(const FRay& InWorldRay, UCam
 		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
 	}
 
-	if (ObjectPicker.IsRayCollideWithPlane(InWorldRay, PlaneOrigin,
-	                                       InCamera.CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis), MouseWorld))
+	if (InCamera.GetCameraComponent() && ObjectPicker.IsRayCollideWithPlane(InWorldRay, PlaneOrigin,
+	                                       InCamera.GetCameraComponent()->CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis), MouseWorld))
 	{
 		FVector MouseDistance = MouseWorld - Gizmo.GetDragStartMouseLocation();
 		return Gizmo.GetDragStartActorLocation() + GizmoAxis * MouseDistance.Dot(GizmoAxis);
@@ -436,7 +451,7 @@ FVector UEditor::GetGizmoDragLocationForPerspective(const FRay& InWorldRay, UCam
  * @param InCamera 현재 카메라
  * @return 계산된 새로운 위치
  */
-FVector UEditor::GetGizmoDragLocationForOrthographic(const UCamera& InCamera)
+FVector UEditor::GetGizmoDragLocationForOrthographic(const ACameraActor& InCamera)
 {
 	// 현재 뷰포트 정보 가져오기
 	auto& ViewportManager = UViewportManager::GetInstance();
@@ -497,7 +512,7 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const UCamera& InCamera)
 
 	// NDC 델타 계산 (ViewportManager와 동일한 방식)
 	const float Aspect = (Height > 0.f) ? (Width / Height) : 1.0f;
-	const float Rad = FVector::GetDegreeToRadian(InCamera.GetFovY());
+	const float Rad = InCamera.GetCameraComponent() ? FVector::GetDegreeToRadian(InCamera.GetCameraComponent()->GetFovY()) : 0.0f;
 	const float OrthoWidth = 2.0f * std::tanf(Rad * 0.5f);
 	const float OrthoHeight = (Aspect > 0.0f) ? (OrthoWidth / Aspect) : OrthoWidth;
 
@@ -684,7 +699,7 @@ FVector UEditor::GetGizmoDragRotation(const FRay& InWorldRay)
  * @param InCamera 현재 에디터의 뷰포트 카메라
  * @return 계산된 객체의 새로운 스케일 벡터
  */
-FVector UEditor::GetGizmoDragScale(const FRay& InWorldRay, UCamera& InCamera)
+FVector UEditor::GetGizmoDragScale(const FRay& InWorldRay, ACameraActor& InCamera)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin = Gizmo.GetGizmoLocation();
@@ -721,7 +736,7 @@ FVector UEditor::GetGizmoDragScale(const FRay& InWorldRay, UCamera& InCamera)
 	FVector GizmoAxis;
 	GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
 
-	FVector PlaneNormal = InCamera.CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis);
+	FVector PlaneNormal = InCamera.GetCameraComponent() ? InCamera.GetCameraComponent()->CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis) : FVector();
 	if (ObjectPicker.IsRayCollideWithPlane(InWorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
 	{
 		FVector PlaneOriginToMouse = MouseWorld - PlaneOrigin;
@@ -764,7 +779,7 @@ FVector UEditor::GetGizmoDragScale(const FRay& InWorldRay, UCamera& InCamera)
  * @brief 현재 사용하는 Viewport의 카메라를 가져오는 함수
  * @return 타입에 따라 Perspective / Orthogonal Viewport 카메라
  */
-UCamera* UEditor::GetActivePickingCamera()
+ACameraActor* UEditor::GetActivePickingCamera()
 {
 	auto& ViewportManager = UViewportManager::GetInstance();
 	const auto& Clients = ViewportManager.GetClients();

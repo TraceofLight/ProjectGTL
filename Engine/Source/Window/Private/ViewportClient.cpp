@@ -1,5 +1,6 @@
 #include "pch.h"
-#include "Editor/Public/Camera.h"
+#include "Runtime/Actor/Public/CameraActor.h"
+#include "Runtime/Component/Public/CameraComponent.h"
 #include "Source/Window/Public/Viewport.h"
 #include "Source/Window/Public/ViewportClient.h"
 
@@ -10,18 +11,21 @@ FViewportClient::~FViewportClient() = default;
 void FViewportClient::Tick() const
 {
 	// 필요 시 뷰 모드/기즈모 상태 업데이트 등
-	// 카메라 입력은 UCamera::Update()가 UInputManager를 직접 읽는 구조라면 여기서 호출만 하면 됨.
+	// 카메라 입력은 ACameraActor::Tick()에서 처리
     if (IsOrtho())
     {
         if (OrthoGraphicCameras)
         {
-            OrthoGraphicCameras->Update();                     // 내부에서 입력 처리 + View/Proj 갱신
+            OrthoGraphicCameras->Tick();                     // 내부에서 입력 처리 + View/Proj 갱신
         }
     }
     else if (PerspectiveCamera)
     {
-        PerspectiveCamera->SetCameraType(ECameraType::ECT_Perspective);
-        PerspectiveCamera->Update();
+        if (PerspectiveCamera->GetCameraComponent())
+        {
+            PerspectiveCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
+        }
+        PerspectiveCamera->Tick();
     }
 }
 
@@ -33,17 +37,17 @@ void FViewportClient::Draw(const FViewport* InViewport) const
 
     if (IsOrtho())
     {
-        if (OrthoGraphicCameras)
+        if (OrthoGraphicCameras && OrthoGraphicCameras->GetCameraComponent())
         {
-            OrthoGraphicCameras->SetAspect(Aspect);
-            OrthoGraphicCameras->SetCameraType(ECameraType::ECT_Orthographic);
-            OrthoGraphicCameras->UpdateMatrixByOrth();
+            OrthoGraphicCameras->GetCameraComponent()->SetAspect(Aspect);
+            OrthoGraphicCameras->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
+            OrthoGraphicCameras->GetCameraComponent()->UpdateMatrixByOrth();
         }
     }
-    else if (PerspectiveCamera)
+    else if (PerspectiveCamera && PerspectiveCamera->GetCameraComponent())
     {
-        PerspectiveCamera->SetAspect(Aspect);
-        PerspectiveCamera->SetCameraType(ECameraType::ECT_Perspective);
-        PerspectiveCamera->UpdateMatrixByPers();
+        PerspectiveCamera->GetCameraComponent()->SetAspect(Aspect);
+        PerspectiveCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
+        PerspectiveCamera->GetCameraComponent()->UpdateMatrixByPers();
     }
 }

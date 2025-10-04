@@ -3,8 +3,6 @@
 #include "Factory/Public/FactorySystem.h"
 #include "Factory/Public/NewObject.h"
 
-#include "Editor/Public/Camera.h"
-
 class AAxis;
 class AGizmo;
 class AGrid;
@@ -63,9 +61,6 @@ public:
 	TObjectPtr<AActor> GetSelectedActor() const { return SelectedActor; }
 	AGizmo* GetGizmo() const { return Gizmo; }
 
-	void SetCamera(UCamera* InCamera) { CameraPtr = InCamera; }
-	UCamera* GetCamera() const { return CameraPtr; }
-
 	uint64 GetShowFlags() const { return ShowFlags; }
 	void SetShowFlags(uint64 InShowFlags) { ShowFlags = InShowFlags; }
 
@@ -79,10 +74,6 @@ private:
 	TObjectPtr<AGizmo> Gizmo = nullptr;
 	TObjectPtr<AAxis> Axis = nullptr;
 	TObjectPtr<AGrid> Grid = nullptr;
-
-	// TODO(PYB): Editor 제작되면 해당 클래스에 존재하는 카메라 관련 코드 제거
-	// TODO(KHJ): Level로부터 카메라나 Selected Actor를 받는 내용을 제거해야 함
-	UCamera* CameraPtr = nullptr;
 
 	// 빌보드는 처음에 표시 안하는 게 좋다는 의견이 있어 빌보드만 꺼놓고 출력
 	uint64 ShowFlags = static_cast<uint64>(EEngineShowFlags::SF_Primitives) |

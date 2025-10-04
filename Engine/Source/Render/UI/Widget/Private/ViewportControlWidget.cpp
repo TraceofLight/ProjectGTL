@@ -7,7 +7,6 @@
 #include "Window/Public/Splitter.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Editor/Public/Editor.h"
-#include "Editor/Public/Camera.h"
 #include "Editor/Public/BatchLines.h"
 
 // 정적 멤버 정의
@@ -189,7 +188,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			{
 				CurrentLayout = ELayout::Quad;
 				ViewportManager.SetViewportChange(EViewportChange::Quad);
-				
+
 				// 애니메이션 시작: Single → Quad
 				ViewportManager.StartLayoutAnimation(true, ViewportIndex);
 			}
@@ -238,7 +237,7 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 	}
 
 	// 현재 선택된 카메라 스피드 가져오기
-	UCamera* CurrentCamera;
+	ACameraActor* CurrentCamera;
 	if (Clients[ViewportIndex]->GetViewType() == EViewType::Perspective)
 	{
 		CurrentCamera = Clients[ViewportIndex]->GetPerspectiveCamera();
@@ -287,7 +286,7 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 
 		// 슬라이더로 세밀 조정
 		float TempSpeed = CurrentSpeed;
-		if (ImGui::SliderFloat("세밀 조정", &TempSpeed, UCamera::MIN_SPEED, UCamera::MAX_SPEED, "%.0f"))
+		if (ImGui::SliderFloat("세밀 조정", &TempSpeed, ACameraActor::MIN_SPEED, ACameraActor::MAX_SPEED, "%.0f"))
 		{
 			CurrentCamera->SetMoveSpeed(TempSpeed);
 		}
@@ -379,10 +378,9 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 		const auto& PerspectiveCameras = ViewportManager.GetPerspectiveCameras();
 		if (ViewportIndex < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[ViewportIndex])
 		{
-			UCamera* PerspCamera = PerspectiveCameras[ViewportIndex];
+			ACameraActor* PerspCamera = PerspectiveCameras[ViewportIndex];
 			Client->SetPerspectiveCamera(PerspCamera);
-			PerspCamera->SetCameraType(ECameraType::ECT_Perspective);
-			PerspCamera->Update();
+			PerspCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
 			UE_LOG("ViewportControl: Perspective 카메라로 변경됨 (ViewportIndex: %d)", ViewportIndex);
 		}
 	}
@@ -390,7 +388,7 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 	{
 		// Orthographic 카메라 바인딩
 		const auto& OrthoCameras = ViewportManager.GetOrthographicCameras();
-		
+
 		// ViewType에 따라 적절한 OrthoCameras 인덱스 매핑
 		int32 OrthoIdx = -1;
 		switch (NewType)
@@ -403,13 +401,12 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 		case EViewType::OrthoBack: OrthoIdx = 5; break;
 		default: return;
 		}
-		
+
 		if (OrthoIdx >= 0 && OrthoIdx < static_cast<int32>(OrthoCameras.size()) && OrthoCameras[OrthoIdx])
 		{
-			UCamera* OrthoCamera = OrthoCameras[OrthoIdx];
+			ACameraActor* OrthoCamera = OrthoCameras[OrthoIdx];
 			Client->SetOrthoCamera(OrthoCamera);
-			OrthoCamera->SetCameraType(ECameraType::ECT_Orthographic);
-			OrthoCamera->Update();
+			OrthoCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
 			UE_LOG("ViewportControl: Orthographic 카메라로 변경됨 (ViewportIndex: %d, OrthoIdx: %d)", ViewportIndex, OrthoIdx);
 		}
 	}

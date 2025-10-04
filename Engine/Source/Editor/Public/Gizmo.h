@@ -3,7 +3,7 @@
 #include "Runtime/Core/Public/Object.h"
 #include "Runtime/Actor/Public/Actor.h"
 
-class UCamera;
+class ACameraActor;
 class UObjectPicker;
 
 enum class EGizmoMode : uint8
@@ -53,7 +53,7 @@ class UGizmo :
 	DECLARE_CLASS(UGizmo, UObject)
 
 public:
-	void RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const UCamera* InCamera = nullptr,
+	void RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const ACameraActor* InCamera = nullptr,
 	                 float InViewportWidth = 0.0f, float InViewportHeight = 0.0f, int32 ViewportIndex = 0);
 	void ChangeGizmoMode();
 	void ChangeGizmoMode(EGizmoMode InMode) { GizmoMode = InMode; }
@@ -100,7 +100,7 @@ public:
 	void SetLocal() { bIsWorld = false; }
 	bool IsWorldMode() const { return bIsWorld; }
 
-	float CalculateScreenSpaceScale(const FVector& InCameraLocation, const UCamera* InCamera, float InViewportWidth,
+	float CalculateScreenSpaceScale(const FVector& InCameraLocation, const ACameraActor* InCamera, float InViewportWidth,
 	                                float InViewportHeight, float InDesiredPixelSize = 120.0f) const;
 
 	float GetCurrentRenderScale() const { return CurrentRenderScale; } // 현재 렌더링에 사용되는 실제 스케일 값 반환

@@ -5,7 +5,7 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Global/Quaternion.h"
-#include "Editor/Public/Camera.h"
+#include "Runtime/Actor/Public/CameraActor.h"
 
 IMPLEMENT_CLASS(UGizmo, UObject)
 
@@ -59,7 +59,7 @@ UGizmo::UGizmo()
 
 UGizmo::~UGizmo() = default;
 
-void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const UCamera* InCamera, float InViewportWidth,
+void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const ACameraActor* InCamera, float InViewportWidth,
                          float InViewportHeight, int32 ViewportIndex)
 {
 	TargetActor = InActor;
@@ -227,10 +227,10 @@ EGizmoDirection UGizmo::GetGizmoDirectionForViewport(int32 InViewportIndex) cons
 /**
  * @brief 화면에서 일정한 픽셀 크기를 유지하는 스케일을 계산하는 함수
  */
-float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const UCamera* InCamera,
+float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const ACameraActor* InCamera,
                                         float InViewportWidth, float InViewportHeight, float InDesiredPixelSize) const
 {
-	if (!InCamera || !TargetActor || InViewportWidth <= 0.0f || InViewportHeight <= 0.0f)
+	if (!InCamera || !InCamera->GetCameraComponent() || !TargetActor || InViewportWidth <= 0.0f || InViewportHeight <= 0.0f)
 	{
 		return 1.0f;
 	}
@@ -240,16 +240,16 @@ float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const U
 	DistanceToCamera = max(DistanceToCamera, 0.1f);
 
 	// 원근 투영
-	if (InCamera->GetCameraType() == ECameraType::ECT_Perspective)
+	if (InCamera->GetCameraComponent()->GetCameraType() == ECameraType::ECT_Perspective)
 	{
 		// FOV와 거리를 이용한 화면 공간 크기 계산
-		float FovYRadians = InCamera->GetFovY() * (PI / 180.0f);
+		float FovYRadians = InCamera->GetCameraComponent()->GetFovY() * (PI / 180.0f);
 		float TanHalfFov = tanf(FovYRadians * 0.5f);
 
 		// 원근 투영에서 화면 끝으로 갈수록 커지는 현상 보정
 		// 기즈모 위치에서 카메라 중심까지의 벡터와 카메라 방향 벡터의 도트곱 계산
 		FVector CameraToGizmo = TargetActor->GetActorLocation() - InCameraLocation;
-		FVector CameraForward = InCamera->GetForward();
+		FVector CameraForward = InCamera->GetCameraComponent()->GetForward();
 		CameraToGizmo.Normalize();
 		CameraForward.Normalize();
 
@@ -270,7 +270,7 @@ float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const U
 	else
 	{
 		// FOV 값이 화면 높이를 의미함 (더 작은 크기로 조정)
-		float OrthographicHeight = InCamera->GetFovY();
+		float OrthographicHeight = InCamera->GetCameraComponent()->GetFovY();
 		float WorldUnitsPerPixel = OrthographicHeight / InViewportHeight;
 
 		// 직교 투영에서는 좌표계 차이로 인해 더 작은 크기 사용 (휴리스틱하게 보정함)
