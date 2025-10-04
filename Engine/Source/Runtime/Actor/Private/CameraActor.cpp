@@ -3,6 +3,8 @@
 #include "Manager/Input/Public/InputManager.h"
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Manager/UI/Public/UIManager.h"
+#include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
 IMPLEMENT_CLASS(ACameraActor, AActor)
 
@@ -31,13 +33,29 @@ void ACameraActor::Tick()
 	if (!CameraComponent)
 		return;
 
+	// SceneHierarchyWidget에서 카메라 애니메이션 상태 확인
+	auto& UIManager = UUIManager::GetInstance();
+	TObjectPtr<UWidget> SceneHierarchyWidgetPtr = UIManager.FindWidget(FName("Scene Hierarchy Widget"));
+	USceneHierarchyWidget* SceneHierarchyWidget = Cast<USceneHierarchyWidget>(SceneHierarchyWidgetPtr);
+
+	bool bIsAnimating = false;
+
+	if (SceneHierarchyWidget)
+	{
+		bIsAnimating = SceneHierarchyWidget->IsCameraAnimating(TObjectPtr<ACameraActor>(this));
+	}
+
 	UInputManager& Input = UInputManager::GetInstance();
 
-	/**
-	 * @brief 마우스 우클릭 제어: 투영 타입별로 동작을 분기합니다.
-	 */
+	// 마우스 우클릭 제어: 투영 타입별로 동작을 분기
+	// 애니메이션 중 우클릭이 들어오면 애니메이션을 중단하고 카메라 조작을 시작합니다
 	if (Input.IsKeyDown(EKeyInput::MouseRight))
 	{
+		// 애니메이션 중이면 중단
+		if (bIsAnimating && SceneHierarchyWidget)
+		{
+			SceneHierarchyWidget->StopCameraAnimation(TObjectPtr<ACameraActor>(this));
+		}
 		if (CameraComponent->GetCameraType() == ECameraType::ECT_Orthographic)
 		{
 			// 마우스 드래그 → 패닝 (스크린 공간 X→Right, Y→Up)
@@ -63,8 +81,6 @@ void ACameraActor::Tick()
 				               (CameraComponent->GetUp() * MouseDelta.Y * worldPerPixelY);
 				CameraComponent->SetRelativeLocation(NewLocation);
 			}
-
-			// Ortho 휠 도리는 뷰포트 매니저에서 "마우스가 올라가 있는 뷰포트" 기준으로 처리함
 		}
 		else // Perspective
 		{
@@ -94,10 +110,10 @@ void ACameraActor::Tick()
 			NewRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel;
 			NewRotation.Y += MouseDelta.Y * KeySensitivityDegPerPixel;
 
-			if (NewRotation.Z > 180.0f) NewRotation.Z -= 360.0f;
-			if (NewRotation.Z < -180.0f) NewRotation.Z += 360.0f;
-			if (NewRotation.Y > 89.0f)  NewRotation.Y = 89.0f;
-			if (NewRotation.Y < -89.0f) NewRotation.Y = -89.0f;
+			// if (NewRotation.Z > 180.0f) NewRotation.Z -= 360.0f;
+			// if (NewRotation.Z < -180.0f) NewRotation.Z += 360.0f;
+			// if (NewRotation.Y > 89.0f)  NewRotation.Y = 89.0f;
+			// if (NewRotation.Y < -89.0f) NewRotation.Y = -89.0f;
 
 			CameraComponent->SetRelativeRotation(NewRotation);
 		}

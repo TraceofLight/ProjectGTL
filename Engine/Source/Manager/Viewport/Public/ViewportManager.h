@@ -31,6 +31,9 @@ public:
 	void SetRoot(SWindow* InRoot) { Root = InRoot; }
 	SWindow* GetRoot() const { return Root; }
 
+	// OrthoGraphicCamera의 중심점을 외부에서 설정하는 함수
+	void SetOrthoGraphicCenter(const FVector& NewCenter);
+
 	// 리프 Rect 수집
 	void GetLeafRects(TArray<FRect>& OutRects) const;
 

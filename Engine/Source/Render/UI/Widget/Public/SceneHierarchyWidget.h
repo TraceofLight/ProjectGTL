@@ -21,6 +21,12 @@ public:
 	USceneHierarchyWidget();
 	~USceneHierarchyWidget() override;
 
+	// 카메라 애니메이션 제어
+	void StopCameraAnimation(TObjectPtr<ACameraActor> InCamera);
+	bool IsCameraAnimating(TObjectPtr<ACameraActor> InCamera) const;
+	bool IsAnyCameraAnimating() const;
+	void StopAllCameraAnimations();
+
 private:
 	// UI 상태
 	bool bShowDetails = true;
@@ -39,14 +45,15 @@ private:
 	static constexpr float RENAME_CLICK_DELAY = 0.3f; // 두 번째 클릭 간격
 
 	// Camera focus animation
-	bool bIsCameraAnimating = false;
-	float CameraAnimationTime = 0.0f;
+	TMap<FName, bool> CameraAnimatingStates;
+	TMap<FName, float> CameraAnimationTimes;
 	TMap<FName, FVector> CameraStartLocations;
 	TMap<FName, FVector> CameraTargetLocations;
 	TMap<FName, FVector> CameraCurrentRotations;
+	TMap<FName, TObjectPtr<AActor>> CameraAnimationTargets;
 
 	// Heuristic constant
-	static constexpr float CAMERA_ANIMATION_DURATION = 1.5f;
+	static constexpr float CAMERA_ANIMATION_DURATION = 0.6f;
 	static constexpr float FOCUS_DISTANCE = 5.0f;
 
 	// Camera movement

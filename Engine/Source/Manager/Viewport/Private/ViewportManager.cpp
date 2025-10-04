@@ -12,6 +12,7 @@
 #include "Runtime/Actor/Public/CameraActor.h"
 #include "Runtime/Component/Public/CameraComponent.h"
 #include "Manager/UI/Public/UIManager.h"
+#include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UViewportManager)
 
@@ -303,6 +304,22 @@ void UViewportManager::TickCameras() const
 
 void UViewportManager::Update()
 {
+	// 사용자 입력으로 카메라 조작 시작 시, 모든 포커싱 애니메이션 중단
+	UInputManager& Input = UInputManager::GetInstance();
+	// 우클릭 또는 미들클릭으로 드래그 시작 시
+	if (Input.IsKeyDown(EKeyInput::MouseRight) || Input.IsKeyDown(EKeyInput::MouseMiddle))
+	{
+		auto& UIManager = UUIManager::GetInstance();
+		TObjectPtr<UWidget> Widget = UIManager.FindWidget(FName("Scene Hierarchy Widget"));
+		if (USceneHierarchyWidget* SceneWidget = Cast<USceneHierarchyWidget>(Widget))
+		{
+			if (SceneWidget->IsAnyCameraAnimating())
+			{
+				SceneWidget->StopAllCameraAnimations();
+			}
+		}
+	}
+
 	if (!Root)
 	{
 		return;
@@ -902,6 +919,11 @@ bool UViewportManager::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, f
 	OutNdcX = (LocalX / Width) * 2.0f - 1.0f;
 	OutNdcY = 1.0f - (LocalY / Height) * 2.0f;
 	return true;
+}
+
+void UViewportManager::SetOrthoGraphicCenter(const FVector& NewCenter)
+{
+	OrthoGraphicCamerapoint = NewCenter;
 }
 
 #pragma region viewport animation
