@@ -1,17 +1,17 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/PrimitiveSpawnWidget.h"
+
+#include <shobjidl.h>
+
 #include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
-
-IMPLEMENT_CLASS(UPrimitiveSpawnWidget, UWidget)
-
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Level/Public/LevelManager.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
 
-#include <shobjidl.h>
+IMPLEMENT_CLASS(UPrimitiveSpawnWidget, UWidget)
 
 UPrimitiveSpawnWidget::UPrimitiveSpawnWidget()
 	: UWidget("StaticMesh Spawn Widget")
@@ -142,8 +142,13 @@ void UPrimitiveSpawnWidget::RefreshStaticMeshList()
  */
 void UPrimitiveSpawnWidget::SpawnActors() const
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{

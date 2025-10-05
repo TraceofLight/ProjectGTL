@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ActorTerminationWidget.h"
 
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
-#include "Manager/Level/Public/LevelManager.h"
-
 
 UActorTerminationWidget::UActorTerminationWidget()
 	: UWidget("Actor Termination Widget")
@@ -22,8 +22,13 @@ void UActorTerminationWidget::Initialize()
 void UActorTerminationWidget::Update()
 {
 	// 매 프레임 Level의 선택된 Actor를 확인해서 정보 반영
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	TObjectPtr<ULevel> CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (CurrentLevel)
 	{
@@ -73,8 +78,13 @@ void UActorTerminationWidget::TriggerDeleteSelectedActor()
 		return;
 	}
 
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	TObjectPtr<ULevel> CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
@@ -83,7 +93,7 @@ void UActorTerminationWidget::TriggerDeleteSelectedActor()
 	}
 
 	UE_LOG_INFO("ActorTerminationWidget: 선택된 Actor를 삭제를 위해 마킹 처리: %s",
-	       SelectedActor->GetName() == FName::FName_None ? "UnNamed" : SelectedActor->GetName().ToString().data());
+	            SelectedActor->GetName() == FName::FName_None ? "UnNamed" : SelectedActor->GetName().ToString().data());
 
 	// 지연 삭제를 사용하여 안전하게 다음 틱에서 삭제
 	CurrentLevel->MarkActorForDeletion(SelectedActor);

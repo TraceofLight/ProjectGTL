@@ -5,7 +5,8 @@
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Level/Public/LevelManager.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
 #include "Material/Public/Material.h"
@@ -255,7 +256,10 @@ void URenderer::Update()
 	if (ViewRects.empty())
 	{
 		RenderLevel();
-		ULevelManager::GetInstance().GetEditor()->RenderEditor();
+		if (UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>())
+		{
+			WorldSS->GetEditor()->RenderEditor();
+		}
 	}
 	//리프창이 있을때
 	else
@@ -317,7 +321,10 @@ void URenderer::Update()
 
             // World + editor overlays for this viewport tile
             RenderLevel();
-            ULevelManager::GetInstance().GetEditor()->RenderEditor();
+            if (UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>())
+            {
+                WorldSS->GetEditor()->RenderEditor();
+            }
 
             ViewportIdx++;
         }
@@ -367,13 +374,19 @@ void URenderer::RenderBegin() const
  */
 void URenderer::RenderLevel()
 {
-	// Level 없으면 Early Return
-	if (!ULevelManager::GetInstance().GetCurrentLevel())
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
 	{
 		return;
 	}
 
-	const auto& LevelActors = ULevelManager::GetInstance().GetCurrentLevel()->GetLevelActors();
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
+	if (!CurrentLevel)
+	{
+		return;
+	}
+
+	const auto& LevelActors = CurrentLevel->GetLevelActors();
 
 	// Actor들을 순회하면서 각 Actor의 PrimitiveComponent들을 렌더링
 	for (const auto& Actor : LevelActors)
@@ -404,13 +417,13 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 		return;
 	}
 
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	auto CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	ULevel* CurrentLevel = WorldSS ? WorldSS->GetCurrentLevel() : nullptr;
 
 	// BillBoard 컴포넌트의 경우 특별 처리
 	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
 	{
-		if (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_BillboardText)
+		if (CurrentLevel && (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_BillboardText))
 		{
 			UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
 			if (BillBoardComponent)

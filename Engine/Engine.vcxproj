@@ -235,6 +235,7 @@
     <ClInclude Include="Source\Runtime\Core\Public\Templates\EnableSharedFromThis.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\SharedPointerInternals.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\SharedPtr.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Templates\TemplateUtilities.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\UniquePtr.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\WeakPtr.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\Engine.h" />
@@ -243,7 +244,6 @@
     <ClInclude Include="Source\Runtime\Engine\Public\LocalPlayer.h" />
     <ClInclude Include="Source\Runtime\Level\Public\Level.h" />
     <ClInclude Include="Source\Manager\Config\Public\ConfigManager.h" />
-    <ClInclude Include="Source\Manager\Level\Public\LevelManager.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Asset\Public\AssetSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Input\Public\InputSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\PathSubsystem.h" />
@@ -286,6 +286,7 @@
     <ClInclude Include="Source\Runtime\Core\Public\EngineEditor.h" />
     <ClInclude Include="Source\Runtime\Core\Public\GameInstance.h" />
     <ClInclude Include="Source\Runtime\Core\Public\LocalPlayer.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\World\Public\WorldSubsystem.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
     <ClInclude Include="Source\Utility\Public\Archive.h" />
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
@@ -355,7 +356,6 @@
     <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Runtime\Level\Private\Level.cpp" />
     <ClCompile Include="Source\Manager\Config\Private\ConfigManager.cpp" />
-    <ClCompile Include="Source\Manager\Level\Private\LevelManager.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Asset\Private\AssetSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Input\Private\InputSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\PathSubsystem.cpp" />
@@ -398,6 +398,7 @@
     <ClCompile Include="Source\Runtime\Engine\Private\EngineEditor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\GameInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\LocalPlayer.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\World\Private\WorldSubsystem.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\Archive.cpp" />
     <ClCompile Include="Source\Utility\Private\JsonSerializer.cpp" />

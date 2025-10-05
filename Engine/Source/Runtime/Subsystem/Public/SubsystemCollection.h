@@ -79,7 +79,6 @@ private:
 	TMap<FName, TObjectPtr<TBaseSubsystem>> SubsystemInstances;
 	TArray<FName> InitializationOrder;
 
-	void CreateAndInitializeSubsystems(TObjectPtr<UObject> InOuter);
 	void CalculateInitializationOrder();
 };
 
@@ -98,7 +97,51 @@ using FLocalPlayerSubsystemCollection = FSubsystemCollection<ULocalPlayerSubsyst
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOuter)
 {
-	CreateAndInitializeSubsystems(InOuter);
+	// 1. 의존성 순서 계산
+	CalculateInitializationOrder();
+
+	// 2. 모든 서브시스템 인스턴스 생성
+	for (const FName& ClassName : InitializationOrder)
+	{
+		auto Iter = SubsystemClasses.find(ClassName);
+		if (Iter != SubsystemClasses.end() && Iter->second)
+		{
+			UClass* SubsystemClass = Iter->second;
+			TObjectPtr<UObject> NewObject = SubsystemClass->CreateDefaultObject();
+
+			if (NewObject)
+			{
+				TObjectPtr<TBaseSubsystem> NewSubsystem = Cast<TBaseSubsystem>(NewObject);
+				if (NewSubsystem)
+				{
+					NewSubsystem->SetOuter(InOuter);
+					SubsystemInstances[ClassName] = NewSubsystem;
+				}
+			}
+		}
+	}
+
+	// 3. 모든 서브시스템 1단계 초기화
+	for (const FName& ClassName : InitializationOrder)
+	{
+		auto Iter = SubsystemInstances.find(ClassName);
+		if (Iter != SubsystemInstances.end() && Iter->second)
+		{
+			Iter->second->Initialize();
+			UE_LOG("SubsystemCollection: %s 1단계 초기화 완료", ClassName.ToString().data());
+		}
+	}
+
+	// 4. 모든 서브시스템 2단계 초기화
+	for (const FName& ClassName : InitializationOrder)
+	{
+		auto Iter = SubsystemInstances.find(ClassName);
+		if (Iter != SubsystemInstances.end() && Iter->second)
+		{
+			Iter->second->PostInitialize();
+			UE_LOG("SubsystemCollection: %s 2단계 초기화 완료", ClassName.ToString().data());
+		}
+	}
 }
 
 /**
@@ -126,48 +169,6 @@ void FSubsystemCollection<TBaseSubsystem>::Deinitialize()
 	InitializationOrder.clear();
 }
 
-/**
- * @brief 서브시스템 생성 및 초기화 함수
- * RTTI 시스템을 활용한 자동 인스턴스 생성
- * UClass::CreateDefaultObject()를 통해 동적으로 서브시스템 생성
- */
-template <typename TBaseSubsystem>
-void FSubsystemCollection<TBaseSubsystem>::CreateAndInitializeSubsystems(TObjectPtr<UObject> InOuter)
-{
-	CalculateInitializationOrder();
-
-	for (const FName& ClassName : InitializationOrder)
-	{
-		auto Iter = SubsystemClasses.find(ClassName);
-		if (Iter != SubsystemClasses.end() && Iter->second)
-		{
-			// RTTI 기반 자동 인스턴스 생성
-			UClass* SubsystemClass = Iter->second;
-			TObjectPtr<UObject> NewObject = SubsystemClass->CreateDefaultObject();
-
-			if (NewObject)
-			{
-				TObjectPtr<TBaseSubsystem> NewSubsystem = Cast<TBaseSubsystem>(NewObject);
-				NewSubsystem->SetOuter(InOuter);
-
-				if (NewSubsystem)
-				{
-					SubsystemInstances[ClassName] = NewSubsystem;
-					NewSubsystem->Initialize();
-					UE_LOG("SubsystemCollection: %s 생성 및 초기화 완료", ClassName.ToString().data());
-				}
-				else
-				{
-					UE_LOG_ERROR("SubsystemCollection: %s 타입 캐스팅 실패", ClassName.ToString().data());
-				}
-			}
-			else
-			{
-				UE_LOG_ERROR("SubsystemCollection: %s 인스턴스 생성 실패", ClassName.ToString().data());
-			}
-		}
-	}
-}
 
 /**
  * @brief 의존성을 고려한 초기화 순서를 계산하는 함수

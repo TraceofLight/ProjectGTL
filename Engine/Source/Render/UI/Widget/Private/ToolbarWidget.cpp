@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ToolbarWidget.h"
-#include "Manager/Level/Public/LevelManager.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Runtime/Level/Public/Level.h"
@@ -84,8 +85,13 @@ void UToolbarWidget::RenderWidget()
 
 void UToolbarWidget::RenderLevelName()
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (CurrentLevel)
 	{
@@ -100,7 +106,7 @@ void UToolbarWidget::RenderLevelName()
 
 void UToolbarWidget::RenderPlaceActorMenu()
 {
-	if (ImGui::BeginMenu("PlaceActor"))
+	if (ImGui::BeginMenu("Place Actor"))
 	{
 		if (ImGui::MenuItem("Actor"))
 		{
@@ -118,8 +124,13 @@ void UToolbarWidget::RenderPlaceActorMenu()
 
 void UToolbarWidget::SpawnActorAtViewportCenter()
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
@@ -155,8 +166,13 @@ void UToolbarWidget::SpawnActorAtViewportCenter()
 
 void UToolbarWidget::SpawnStaticMeshActorAtViewportCenter()
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{

@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
-#include "Manager/Level/Public/LevelManager.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Runtime/Level/Public/Level.h"
@@ -46,7 +47,13 @@ void USceneHierarchyWidget::Update()
 
 void USceneHierarchyWidget::RenderWidget()
 {
-	ULevel* CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
@@ -140,7 +147,9 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 	ImGui::PushID(InIndex);
 
 	// 현재 선택된 Actor인지 확인
-	ULevel* CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS) return;
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 	bool bIsSelected = (CurrentLevel && CurrentLevel->GetSelectedActor() == InActor);
 
 	// 선택된 Actor는 하이라이트
@@ -300,7 +309,13 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
  */
 void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocusCamera)
 {
-	TObjectPtr<ULevel> CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 	if (CurrentLevel)
 	{
 		CurrentLevel->SetSelectedActor(InActor);

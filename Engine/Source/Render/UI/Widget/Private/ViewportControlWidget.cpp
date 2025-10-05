@@ -1,11 +1,12 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ViewportControlWidget.h"
 
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Window/Public/ViewportClient.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/Splitter.h"
-#include "Manager/Level/Public/LevelManager.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/BatchLines.h"
 
@@ -350,7 +351,13 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 void UViewportControlWidget::RenderGridSizeControl()
 {
 	// Editor에서 BatchLines 포인터 가져오기
-	UEditor* Editor = ULevelManager::GetInstance().GetEditor();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	UEditor* Editor = WorldSS->GetEditor();
 	if (!Editor)
 	{
 		return;
@@ -445,12 +452,18 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 		int32 OrthoIdx = -1;
 		switch (NewType)
 		{
-		case EViewType::OrthoTop: OrthoIdx = 0; break;
-		case EViewType::OrthoBottom: OrthoIdx = 1; break;
-		case EViewType::OrthoLeft: OrthoIdx = 2; break;
-		case EViewType::OrthoRight: OrthoIdx = 3; break;
-		case EViewType::OrthoFront: OrthoIdx = 4; break;
-		case EViewType::OrthoBack: OrthoIdx = 5; break;
+		case EViewType::OrthoTop: OrthoIdx = 0;
+			break;
+		case EViewType::OrthoBottom: OrthoIdx = 1;
+			break;
+		case EViewType::OrthoLeft: OrthoIdx = 2;
+			break;
+		case EViewType::OrthoRight: OrthoIdx = 3;
+			break;
+		case EViewType::OrthoFront: OrthoIdx = 4;
+			break;
+		case EViewType::OrthoBack: OrthoIdx = 5;
+			break;
 		default: return;
 		}
 

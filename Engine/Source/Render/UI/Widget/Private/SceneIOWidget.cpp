@@ -3,7 +3,8 @@
 
 #include <shobjidl.h>
 
-#include "Manager/Level/Public/LevelManager.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 
 USceneIOWidget::USceneIOWidget()
 	: UWidget("Scene IO Widget")
@@ -83,7 +84,11 @@ void USceneIOWidget::RenderWidget()
  */
 void USceneIOWidget::SaveLevel(const FString& InFilePath)
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
 
 	try
 	{
@@ -92,11 +97,11 @@ void USceneIOWidget::SaveLevel(const FString& InFilePath)
 		if (InFilePath.empty())
 		{
 			// Quick Save인 경우 기본 경로 사용
-			bSuccess = LevelManager.SaveCurrentLevel("");
+			bSuccess = WorldSS->SaveCurrentLevel("");
 		}
 		else
 		{
-			bSuccess = LevelManager.SaveCurrentLevel(InFilePath);
+			bSuccess = WorldSS->SaveCurrentLevel(InFilePath);
 		}
 
 		if (bSuccess)
@@ -143,8 +148,13 @@ void USceneIOWidget::LoadLevel(const FString& InFilePath)
 			LevelName = LevelName.substr(0, LastDot);
 		}
 
-		ULevelManager& LevelManager = ULevelManager::GetInstance();
-		bool bSuccess = LevelManager.LoadLevel(LevelName, InFilePath);
+		UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+		if (!WorldSS)
+		{
+			return;
+		}
+
+		bool bSuccess = WorldSS->LoadLevel(LevelName, InFilePath);
 
 		if (bSuccess)
 		{
@@ -183,8 +193,13 @@ void USceneIOWidget::CreateNewLevel()
 			return;
 		}
 
-		ULevelManager& LevelManager = ULevelManager::GetInstance();
-		bool bSuccess = LevelManager.CreateNewLevel();
+		UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+		if (!WorldSS)
+		{
+			return;
+		}
+
+		bool bSuccess = WorldSS->CreateNewLevel();
 
 		if (bSuccess)
 		{

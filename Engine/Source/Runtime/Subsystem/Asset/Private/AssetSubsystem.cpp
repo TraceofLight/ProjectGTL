@@ -17,7 +17,7 @@ void UAssetSubsystem::Initialize()
 	// CPU 데이터만 초기화 (GPU 리소스는 Renderer가 생성)
 	InitializeDefaultMaterial();
 
-	UE_LOG("AssetSubsystem: 초기화 완료 (CPU 데이터만 관리)");
+	UE_LOG("AssetSubsystem: 초기화 완료");
 }
 
 void UAssetSubsystem::Deinitialize()

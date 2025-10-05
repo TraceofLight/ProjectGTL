@@ -216,9 +216,6 @@
     <ClCompile Include="Source\Manager\Input\Private\InputManager.cpp">
       <Filter>Source\Manager\Input\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Manager\Level\Private\LevelManager.cpp">
-      <Filter>Source\Manager\Level\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp">
       <Filter>Source\Manager\UI\Private</Filter>
     </ClCompile>
@@ -648,9 +645,6 @@
     <ClInclude Include="Source\Manager\Input\Public\InputManager.h">
       <Filter>Source\Manager\Input\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Manager\Level\Public\LevelManager.h">
-      <Filter>Source\Manager\Level\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Manager\UI\Public\UIManager.h">
       <Filter>Source\Manager\UI\Public</Filter>
     </ClInclude>
@@ -1026,15 +1020,6 @@
     </Filter>
     <Filter Include="Source\Manager\Input\Public">
       <UniqueIdentifier>{03941bcf-f3a7-48e4-bc02-1fce575abf6b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Manager\Level">
-      <UniqueIdentifier>{923cb7c9-cee0-48a9-9096-0058e54736e4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Manager\Level\Private">
-      <UniqueIdentifier>{3f9316ee-e5b3-4f09-a0b5-2e35cb08c40c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Manager\Level\Public">
-      <UniqueIdentifier>{9d2cee41-2ec5-4447-90d8-67a955213f80}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Manager\UI">
       <UniqueIdentifier>{84c2640a-5060-489f-a76b-60119d9e1964}</UniqueIdentifier>

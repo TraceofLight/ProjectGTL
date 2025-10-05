@@ -9,7 +9,7 @@
 #include "Runtime/Engine/Public/LocalPlayer.h"
 
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
-#include "Manager/Level/Public/LevelManager.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 
@@ -94,6 +94,12 @@ void FEngineLoop::Init() const
 	// Initialize Core Subsystem
 	UEngine::GetInstance();
 	GEngine->SetAppWindow(Window);
+
+	// CRITICAL: 렌더러는 서브시스템들이 초기화되기 전에 먼저 준비되어야 함
+	// TODO(KHJ): 렌더러 제거
+	auto& Renderer = URenderer::GetInstance();
+	Renderer.Init(Window->GetWindowHandle());
+
 	GEngine->Initialize();
 
 #ifdef EDITOR_MODE
@@ -107,17 +113,10 @@ void FEngineLoop::Init() const
 	ULocalPlayer::GetInstance();
 	LocalPlayer->Initialize();
 
-	auto& Renderer = URenderer::GetInstance();
-	Renderer.Init(Window->GetWindowHandle());
-
 	// UIManager Initialize
 	auto& UIManger = UUIManager::GetInstance();
 	UIManger.Initialize(Window->GetWindowHandle());
 	UUIWindowFactory::CreateDefaultUILayout();
-
-	// Create Default Level
-	// TODO(KHJ): 나중에 Init에서 처리하도록 하는 게 맞을 듯
-	ULevelManager::GetInstance().CreateDefaultLevel();
 	UViewportManager::GetInstance().Initialize(Window);
 }
 
@@ -177,7 +176,6 @@ void FEngineLoop::Tick()
     GEditor->EditorUpdate();
 #endif
 
-    ULevelManager::GetInstance().Update();
     UUIManager::GetInstance().Update();
     UViewportManager::GetInstance().Update();
 
@@ -201,7 +199,6 @@ void FEngineLoop::Exit() const
 
 	URenderer::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();
-	ULevelManager::GetInstance().Shutdown();
 	UViewportManager::GetInstance().Release();
 
 	// Release되지 않은 UObject의 메모리 할당 해제

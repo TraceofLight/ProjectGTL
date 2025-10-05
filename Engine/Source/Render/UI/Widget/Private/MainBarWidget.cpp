@@ -1,14 +1,13 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Render/UI/Window/Public/UIWindow.h"
 
 #include <shobjidl.h>
 
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Level/Public/LevelManager.h"
-
-class ULevelManager;
 IMPLEMENT_CLASS(UMainBarWidget, UWidget)
 
 UMainBarWidget::UMainBarWidget()
@@ -229,9 +228,13 @@ void UMainBarWidget::RenderViewMenu()
 {
 	if (ImGui::BeginMenu("보기"))
 	{
-		// LevelManager에서 Editor 가져오기
-		ULevelManager& LevelMgr = ULevelManager::GetInstance();
-		UEditor* EditorInstance = LevelMgr.GetEditor();
+		UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+		if (!WorldSS)
+		{
+			return;
+		}
+
+		UEditor* EditorInstance = WorldSS->GetEditor();
 		if (!EditorInstance)
 		{
 			ImGui::Text("에디터를 사용할 수 없습니다");
@@ -276,9 +279,13 @@ void UMainBarWidget::RenderShowFlagsMenu()
 {
 	if (ImGui::BeginMenu("표시 옵션"))
 	{
-		// LevelManager에서 현재 레벨 가져오기
-		ULevelManager& LevelMgr = ULevelManager::GetInstance();
-		ULevel* CurrentLevel = LevelMgr.GetCurrentLevel();
+		UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+		if (!WorldSS)
+		{
+			return;
+		}
+
+		ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 		if (!CurrentLevel)
 		{
 			ImGui::Text("현재 레벨을 찾을 수 없습니다");
@@ -369,11 +376,15 @@ void UMainBarWidget::SaveCurrentLevel()
 	path FilePath = OpenSaveFileDialog();
 	if (!FilePath.empty())
 	{
-		ULevelManager& LevelManager = ULevelManager::GetInstance();
+		UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+		if (!WorldSS)
+		{
+			return;
+		}
 
 		try
 		{
-			bool bSuccess = LevelManager.SaveCurrentLevel(FilePath.string());
+			bool bSuccess = WorldSS->SaveCurrentLevel(FilePath.string());
 
 			if (bSuccess)
 			{
@@ -406,8 +417,13 @@ void UMainBarWidget::LoadLevel()
 			// 파일명에서 확장자를 제외하고 레벨 이름 추출
 			FString LevelName = FilePath.stem().string();
 
-			ULevelManager& LevelManager = ULevelManager::GetInstance();
-			bool bSuccess = LevelManager.LoadLevel(LevelName, FilePath.string());
+			UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+			if (!WorldSS)
+			{
+				return;
+			}
+
+			bool bSuccess = WorldSS->LoadLevel(LevelName, FilePath.string());
 
 			if (bSuccess)
 			{
@@ -431,7 +447,13 @@ void UMainBarWidget::LoadLevel()
  */
 void UMainBarWidget::CreateNewLevel()
 {
-	ULevelManager::GetInstance().CreateNewLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	WorldSS->CreateNewLevel();
 }
 
 /**
@@ -655,4 +677,3 @@ void UMainBarWidget::RenderWindowControls() const
 	}
 	ImGui::PopStyleColor(3);
 }
-

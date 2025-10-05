@@ -4,6 +4,7 @@
 #include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 
 UEngine* GEngine = nullptr;
 
@@ -86,5 +87,6 @@ void UEngine::RegisterDefaultEngineSubsystems()
 	RegisterEngineSubsystem<UPathSubsystem>();
 	RegisterEngineSubsystem<UAssetSubsystem>();
 	RegisterEngineSubsystem<UInputSubsystem>();
+	RegisterEngineSubsystem<UWorldSubsystem>();
 	RegisterEngineSubsystem<UOverlayManagerSubsystem>();
 }

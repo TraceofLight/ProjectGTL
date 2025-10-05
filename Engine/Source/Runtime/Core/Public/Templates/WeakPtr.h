@@ -224,7 +224,7 @@ private:
 	FReferenceControllerBase<Mode>* RefController;
 
 	// Friend 선언
-	template <typename U>
+	template <typename OtherType, ESPMode OtherMode>
 	friend class TWeakPtr;
 };
 

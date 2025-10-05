@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/TargetActorTransformWidget.h"
 
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Level/Public/LevelManager.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Asset/Public/StaticMesh.h"
@@ -35,8 +36,13 @@ void UTargetActorTransformWidget::Update()
  */
 void UTargetActorTransformWidget::SetActorProperties()
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	TObjectPtr<ULevel> CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (CurrentLevel)
 	{
@@ -114,7 +120,8 @@ void UTargetActorTransformWidget::RenderWidget()
 					MeshNamesCStr.push_back(Name.c_str());
 				}
 
-				if (ImGui::Combo("##StaticMeshSelect", &SelectedMeshIndex, MeshNamesCStr.data(), static_cast<int>(MeshNamesCStr.size())))
+				if (ImGui::Combo("##StaticMeshSelect", &SelectedMeshIndex, MeshNamesCStr.data(),
+				                 static_cast<int>(MeshNamesCStr.size())))
 				{
 					bMeshChanged = true;
 				}
@@ -147,7 +154,8 @@ void UTargetActorTransformWidget::RenderWidget()
 
 						// 콤보박스 ID를 고유하게 만들기 위해 SlotIndex 사용
 						FString ComboID = "##MaterialSlot" + std::to_string(SlotIndex);
-						if (ImGui::Combo(ComboID.c_str(), &CurrentSelection, MaterialNamesCStr.data(), static_cast<int>(MaterialNamesCStr.size())))
+						if (ImGui::Combo(ComboID.c_str(), &CurrentSelection, MaterialNamesCStr.data(),
+						                 static_cast<int>(MaterialNamesCStr.size())))
 						{
 							// 선택이 변경되면 MaterialOverrideMap 업데이트
 							UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
@@ -163,7 +171,8 @@ void UTargetActorTransformWidget::RenderWidget()
 								{
 									// 새로운 머티리얼로 오버라이드
 									int32 MaterialIndex = CurrentSelection - 1;
-									if (MaterialIndex >= 0 && MaterialIndex < static_cast<int32>(AvailableMaterials.size()))
+									if (MaterialIndex >= 0 && MaterialIndex <
+										static_cast<int32>(AvailableMaterials.size()))
 									{
 										UMaterialInterface* SelectedMaterial = AvailableMaterials[MaterialIndex];
 										StaticMeshComponent->SetMaterialOverride(SlotIndex, SelectedMaterial);
@@ -174,7 +183,6 @@ void UTargetActorTransformWidget::RenderWidget()
 						}
 					}
 				}
-
 			}
 			else
 			{
@@ -291,7 +299,8 @@ void UTargetActorTransformWidget::RefreshStaticMeshList()
  */
 void UTargetActorTransformWidget::ApplyStaticMeshToActor()
 {
-	if (!SelectedActor || AvailableStaticMeshes.empty() || SelectedMeshIndex < 0 || SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.size()))
+	if (!SelectedActor || AvailableStaticMeshes.empty() || SelectedMeshIndex < 0 ||
+		SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.size()))
 	{
 		return;
 	}
@@ -336,7 +345,9 @@ void UTargetActorTransformWidget::RefreshMaterialList()
 
 		// 각 머티리얼 슬롯에 대해 현재 적용된 머티리얼의 인덱스 찾기
 		AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor);
-		UStaticMeshComponent* StaticMeshComponent = StaticMeshActor ? StaticMeshActor->GetStaticMeshComponent() : nullptr;
+		UStaticMeshComponent* StaticMeshComponent = StaticMeshActor
+			                                            ? StaticMeshActor->GetStaticMeshComponent()
+			                                            : nullptr;
 
 		for (int32 SlotIndex = 0; SlotIndex < SelectedActorMaterialSlotCount; ++SlotIndex)
 		{

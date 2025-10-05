@@ -1,4 +1,5 @@
 #pragma once
+#include "TemplateUtilities.h"
 
 /**
  * @brief 기본 삭제자 (단일 객체)

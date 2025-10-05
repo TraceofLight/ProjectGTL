@@ -36,6 +36,9 @@
 #include "Source/Global/CoreTypes.h"
 #include "Source/Global/Macro.h"
 #include "Source/Global/Function.h"
+#include "Source/Runtime/Core/Public/Templates/SharedPtr.h"
+#include "Source/Runtime/Core/Public/Templates/UniquePtr.h"
+#include "Source/Runtime/Core/Public/Templates/WeakPtr.h"
 
 using std::clamp;
 using std::unordered_map;

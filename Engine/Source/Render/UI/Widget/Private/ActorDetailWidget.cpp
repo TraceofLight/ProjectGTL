@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
 
-#include "Manager/Level/Public/LevelManager.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Runtime/Component/Public/ActorComponent.h"
@@ -27,7 +28,13 @@ void UActorDetailWidget::Update()
 
 void UActorDetailWidget::RenderWidget()
 {
-	TObjectPtr<ULevel> CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
