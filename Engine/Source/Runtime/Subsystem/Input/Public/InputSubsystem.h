@@ -1,17 +1,27 @@
 #pragma once
-#include "Runtime/Core/Public/Object.h"
+#include "Runtime/Subsystem/Public/EngineSubsystem.h"
 
 class FAppWindow;
 
+/**
+ * @brief 입력 처리를 담당하는 엔진 서브시스템
+ * 키보드, 마우스 입력을 관리하고 더블클릭 감지 등의 기능을 제공
+ */
 UCLASS()
-class UInputManager :
-	public UObject
+class UInputSubsystem :
+	public UEngineSubsystem
 {
 	GENERATED_BODY()
-	DECLARE_SINGLETON_CLASS(UInputManager, UObject)
+	DECLARE_CLASS(UInputSubsystem, UEngineSubsystem)
 
 public:
-	void Update(const FAppWindow* InWindow);
+	void Initialize() override;
+	void Deinitialize() override;
+
+	void PrepareNewFrame();
+	bool IsTickable() const override { return true; }
+	void Tick() override;
+
 	void UpdateMousePosition(const FAppWindow* InWindow);
 	void ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LParam);
 
@@ -36,7 +46,7 @@ public:
 
 	// Mouse Wheel
 	float GetMouseWheelDelta() const { return MouseWheelDelta; }
-	void  SetMouseWheelDelta(float InMouseWheelDelta) { MouseWheelDelta = InMouseWheelDelta; }
+	void SetMouseWheelDelta(float InMouseWheelDelta) { MouseWheelDelta = InMouseWheelDelta; }
 
 	// Double Click Detection
 	bool IsMouseDoubleClicked(EKeyInput InMouseButton) const;

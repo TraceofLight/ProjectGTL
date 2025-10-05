@@ -8,7 +8,7 @@
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
 
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
@@ -92,22 +92,20 @@ void FEngineLoop::Init() const
 	InitializeClassSystem();
 
 	// Initialize Core Subsystem
-	auto& CoreEngine = UEngine::GetInstance();
-	CoreEngine.Initialize();
+	UEngine::GetInstance();
+	GEngine->SetAppWindow(Window);
+	GEngine->Initialize();
 
 #ifdef EDITOR_MODE
-	auto& CoreEditor = UEngineEditor::GetInstance();
-	CoreEditor.Initialize();
+	UEngineEditor::GetInstance();
+	GEditor->Initialize();
 #endif
 
-	auto& CoreGameInstance = UGameInstance::GetInstance();
-	CoreGameInstance.Initialize();
+	UGameInstance::GetInstance();
+	GameInstance->Initialize();
 
-	auto& CoreLocalPlayer = ULocalPlayer::GetInstance();
-	CoreLocalPlayer.Initialize();
-
-	// Initialize By Get Instance
-	UInputManager::GetInstance();
+	ULocalPlayer::GetInstance();
+	LocalPlayer->Initialize();
 
 	auto& Renderer = URenderer::GetInstance();
 	Renderer.Init(Window->GetWindowHandle());
@@ -162,29 +160,28 @@ void FEngineLoop::MainLoop()
  */
 void FEngineLoop::Tick()
 {
-	UpdateDeltaTime();
+    UpdateDeltaTime();
 
-	// TODO(KHJ): Subsystem 대신 Slate로 처리할 수 있도록 할 것
-	auto OverlayManager = GEngine->GetEngineSubsystem<UOverlayManagerSubsystem>();
-	OverlayManager->Tick();
+	// Process input task
+    if (auto* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>())
+    {
+        InputSubsystem->PrepareNewFrame();
+    	Window->ProcessPendingInputMessages();
+    }
 
-	// 일단 Editor만 Tick 처리
-	// 나머지는 필요하면 추가할 것
+	// Engine tick
+    GEngine->TickEngineSubsystems();
+
+	// Editor tick
 #ifdef EDITOR_MODE
-	GEditor->EditorUpdate();
+    GEditor->EditorUpdate();
 #endif
 
-	auto& InputManager = UInputManager::GetInstance();
-	auto& UIManager = UUIManager::GetInstance();
-	auto& Renderer = URenderer::GetInstance();
-	auto& LevelManager = ULevelManager::GetInstance();
-	auto& ViewportManager = UViewportManager::GetInstance();
+    ULevelManager::GetInstance().Update();
+    UUIManager::GetInstance().Update();
+    UViewportManager::GetInstance().Update();
 
-	LevelManager.Update();
-	InputManager.Update(Window);
-	UIManager.Update();
-	ViewportManager.Update();
-	Renderer.Update();
+    URenderer::GetInstance().Update();
 }
 
 /**

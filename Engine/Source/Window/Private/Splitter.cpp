@@ -3,7 +3,7 @@
 
 #include "Editor/Public/Editor.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Manager/Level/Public/LevelManager.h"
 
 void SSplitter::SetChildren(SWindow* InLT, SWindow* InRB)
@@ -205,8 +205,13 @@ void SSplitter::OnPaint()
 	//ImVec2 p0{ (float)h.X, (float)h.Y };
 	//ImVec2 p1{ (float)(h.X + h.W), (float)(h.Y + h.H) };
 	//dl->AddRectFilled(p0, p1, IM_COL32(80, 80, 80, 160));
-	auto& InputManager = UInputManager::GetInstance();
-	const FVector & mp = InputManager.GetMousePosition();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
+
+	const FVector & mp = InputSubsystem->GetMousePosition();
     FPoint P{ LONG(mp.X), LONG(mp.Y) };
     bool hovered = IsHandleHover(P);
 

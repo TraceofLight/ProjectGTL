@@ -238,9 +238,9 @@
     <ClInclude Include="Source\Runtime\Engine\Public\LocalPlayer.h" />
     <ClInclude Include="Source\Runtime\Level\Public\Level.h" />
     <ClInclude Include="Source\Manager\Config\Public\ConfigManager.h" />
-    <ClInclude Include="Source\Manager\Input\Public\InputManager.h" />
     <ClInclude Include="Source\Manager\Level\Public\LevelManager.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Asset\Public\AssetSubsystem.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Input\Public\InputSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\PathSubsystem.h" />
     <ClInclude Include="Source\Manager\UI\Public\UIManager.h" />
     <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h" />
@@ -350,9 +350,9 @@
     <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Runtime\Level\Private\Level.cpp" />
     <ClCompile Include="Source\Manager\Config\Private\ConfigManager.cpp" />
-    <ClCompile Include="Source\Manager\Input\Private\InputManager.cpp" />
     <ClCompile Include="Source\Manager\Level\Private\LevelManager.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Asset\Private\AssetSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Input\Private\InputSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\PathSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\OverlayManagerSubsystem.cpp" />
     <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp" />

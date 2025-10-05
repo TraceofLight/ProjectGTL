@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "Manager/Viewport/Public/ViewportManager.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Core/Public/AppWindow.h"
 #include "Window/Public/Window.h"
 #include "Window/Public/Splitter.h"
@@ -263,13 +263,13 @@ void UViewportManager::PumpAllViewportInput() const
 void UViewportManager::UpdateActiveRmbViewportIndex()
 {
 	ActiveRmbViewportIdx = -1;
-	const auto& Input = UInputManager::GetInstance();
-	if (!Input.IsKeyDown(EKeyInput::MouseRight))
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem || !InputSubsystem->IsKeyDown(EKeyInput::MouseRight))
 	{
 		return;
 	}
 
-	const FVector& MousePosition = Input.GetMousePosition();
+	const FVector& MousePosition = InputSubsystem->GetMousePosition();
 	const LONG MousePositionX = static_cast<LONG>(MousePosition.X);
 	const LONG MousePositioinY = static_cast<LONG>(MousePosition.Y);
 
@@ -292,7 +292,8 @@ void UViewportManager::TickCameras() const
 	// 우클릭이 눌린 상태라면 해당 뷰포트의 카메라만 입력 반영(Update)
 	// 그렇지 않다면(비상호작용) 카메라 이동 입력은 생략하여 타 뷰포트에 영향이 가지 않도록 함
 	const int32 N = static_cast<int32>(Clients.size());
-	const bool bRmbDown = UInputManager::GetInstance().IsKeyDown(EKeyInput::MouseRight);
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	const bool bRmbDown = InputSubsystem && InputSubsystem->IsKeyDown(EKeyInput::MouseRight);
 	if (bRmbDown)
 	{
 		if (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < N)
@@ -305,9 +306,9 @@ void UViewportManager::TickCameras() const
 void UViewportManager::Update()
 {
 	// 사용자 입력으로 카메라 조작 시작 시, 모든 포커싱 애니메이션 중단
-	UInputManager& Input = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
 	// 우클릭 또는 미들클릭으로 드래그 시작 시
-	if (Input.IsKeyDown(EKeyInput::MouseRight) || Input.IsKeyDown(EKeyInput::MouseMiddle))
+	if (InputSubsystem && (InputSubsystem->IsKeyDown(EKeyInput::MouseRight) || InputSubsystem->IsKeyDown(EKeyInput::MouseMiddle)))
 	{
 		auto& UIManager = UUIManager::GetInstance();
 		TObjectPtr<UWidget> Widget = UIManager.FindWidget(FName("Scene Hierarchy Widget"));
@@ -377,9 +378,10 @@ void UViewportManager::Update()
 
 	// 2.7) 직교투영: 마우스가 올라가 있는 뷰포트에 대해 휠로 앞/뒤 도리 이동 처리 (RMB 여부 무관)
 	{
-		float WheelDelta = UInputManager::GetInstance().GetMouseWheelDelta();
+		UInputSubsystem* WheelInputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+		float WheelDelta = WheelInputSubsystem ? WheelInputSubsystem->GetMouseWheelDelta() : 0.0f;
 
-		if (WheelDelta != 0.0f)
+		if (WheelDelta != 0.0f && WheelInputSubsystem)
 		{
 			int32 Index = GetViewportIndexUnderMouse();
 			if (Index >= 0 && Index < static_cast<int32>(Clients.size()))
@@ -420,7 +422,7 @@ void UViewportManager::Update()
 							SharedFovY = NewFovY; // 정상 범위 내에서 업데이트
 						}
 
-						UInputManager::GetInstance().SetMouseWheelDelta(0.0f);
+						WheelInputSubsystem->SetMouseWheelDelta(0.0f);
 					}
 				}
 			}
@@ -598,11 +600,15 @@ void UViewportManager::InitializePerspectiveCamera()
 
 void UViewportManager::UpdateOrthoGraphicCameraPoint()
 {
-	// 인풋매니저를 가져옵니다.
-	UInputManager& Input = UInputManager::GetInstance();
+	// 인풋서브시스템을 가져옵니다.
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
 
 	// 오른쪽 클릭이 아니라면 리턴합니다
-	if (!Input.IsKeyDown(EKeyInput::MouseRight))
+	if (!InputSubsystem->IsKeyDown(EKeyInput::MouseRight))
 	{
 		return;
 	}
@@ -679,7 +685,7 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 	FVector Up = Right.Cross(OrthoCameraFoward);
 
 	// 마우스 델타(px) → NDC 델타 → 월드 델타
-	const FVector& Delta = Input.GetMouseDelta();
+	const FVector& Delta = InputSubsystem->GetMouseDelta();
 	if (Delta.X == 0.0f && Delta.Y == 0.0f) return;
 
 	const float Aspect = (Height > 0.f) ? (Width / Height) : 1.0f;
@@ -855,8 +861,13 @@ void UViewportManager::TickInput()
 		return;
 	}
 
-	auto& InputManager = UInputManager::GetInstance();
-	const FVector& MousePosition = InputManager.GetMousePosition();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
+
+	const FVector& MousePosition = InputSubsystem->GetMousePosition();
 	FPoint Point{static_cast<LONG>(MousePosition.X), static_cast<LONG>(MousePosition.Y)};
 
 	SWindow* Target = nullptr;
@@ -872,7 +883,7 @@ void UViewportManager::TickInput()
 		Target = (Root != nullptr) ? Root->HitTest(Point) : nullptr;
 	}
 
-	if (InputManager.IsKeyPressed(EKeyInput::MouseLeft) || (!Capture && InputManager.IsKeyDown(EKeyInput::MouseLeft)))
+	if (InputSubsystem->IsKeyPressed(EKeyInput::MouseLeft) || (!Capture && InputSubsystem->IsKeyDown(EKeyInput::MouseLeft)))
 	{
 		if (Target && Target->OnMouseDown(Point, 0))
 		{
@@ -880,13 +891,13 @@ void UViewportManager::TickInput()
 		}
 	}
 
-	const FVector& Delta = InputManager.GetMouseDelta();
+	const FVector& Delta = InputSubsystem->GetMouseDelta();
 	if ((Delta.X != 0.0f || Delta.Y != 0.0f) && Capture)
 	{
 		Capture->OnMouseMove(Point);
 	}
 
-	if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
+	if (InputSubsystem->IsKeyReleased(EKeyInput::MouseLeft))
 	{
 		if (Capture)
 		{
@@ -895,7 +906,7 @@ void UViewportManager::TickInput()
 		}
 	}
 
-	if (!InputManager.IsKeyDown(EKeyInput::MouseLeft) && Capture)
+	if (!InputSubsystem->IsKeyDown(EKeyInput::MouseLeft) && Capture)
 	{
 		Capture->OnMouseUp(Point, 0);
 		Capture = nullptr;
@@ -908,9 +919,13 @@ void UViewportManager::TickInput()
  */
 int32 UViewportManager::GetViewportIndexUnderMouse() const
 {
-	const auto& InputManager = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return -1;
+	}
 
-	const FVector& MousePosition = InputManager.GetMousePosition();
+	const FVector& MousePosition = InputSubsystem->GetMousePosition();
 	const LONG MousePositionX = static_cast<LONG>(MousePosition.X);
 	const LONG MousePositionY = static_cast<LONG>(MousePosition.Y);
 
@@ -947,7 +962,13 @@ bool UViewportManager::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, f
 		return false;
 	}
 
-	const FVector& MousePosition = UInputManager::GetInstance().GetMousePosition();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return false;
+	}
+
+	const FVector& MousePosition = InputSubsystem->GetMousePosition();
 	const float LocalX = (MousePosition.X - static_cast<float>(Rect.X));
 	const float LocalY = (MousePosition.Y - RenderAreaY);
 	const float Width = static_cast<float>(Rect.W);

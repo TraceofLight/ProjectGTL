@@ -2,7 +2,7 @@
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
 #include "Manager/Level/Public/LevelManager.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
@@ -264,7 +264,7 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 			LastClickedActor = InActor;
 		}
 
-		auto& InputManager = UInputManager::GetInstance();
+		UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
 
 		// 더블 클릭 감지: 카메라 이동 수행 (hover 필요)
 		if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -276,7 +276,7 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 		}
 
 		// F키 입력 감지: 선택된 Actor에 대해서는 hover 조건 없이 포커싱 가능
-		if (bIsSelected && InputManager.IsKeyDown(EKeyInput::F))
+		if (InputSubsystem && bIsSelected && InputSubsystem->IsKeyDown(EKeyInput::F))
 		{
 			SelectActor(InActor, true);
 
@@ -284,33 +284,6 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 			FinishRenaming(false);
 		}
 	}
-
-	// 트리 노드로 표시 (접을 수 있도록)
-	// ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-	// if (bIsSelected)
-	// {
-	// 	NodeFlags |= ImGuiTreeNodeFlags_Selected;
-	// }
-
-	// bool bNodeOpen = ImGui::TreeNodeEx(ActorDisplayName.c_str(), NodeFlags);
-
-	// 클릭 감지
-	// if (ImGui::IsItemClicked())
-	// {
-	// 	SelectActor(InActor);
-	// }
-
-	// if (bNodeOpen)
-	// {
-	// if (bShowDetails)
-	// {
-	// Component 정보 표시
-	// 	const TArray<UActorComponent*>& Components = InActor->GetOwnedComponents();
-	// 	ImGui::Text("  Components: %zu", Components.size());
-	// }
-	//
-	// 	ImGui::TreePop();
-	// }
 
 	if (bIsSelected)
 	{
@@ -334,8 +307,8 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 
 		// 카메라 포커싱은 더블 클릭에서만 수행
 		// 우클릭 중에는 포커싱하지 않음 (카메라 조작 모드)
-		auto& InputManager = UInputManager::GetInstance();
-		if (InActor && bInFocusCamera && !InputManager.IsKeyDown(EKeyInput::MouseRight))
+		UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+		if (InActor && bInFocusCamera && InputSubsystem && !InputSubsystem->IsKeyDown(EKeyInput::MouseRight))
 		{
 			auto& ViewportManager = UViewportManager::GetInstance();
 

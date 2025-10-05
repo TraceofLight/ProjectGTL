@@ -11,7 +11,7 @@ public:
 	void Initialize() override;
 	void Update() override;
 	void RenderWidget() override;
-	void DeleteSelectedActor();
+	void TriggerDeleteSelectedActor();
 
 	UActorTerminationWidget();
 	~UActorTerminationWidget() override;

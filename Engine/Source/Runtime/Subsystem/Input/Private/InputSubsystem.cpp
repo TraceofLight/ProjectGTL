@@ -1,21 +1,39 @@
 #include "pch.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Core/Public/AppWindow.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UInputManager)
+IMPLEMENT_CLASS(UInputSubsystem, UEngineSubsystem)
 
-UInputManager::UInputManager()
-	: MouseWheelDelta(0.0f)
-	  , bIsWindowFocused(true)
-	  , DoubleClickTime(0.5f)
+void UInputSubsystem::Initialize()
 {
+	Super::Initialize();
+
+	MouseWheelDelta = 0.0f;
+	bIsWindowFocused = true;
+	DoubleClickTime = 0.5f;
+
 	InitializeKeyMapping();
 	InitializeMouseClickStatus();
+
+	UE_LOG("InputSubsystem: Initialized");
 }
 
-UInputManager::~UInputManager() = default;
+void UInputSubsystem::Deinitialize()
+{
+	Super::Deinitialize();
 
-void UInputManager::InitializeKeyMapping()
+	CurrentKeyState.clear();
+	PreviousKeyState.clear();
+	VirtualKeyMap.clear();
+	KeysInStatus.clear();
+	LastClickTime.clear();
+	DoubleClickState.clear();
+	ClickCount.clear();
+
+	UE_LOG("InputSubsystem: Deinitialized");
+}
+
+void UInputSubsystem::InitializeKeyMapping()
 {
 	// 알파벳 키 매핑
 	VirtualKeyMap['W'] = EKeyInput::W;
@@ -80,7 +98,7 @@ void UInputManager::InitializeKeyMapping()
 /**
  * @brief 더블클릭 상태 초기화하는 함수
  */
-void UInputManager::InitializeMouseClickStatus()
+void UInputSubsystem::InitializeMouseClickStatus()
 {
 	LastClickTime[EKeyInput::MouseLeft] = 0.0f;
 	LastClickTime[EKeyInput::MouseRight] = 0.0f;
@@ -95,10 +113,12 @@ void UInputManager::InitializeMouseClickStatus()
 	ClickCount[EKeyInput::MouseMiddle] = 0;
 }
 
-void UInputManager::Update(const FAppWindow* InWindow)
+void UInputSubsystem::Tick()
 {
-	// 이전 프레임 상태를 현재 프레임 상태로 복사
-	PreviousKeyState = CurrentKeyState;
+	if (FAppWindow* Window = GEngine->GetAppWindow())
+	{
+		UpdateMousePosition(Window);
+	}
 
 	// 윈도우가 포커스를 잃었을 때는 입력 처리를 중단
 	if (!bIsWindowFocused)
@@ -121,12 +141,6 @@ void UInputManager::Update(const FAppWindow* InWindow)
 		}
 	}
 
-	// 마우스 위치 업데이트
-	UpdateMousePosition(InWindow);
-
-	// 마우스 휠 델타 리셋
-	//MouseWheelDelta = 0.0f;
-
 	// 더블클릭 감지 업데이트
 	UpdateDoubleClickDetection();
 
@@ -139,7 +153,7 @@ void UInputManager::Update(const FAppWindow* InWindow)
 		if (KeyInput == EKeyInput::MouseLeft || KeyInput == EKeyInput::MouseRight ||
 			KeyInput == EKeyInput::MouseMiddle)
 		{
-			// 마우스 버튼은 마우스 버튼은 GetAsyncKeyState가 잘 작동하지 않을 수 있으므로 ProcessKeyMessage에서 처리
+			// 마우스 버튼은 ProcessKeyMessage에서 처리 (WndProc → Queue → ProcessPendingInputMessages)
 			continue;
 		}
 
@@ -149,7 +163,7 @@ void UInputManager::Update(const FAppWindow* InWindow)
 	}
 }
 
-void UInputManager::UpdateMousePosition(const FAppWindow* InWindow)
+void UInputSubsystem::UpdateMousePosition(const FAppWindow* InWindow)
 {
 	PreviousMousePosition = CurrentMousePosition;
 
@@ -179,7 +193,7 @@ void UInputManager::UpdateMousePosition(const FAppWindow* InWindow)
 	MouseDelta = CurrentMousePosition - PreviousMousePosition;
 }
 
-bool UInputManager::IsKeyDown(EKeyInput InKey) const
+bool UInputSubsystem::IsKeyDown(EKeyInput InKey) const
 {
 	auto Iter = CurrentKeyState.find(InKey);
 	if (Iter != CurrentKeyState.end())
@@ -189,7 +203,7 @@ bool UInputManager::IsKeyDown(EKeyInput InKey) const
 	return false;
 }
 
-bool UInputManager::IsKeyPressed(EKeyInput InKey) const
+bool UInputSubsystem::IsKeyPressed(EKeyInput InKey) const
 {
 	auto CurrentIter = CurrentKeyState.find(InKey);
 	auto PrevIter = PreviousKeyState.find(InKey);
@@ -203,7 +217,7 @@ bool UInputManager::IsKeyPressed(EKeyInput InKey) const
 	return false;
 }
 
-bool UInputManager::IsKeyReleased(EKeyInput InKey) const
+bool UInputSubsystem::IsKeyReleased(EKeyInput InKey) const
 {
 	auto CurrentIter = CurrentKeyState.find(InKey);
 	auto PrevIter = PreviousKeyState.find(InKey);
@@ -216,7 +230,7 @@ bool UInputManager::IsKeyReleased(EKeyInput InKey) const
 	return false;
 }
 
-void UInputManager::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LParam)
+void UInputSubsystem::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LParam)
 {
 	// 윈도우가 포커스를 잃었을 때는 입력 처리를 중단
 	if (!bIsWindowFocused)
@@ -344,7 +358,7 @@ void UInputManager::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LP
 	}
 }
 
-const TArray<EKeyInput>& UInputManager::GetKeysByStatus(EKeyStatus InStatus)
+const TArray<EKeyInput>& UInputSubsystem::GetKeysByStatus(EKeyStatus InStatus)
 {
 	KeysInStatus.clear();
 
@@ -360,7 +374,7 @@ const TArray<EKeyInput>& UInputManager::GetKeysByStatus(EKeyStatus InStatus)
 	return KeysInStatus;
 }
 
-EKeyStatus UInputManager::GetKeyStatus(EKeyInput InKey) const
+EKeyStatus UInputSubsystem::GetKeyStatus(EKeyInput InKey) const
 {
 	auto CurrentIter = CurrentKeyState.find(InKey);
 	auto PrevIter = PreviousKeyState.find(InKey);
@@ -386,29 +400,29 @@ EKeyStatus UInputManager::GetKeyStatus(EKeyInput InKey) const
 	return EKeyStatus::Up;
 }
 
-const TArray<EKeyInput>& UInputManager::GetPressedKeys()
+const TArray<EKeyInput>& UInputSubsystem::GetPressedKeys()
 {
 	return GetKeysByStatus(EKeyStatus::Down);
 }
 
-const TArray<EKeyInput>& UInputManager::GetNewlyPressedKeys()
+const TArray<EKeyInput>& UInputSubsystem::GetNewlyPressedKeys()
 {
 	// Pressed 상태의 키들을 반환
 	return GetKeysByStatus(EKeyStatus::Pressed);
 }
 
-const TArray<EKeyInput>& UInputManager::GetReleasedKeys()
+const TArray<EKeyInput>& UInputSubsystem::GetReleasedKeys()
 {
 	// Released 상태의 키들을 반환
 	return GetKeysByStatus(EKeyStatus::Released);
 }
 
-FString UInputManager::KeyInputToString(EKeyInput InKey)
+FString UInputSubsystem::KeyInputToString(EKeyInput InKey)
 {
 	return EnumToString<EKeyInput>(InKey);
 }
 
-void UInputManager::SetWindowFocus(bool bInFocused)
+void UInputSubsystem::SetWindowFocus(bool bInFocused)
 {
 	bIsWindowFocused = bInFocused;
 
@@ -436,7 +450,7 @@ void UInputManager::SetWindowFocus(bool bInFocused)
  * @brief 더블클릭 감지 업데이트
  * 매 프레임마다 더블클릭 상태를 리셋하고 타임아웃 처리
  */
-void UInputManager::UpdateDoubleClickDetection()
+void UInputSubsystem::UpdateDoubleClickDetection()
 {
 	for (auto& Pair : DoubleClickState)
 	{
@@ -460,7 +474,7 @@ void UInputManager::UpdateDoubleClickDetection()
  * @param InMouseButton 확인할 마우스 버튼
  * @return 더블클릭 되었으면 true, 아니면 false
  */
-bool UInputManager::IsMouseDoubleClicked(EKeyInput InMouseButton) const
+bool UInputSubsystem::IsMouseDoubleClicked(EKeyInput InMouseButton) const
 {
 	auto Iter = DoubleClickState.find(InMouseButton);
 	if (Iter != DoubleClickState.end())
@@ -468,4 +482,10 @@ bool UInputManager::IsMouseDoubleClicked(EKeyInput InMouseButton) const
 		return Iter->second;
 	}
 	return false;
+}
+
+void UInputSubsystem::PrepareNewFrame()
+{
+	// 이전 프레임의 최종 상태를 백업
+	PreviousKeyState = CurrentKeyState;
 }

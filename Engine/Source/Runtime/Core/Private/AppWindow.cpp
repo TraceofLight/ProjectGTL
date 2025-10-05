@@ -5,7 +5,7 @@
 #include "ImGui/imgui.h"
 
 #include "Manager/UI/Public/UIManager.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Window/Public/Window.h"
@@ -23,19 +23,19 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 {
 	InstanceHandle = InInstance;
 
-	WCHAR WindowClass[] = L"UnlearnEngineWindowClass";
+	WCHAR WindowClass[] = L"BrandNewEngineWindowClass";
 
 	// 아이콘 로드
 	HICON hIcon = LoadIconW(InInstance, MAKEINTRESOURCEW(IDI_ICON1));
 	HICON hIconSm = LoadIconW(InInstance, MAKEINTRESOURCEW(IDI_ICON1));
 
-	WNDCLASSW wndclass = {};
+	WNDCLASSW wndclass;
 	wndclass.style = 0;
 	wndclass.lpfnWndProc = WndProc;
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = InInstance;
-	wndclass.hIcon = hIcon; // 큰 아이콘 (타이틀바용)
+	wndclass.hIcon = hIcon;
 	wndclass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wndclass.hbrBackground = nullptr;
 	wndclass.lpszMenuName = nullptr;
@@ -44,10 +44,10 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 	RegisterClassW(&wndclass);
 
 	MainWindowHandle = CreateWindowExW(0, WindowClass, L"",
-		WS_POPUP | WS_VISIBLE | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		Render::INIT_SCREEN_WIDTH, Render::INIT_SCREEN_HEIGHT,
-		nullptr, nullptr, InInstance, nullptr);
+	                                   WS_POPUP | WS_VISIBLE | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
+	                                   CW_USEDEFAULT, CW_USEDEFAULT,
+	                                   Render::INIT_SCREEN_WIDTH, Render::INIT_SCREEN_HEIGHT,
+	                                   nullptr, nullptr, InInstance, this);
 
 	if (!MainWindowHandle)
 	{
@@ -55,8 +55,8 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 	}
 
 	// DWM을 사용하여 클라이언트 영역을 non-client 영역까지 확장
-	MARGINS margins = { 1, 1, 1, 1 };
-	DwmExtendFrameIntoClientArea(MainWindowHandle, &margins);
+	MARGINS Margins = {1, 1, 1, 1};
+	DwmExtendFrameIntoClientArea(MainWindowHandle, &Margins);
 
 	if (hIcon)
 	{
@@ -114,8 +114,12 @@ FAppWindow* FAppWindow::GetWindowInstance(HWND InWindowHandle, uint32 InMessage,
 }
 
 LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPARAM InWParam,
-	LPARAM InLParam)
+                                     LPARAM InLParam)
 {
+	// WndProc 최상단에서 Window Instance 포인터를 가져오거나, WM_NCCREATE 메시지에서 설정
+	// 이 작업은 다른 모든 메시지 처리보다 반드시 먼저 수행되어야 함
+	FAppWindow* WindowInstance = GetWindowInstance(InWindowHandle, InMessage, InLParam);
+
 	if (UUIManager::WndProcHandler(InWindowHandle, InMessage, InWParam, InLParam))
 	{
 		if (ImGui::GetIO().WantCaptureMouse)
@@ -124,16 +128,30 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 		}
 	}
 
-	UInputManager::GetInstance().ProcessKeyMessage(InMessage, InWParam, InLParam);
-
 	switch (InMessage)
 	{
+	// 입력 메시지 처리
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_MOUSEWHEEL:
+	case WM_SETFOCUS:
+	case WM_KILLFOCUS:
+		if (WindowInstance)
+		{
+			WindowInstance->EnqueueInputMessage(InMessage, InWParam, InLParam);
+		}
+		return 0;
+
+	// 윈도우 상태 메시지 처리
 	case WM_NCCALCSIZE:
 		{
-			// non-client 영역(타이틀바)을 완전히 제거
+			// non-client 영역을 완전히 제거
 			if (InWParam == TRUE)
 			{
-				// 전체 영역을 클라이언트 영역으로 사용
 				return 0;
 			}
 			break;
@@ -142,29 +160,30 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 	case WM_NCHITTEST:
 		{
 			// 기본 hit test 수행
-			LRESULT hit = DefWindowProc(InWindowHandle, InMessage, InWParam, InLParam);
+			LRESULT Hit = DefWindowProc(InWindowHandle, InMessage, InWParam, InLParam);
 
 			// 클라이언트 영역이고 상단 메뉴바 영역이면 드래그 가능하도록 설정
-			if (hit == HTCLIENT)
+			if (Hit == HTCLIENT)
 			{
-				POINT pt;
-				pt.x = static_cast<int16>(LOWORD(InLParam));
-				pt.y = static_cast<int16>(HIWORD(InLParam));
-				ScreenToClient(InWindowHandle, &pt);
+				POINT ScreenPoint;
+				ScreenPoint.x = static_cast<int16>(LOWORD(InLParam));
+				ScreenPoint.y = static_cast<int16>(HIWORD(InLParam));
+				ScreenToClient(InWindowHandle, &ScreenPoint);
 
 				// 메뉴바 높이만큼만 드래그 가능
-				// XXX(KHJ): 이거 하드코딩... 이대로 괜찮은가
-				if (pt.y >= 0 && pt.y <= 30)
+				if (ScreenPoint.y >= 0 && ScreenPoint.y <= 30)
 				{
-					// ImGui가 실제로 UI 요소(버튼, 메뉴 등) 위에 있는지 확인
 					if (ImGui::GetIO().WantCaptureMouse && ImGui::IsAnyItemHovered())
 					{
-						return HTCLIENT; // ImGui 요소 위에 있으면 클라이언트 영역으로 처리
+						// ImGui 요소 위에 있으면 클라이언트 영역으로 처리
+						return HTCLIENT;
 					}
-					return HTCAPTION; // 빈 공간이면 타이틀바처럼 동작
+
+					// 빈 공간이면 타이틀바처럼 동작
+					return HTCAPTION;
 				}
 			}
-			return hit;
+			return Hit;
 		}
 
 	case WM_DESTROY:
@@ -180,57 +199,51 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 		UUIManager::GetInstance().RepositionImGuiWindows();
 		if (auto* Root = UViewportManager::GetInstance().GetRoot())
 		{
-			RECT rc{}; GetClientRect(InWindowHandle, &rc);
-			Root->OnResize({ 0,0, (int32)(rc.right - rc.left), (int32)(rc.bottom - rc.top) });
+			RECT Rect;
+			GetClientRect(InWindowHandle, &Rect);
+			Root->OnResize({
+				0, 0, static_cast<int32>(Rect.right - Rect.left), static_cast<int32>(Rect.bottom - Rect.top)
+			});
 		}
 		break;
 	case WM_SIZE:
 		if (InWParam != SIZE_MINIMIZED)
 		{
 			if (!URenderer::GetInstance().GetIsResizing())
-			{ // 드래그 X 일때 추가 처리 (최대화 버튼, ...)
+			{
+				// 드래그 X 일때 추가 처리
 				URenderer::GetInstance().OnResize(LOWORD(InLParam), HIWORD(InLParam));
 				UUIManager::GetInstance().RepositionImGuiWindows();
 				if (auto* Root = UViewportManager::GetInstance().GetRoot())
 				{
-					Root->OnResize({ 0,0, (int32)LOWORD(InLParam), (int32)HIWORD(InLParam) });
+					Root->OnResize({0, 0, static_cast<int32>(LOWORD(InLParam)), static_cast<int32>(HIWORD(InLParam))});
 				}
 			}
 		}
 		else // SIZE_MINIMIZED
 		{
-			// 윈도우가 최소화될 때 입력 비활성화 및 상태 저장
-			UE_LOG("AppWindow: Window 최소화 (WM_SIZE - SIZE_MINIMIZED)");
-			UInputManager::GetInstance().SetWindowFocus(false);
+			if (WindowInstance)
+			{
+				WindowInstance->EnqueueInputMessage(WM_KILLFOCUS, 0, 0);
+			}
 			UUIManager::GetInstance().OnWindowMinimized();
 		}
 		break;
 
-	case WM_SETFOCUS:
-		// 윈도우가 포커스를 얻었을 때 입력 활성화 및 상태 복원
-		UE_LOG("AppWindow: Window 포커스 획득 (WM_SETFOCUS)");
-		UInputManager::GetInstance().SetWindowFocus(true);
-		UUIManager::GetInstance().OnWindowRestored();
-		break;
-
-	case WM_KILLFOCUS:
-		// 윈도우가 포커스를 잃었을 때 입력 비활성화
-		UInputManager::GetInstance().SetWindowFocus(false);
-		break;
-
 	case WM_ACTIVATE:
-		// 윈도우 활성/비활성 상태 변화
 		if (LOWORD(InWParam) == WA_INACTIVE)
 		{
-			// 윈도우가 비활성화될 때
-			UInputManager::GetInstance().SetWindowFocus(false);
-			// 주의: WM_ACTIVATE에서 OnWindowMinimized를 호출하지 않음 (최소화가 아닌 단순 비활성화)
+			if (WindowInstance)
+			{
+				WindowInstance->EnqueueInputMessage(WM_KILLFOCUS, 0, 0);
+			}
 		}
 		else
 		{
-			// 윈도우가 활성화될 때 (WA_ACTIVE 또는 WA_CLICKACTIVE)
-			UE_LOG("AppWindow: Window 활성화 (WM_ACTIVATE)");
-			UInputManager::GetInstance().SetWindowFocus(true);
+			if (WindowInstance)
+			{
+				WindowInstance->EnqueueInputMessage(WM_SETFOCUS, 0, 0);
+			}
 			UUIManager::GetInstance().OnWindowRestored();
 		}
 		break;
@@ -253,4 +266,50 @@ void FAppWindow::GetClientSize(int32& OutWidth, int32& OutHeight) const
 	GetClientRect(MainWindowHandle, &ClientRectangle);
 	OutWidth = ClientRectangle.right - ClientRectangle.left;
 	OutHeight = ClientRectangle.bottom - ClientRectangle.top;
+}
+
+/**
+ * @brief 입력 메시지를 큐에 추가
+ */
+void FAppWindow::EnqueueInputMessage(uint32 InMessage, WPARAM InWParam, LPARAM InLParam)
+{
+	std::lock_guard Lock(InputQueueMutex);
+	InputMessageQueue.push({InMessage, InWParam, InLParam});
+}
+
+/**
+ * @brief 큐에 쌓인 입력 메시지를 InputSubsystem에 전달하여 처리
+ */
+void FAppWindow::ProcessPendingInputMessages()
+{
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		UE_LOG_ERROR("ProcessPendingInputMessages: InputSubsystem이 존재하지 않습니다");
+		return;
+	}
+
+	lock_guard Lock(InputQueueMutex);
+
+	while (!InputMessageQueue.empty())
+	{
+		const FInputMessage& Message = InputMessageQueue.front();
+
+		// Focus 메시지 처리
+		if (Message.Message == WM_SETFOCUS)
+		{
+			InputSubsystem->SetWindowFocus(true);
+		}
+		else if (Message.Message == WM_KILLFOCUS)
+		{
+			InputSubsystem->SetWindowFocus(false);
+		}
+		else
+		{
+			// 일반 입력 메시지 처리
+			InputSubsystem->ProcessKeyMessage(Message.Message, Message.WParam, Message.LParam);
+		}
+
+		InputMessageQueue.pop();
+	}
 }

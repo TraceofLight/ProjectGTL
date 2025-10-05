@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Window/Public/WindowSystem.h"
 #include "Window/Public/Window.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Window/Public/Splitter.h"
 
 namespace WindowSystem
@@ -26,8 +26,13 @@ namespace WindowSystem
 	        return;
         }
 
-        auto& InputManager = UInputManager::GetInstance();
-        const FVector& MousePosition = InputManager.GetMousePosition();
+        UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+        if (!InputSubsystem)
+        {
+            return;
+        }
+
+        const FVector& MousePosition = InputSubsystem->GetMousePosition();
         FPoint P{ LONG(MousePosition.X), LONG(MousePosition.Y) };
 		//UE_LOG("%d %d", P.X, P.Y);
 
@@ -35,7 +40,7 @@ namespace WindowSystem
 
     	//UE_LOG("before Button Pressed");
 		  // --- 1) Left Pressed: 토글 동작 구현 -------------------------------------
-        if (InputManager.IsKeyPressed(EKeyInput::MouseLeft) || (!GCapture && InputManager.IsKeyDown(EKeyInput::MouseLeft)))
+        if (InputSubsystem->IsKeyPressed(EKeyInput::MouseLeft) || (!GCapture && InputSubsystem->IsKeyDown(EKeyInput::MouseLeft)))
         {
             if (Target && Target->OnMouseDown(P, 0))
             {
@@ -44,13 +49,13 @@ namespace WindowSystem
         }
 
         // Mouse move (only if any delta)
-        const FVector& d = InputManager.GetMouseDelta();
+        const FVector& d = InputSubsystem->GetMouseDelta();
         if ((d.X != 0.0f || d.Y != 0.0f) && GCapture)
         {
 			GCapture->OnMouseMove(P);
         }
 
-        if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
+        if (InputSubsystem->IsKeyReleased(EKeyInput::MouseLeft))
         {
             if (GCapture)
             {
@@ -59,7 +64,7 @@ namespace WindowSystem
             }
         }
 
-		if (!InputManager.IsKeyDown(EKeyInput::MouseLeft) && GCapture)
+		if (!InputSubsystem->IsKeyDown(EKeyInput::MouseLeft) && GCapture)
 		{
 			GCapture->OnMouseUp(P, /*Button*/0);
 			GCapture = nullptr;

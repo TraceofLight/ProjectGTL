@@ -22,6 +22,8 @@
 #include <filesystem>
 #include <iterator>
 #include <sstream>
+#include <queue>
+#include <mutex>
 
 // Global Included
 #include "Source/Global/Types.h"
@@ -50,6 +52,9 @@ using std::ofstream;
 using std::ifstream;
 using std::setw;
 using std::sort;
+using std::mutex;
+using std::lock_guard;
+using std::queue;
 using std::shared_ptr;
 using std::unique_ptr;
 using std::streamsize;

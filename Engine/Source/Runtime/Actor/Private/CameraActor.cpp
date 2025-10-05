@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Runtime/Actor/Public/CameraActor.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/UI/Public/UIManager.h"
@@ -45,11 +45,15 @@ void ACameraActor::Tick()
 		bIsAnimating = SceneHierarchyWidget->IsCameraAnimating(TObjectPtr<ACameraActor>(this));
 	}
 
-	UInputManager& Input = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
 
 	// 마우스 우클릭 제어: 투영 타입별로 동작을 분기
 	// 애니메이션 중 우클릭이 들어오면 애니메이션을 중단하고 카메라 조작을 시작합니다
-	if (Input.IsKeyDown(EKeyInput::MouseRight))
+	if (InputSubsystem->IsKeyDown(EKeyInput::MouseRight))
 	{
 		// 애니메이션 중이면 중단
 		if (bIsAnimating && SceneHierarchyWidget)
@@ -58,8 +62,8 @@ void ACameraActor::Tick()
 		}
 		if (CameraComponent->GetCameraType() == ECameraType::ECT_Orthographic)
 		{
-			// 마우스 드래그 → 패닝 (스크린 공간 X→Right, Y→Up)
-			const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
+			// 마우스 드래그 -> 패닝 (스크린 공간 X -> Right, Y -> Up)
+			const FVector MouseDelta = InputSubsystem->GetMouseDelta();
 			if (MouseDelta.X != 0.0f || MouseDelta.Y != 0.0f)
 			{
 				// OrthoWidth/Height 기반 픽셀당 월드 단위 추정
@@ -86,34 +90,29 @@ void ACameraActor::Tick()
 		{
 			// 기존 FPS 스타일 유지 (WASD + 마우스 회전 + 휠로 속도 조절)
 			FVector Direction = { 0,0,0 };
-			if (Input.IsKeyDown(EKeyInput::A)) { Direction += -CameraComponent->GetRight(); }
-			if (Input.IsKeyDown(EKeyInput::D)) { Direction += CameraComponent->GetRight(); }
-			if (Input.IsKeyDown(EKeyInput::W)) { Direction += CameraComponent->GetForward(); }
-			if (Input.IsKeyDown(EKeyInput::S)) { Direction += -CameraComponent->GetForward(); }
-			if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -CameraComponent->GetUp(); }
-			if (Input.IsKeyDown(EKeyInput::E)) { Direction += CameraComponent->GetUp(); }
+			if (InputSubsystem->IsKeyDown(EKeyInput::A)) { Direction += -CameraComponent->GetRight(); }
+			if (InputSubsystem->IsKeyDown(EKeyInput::D)) { Direction += CameraComponent->GetRight(); }
+			if (InputSubsystem->IsKeyDown(EKeyInput::W)) { Direction += CameraComponent->GetForward(); }
+			if (InputSubsystem->IsKeyDown(EKeyInput::S)) { Direction += -CameraComponent->GetForward(); }
+			if (InputSubsystem->IsKeyDown(EKeyInput::Q)) { Direction += -CameraComponent->GetUp(); }
+			if (InputSubsystem->IsKeyDown(EKeyInput::E)) { Direction += CameraComponent->GetUp(); }
 			Direction.Normalize();
 
 			FVector NewLocation = CameraComponent->GetRelativeLocation();
 			NewLocation += Direction * CurrentMoveSpeed * GDeltaTime;
 			CameraComponent->SetRelativeLocation(NewLocation);
 
-			float WheelDelta = Input.GetMouseWheelDelta();
+			float WheelDelta = InputSubsystem->GetMouseWheelDelta();
 			if (WheelDelta != 0.0f)
 			{
 				AdjustMoveSpeed(WheelDelta * SPEED_ADJUST_STEP);
-				Input.SetMouseWheelDelta(0.0f);
+				InputSubsystem->SetMouseWheelDelta(0.0f);
 			}
 
-			const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
+			const FVector MouseDelta = InputSubsystem->GetMouseDelta();
 			FVector NewRotation = CameraComponent->GetRelativeRotation();
 			NewRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel;
 			NewRotation.Y += MouseDelta.Y * KeySensitivityDegPerPixel;
-
-			// if (NewRotation.Z > 180.0f) NewRotation.Z -= 360.0f;
-			// if (NewRotation.Z < -180.0f) NewRotation.Z += 360.0f;
-			// if (NewRotation.Y > 89.0f)  NewRotation.Y = 89.0f;
-			// if (NewRotation.Y < -89.0f) NewRotation.Y = -89.0f;
 
 			CameraComponent->SetRelativeRotation(NewRotation);
 		}

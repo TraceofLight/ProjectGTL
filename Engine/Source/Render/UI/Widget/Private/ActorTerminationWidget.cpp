@@ -2,7 +2,7 @@
 #include "Render/UI/Widget/Public/ActorTerminationWidget.h"
 
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Manager/Level/Public/LevelManager.h"
 
 
@@ -45,30 +45,26 @@ void UActorTerminationWidget::Update()
 
 void UActorTerminationWidget::RenderWidget()
 {
-	auto& InputManager = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
 
 	if (SelectedActor)
 	{
-		// ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.6f, 1.0f), "Selected: %s (%p)",
-		//                    SelectedActor->GetName().c_str(), SelectedActor);
-
-		// ImGui Deprecated (굳이 명시적인 버튼이 없어도 관용적으로 이해할 수 있는 키 매핑)
-		// if (ImGui::Button("Delete Actor") || InputManager.IsKeyDown(EKeyInput::Delete))
-		if (InputManager.IsKeyDown(EKeyInput::Delete))
+		if (InputSubsystem->IsKeyDown(EKeyInput::Delete))
 		{
-			DeleteSelectedActor();
+			TriggerDeleteSelectedActor();
 		}
-	}
-	else
-	{
-		// ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No Actor Selected For Deletion");
 	}
 }
 
 /**
  * @brief Selected Actor 삭제 함수
+ * 직접 삭제하지는 않기 때문에 Trigger 함수로 이름 변경
  */
-void UActorTerminationWidget::DeleteSelectedActor()
+void UActorTerminationWidget::TriggerDeleteSelectedActor()
 {
 	UE_LOG("ActorTerminationWidget: 삭제를 위한 Actor Marking 시작");
 	if (!SelectedActor)

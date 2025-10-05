@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Editor/Public/Editor.h"
 
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
@@ -181,36 +181,40 @@ void UEditor::UpdateSelectionBounds()
  */
 void UEditor::HandleGlobalShortcuts()
 {
-	const auto& InputManager = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
 
 	// 로컬 & 월드 변환
-	if (InputManager.IsKeyDown(EKeyInput::Ctrl) && InputManager.IsKeyPressed(EKeyInput::Backquote))
+	if (InputSubsystem->IsKeyDown(EKeyInput::Ctrl) && InputSubsystem->IsKeyPressed(EKeyInput::Backquote))
 	{
 		Gizmo.IsWorldMode() ? Gizmo.SetLocal() : Gizmo.SetWorld();
 	}
 
 	// 기즈모 전체 순회로 모드 변경
-	if (InputManager.IsKeyPressed(EKeyInput::Space))
+	if (InputSubsystem->IsKeyPressed(EKeyInput::Space))
 	{
 		Gizmo.ChangeGizmoMode();
 	}
 
 	// 단축키로 기즈모 모드 변경
-	if (!InputManager.IsKeyDown(EKeyInput::MouseRight) && InputManager.IsKeyPressed(EKeyInput::W))
+	if (!InputSubsystem->IsKeyDown(EKeyInput::MouseRight) && InputSubsystem->IsKeyPressed(EKeyInput::W))
 	{
 		Gizmo.ChangeGizmoMode(EGizmoMode::Translate);
 	}
-	if (!InputManager.IsKeyDown(EKeyInput::MouseRight) && InputManager.IsKeyPressed(EKeyInput::E))
+	if (!InputSubsystem->IsKeyDown(EKeyInput::MouseRight) && InputSubsystem->IsKeyPressed(EKeyInput::E))
 	{
 		Gizmo.ChangeGizmoMode(EGizmoMode::Rotate);
 	}
-	if (!InputManager.IsKeyDown(EKeyInput::MouseRight) && InputManager.IsKeyPressed(EKeyInput::R))
+	if (!InputSubsystem->IsKeyDown(EKeyInput::MouseRight) && InputSubsystem->IsKeyPressed(EKeyInput::R))
 	{
 		Gizmo.ChangeGizmoMode(EGizmoMode::Scale);
 	}
 
 	// 마우스 버튼을 놓으면 무조건 드래그 종료
-	if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
+	if (InputSubsystem->IsKeyReleased(EKeyInput::MouseLeft))
 	{
 		Gizmo.EndDrag();
 	}
@@ -223,7 +227,12 @@ void UEditor::HandleGlobalShortcuts()
  */
 FRay UEditor::CreateWorldRayFromMouse(const ACameraActor* InPickingCamera)
 {
-	const auto& InputManager = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		assert(!"InputSubsystem does not exist");
+	}
+
 	auto& ViewportManager = UViewportManager::GetInstance();
 
 	float NdcX = 0.0f, NdcY = 0.0f;
@@ -234,11 +243,12 @@ FRay UEditor::CreateWorldRayFromMouse(const ACameraActor* InPickingCamera)
 	if (InPickingCamera && InPickingCamera->GetCameraComponent())
 	{
 		return InPickingCamera->GetCameraComponent()->ConvertToWorldRay(
-			bHaveLocalNDC ? NdcX : InputManager.GetMouseNDCPosition().X,
-			bHaveLocalNDC ? NdcY : InputManager.GetMouseNDCPosition().Y
+			bHaveLocalNDC ? NdcX : InputSubsystem->GetMouseNDCPosition().X,
+			bHaveLocalNDC ? NdcY : InputSubsystem->GetMouseNDCPosition().Y
 		);
 	}
-	return FRay();
+
+	return {};
 }
 
 /**
@@ -286,7 +296,12 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 		return;
 	}
 
-	const auto& InputManager = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
+
 	ULevel* CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
 	FVector CollisionPoint;
 
@@ -312,19 +327,19 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 	// 업데이트된 기즈모의 상태를 확인하여 상호작용 여부를 판단
 	if (Gizmo.GetGizmoDirectionForViewport(ViewportIndex) != EGizmoDirection::None)
 	{
-		if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
+		if (InputSubsystem->IsKeyPressed(EKeyInput::MouseLeft))
 		{
 			Gizmo.OnMouseDragStart(CollisionPoint);
 		}
 		else
 		{
-			Gizmo.OnMouseHovering();
+			UGizmo::OnMouseHovering();
 		}
 	}
 	// 기즈모와 상호작용하지 않았다면, 새로운 Actor picking 시도
 	else
 	{
-		if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
+		if (InputSubsystem->IsKeyPressed(EKeyInput::MouseLeft))
 		{
 			TObjectPtr<AActor> PickedActor = nullptr;
 			if (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Primitives)
@@ -506,8 +521,13 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const ACameraActor& InCamer
 	CalculateBasisVectorsForViewType(ViewType, Fwd, Right, Up);
 
 	// 마우스 델타 가져오기
-	const auto& InputManager = UInputManager::GetInstance();
-	const FVector& MouseDelta = InputManager.GetMouseDelta();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return Gizmo.GetGizmoLocation();
+	}
+
+	const FVector& MouseDelta = InputSubsystem->GetMouseDelta();
 	if (MouseDelta.X == 0.0f && MouseDelta.Y == 0.0f)
 	{
 		return Gizmo.GetGizmoLocation();

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Source/Window/Public/Viewport.h"
 #include "Source/Window/Public/ViewportClient.h"
-#include "Source/Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 
 FViewport::FViewport()
 {
@@ -56,9 +56,13 @@ bool FViewport::HandleCapturedMouseMove(int32 InLocalX, int32 InLocalY)
 
 void FViewport::PumpMouseFromInputManager()
 {
-    auto& Input = UInputManager::GetInstance();
+    UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+    if (!InputSubsystem)
+    {
+        return;
+    }
 
-    const FVector& MousePosWS = Input.GetMousePosition(); 
+    const FVector& MousePosWS = InputSubsystem->GetMousePosition(); 
     const FPoint   Screen{ (LONG)MousePosWS.X, (LONG)MousePosWS.Y };
 
     // 로컬 좌표계 변환
@@ -70,17 +74,17 @@ void FViewport::PumpMouseFromInputManager()
                         (Screen.Y >= RenderAreaTop) && (Screen.Y < RenderAreaBottom);
 
     // 버튼 상태 변화 감지 후 down/up 처리 (좌클릭 우선)
-    if (Input.IsKeyPressed(EKeyInput::MouseLeft) && bInside)
+    if (InputSubsystem->IsKeyPressed(EKeyInput::MouseLeft) && bInside)
     {
         HandleMouseDown(0, Local.X, Local.Y);
     }
-    if (Input.IsKeyReleased(EKeyInput::MouseLeft))
+    if (InputSubsystem->IsKeyReleased(EKeyInput::MouseLeft))
     {
         HandleMouseUp(0, Local.X, Local.Y);
     }
 
     // 이동 라우팅: 캡처 중이면 Captured, 아니면 일반 Move
-    const FVector& Delta = Input.GetMouseDelta();
+    const FVector& Delta = InputSubsystem->GetMouseDelta();
     const bool bMoved = (Delta.X != 0.0f || Delta.Y != 0.0f);
     if (bMoved)
     {
