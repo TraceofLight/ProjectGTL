@@ -1,17 +1,16 @@
 #include "pch.h"
 #include "Runtime/Component/Public/LineComponent.h"
-
-#include "Manager/Asset/Public/AssetManager.h"
+#include "Render/Renderer/Public/Renderer.h"
+#include "Render/Renderer/Public/EditorRenderResources.h"
 
 IMPLEMENT_CLASS(ULineComponent, UPrimitiveComponent)
 
 ULineComponent::ULineComponent()
 {
-	UAssetManager& ResourceManager = UAssetManager::GetInstance();
+	FEditorRenderResources* EditorResources = URenderer::GetInstance().GetEditorResources();
 	Type = EPrimitiveType::Line;
-	Vertices = ResourceManager.GetVertexData(Type);
-	Vertexbuffer = ResourceManager.GetVertexbuffer(Type);
-	NumVertices = ResourceManager.GetNumVertices(Type);
+	Vertexbuffer = EditorResources->GetGizmoVertexBuffer(Type);
+	NumVertices = EditorResources->GetGizmoVertexCount(Type);
 	Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 	RenderState.CullMode = ECullMode::None;
 	RenderState.FillMode = EFillMode::WireFrame;

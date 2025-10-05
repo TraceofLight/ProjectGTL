@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "Asset/Public/StaticMesh.h"
+#include "Asset/Public/StaticMeshData.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Utility/Public/Archive.h"
-#include "Manager/Asset/Public/AssetManager.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
+#include "Utility/Public/Archive.h"
 
 IMPLEMENT_CLASS(UStaticMesh, UObject)
 
@@ -149,7 +150,7 @@ bool UStaticMesh::SaveToBinary(const FString& FilePath) const
 		// MaterialSlots 저장
 		uint32 MaterialSlotCount = static_cast<uint32>(MaterialSlots.size());
 		Writer << MaterialSlotCount;
-		for(UMaterialInterface* MaterialInterface : MaterialSlots)
+		for (UMaterialInterface* MaterialInterface : MaterialSlots)
 		{
 			UMaterial* Material = Cast<UMaterial>(MaterialInterface);
 			const FObjMaterialInfo& MaterialInfo = Material ? Material->GetMaterialInfo() : FObjMaterialInfo();
@@ -273,9 +274,10 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 			}
 
 			// 기존 머티리얼 중 없으면 새로 만들어 적용
-			if(!bFound)
+			if (!bFound)
 			{
-				UMaterialInterface* Material = UAssetManager::GetInstance().CreateMaterial(MaterialInfo);
+				UMaterialInterface* Material = GEngine->GetEngineSubsystem<UAssetSubsystem>()->CreateMaterial(
+					MaterialInfo);
 				if (Material)
 				{
 					MaterialSlots[i] = Material;
@@ -294,7 +296,7 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		CreateRenderBuffers();
 
 		UE_LOG("UStaticMesh: Successfully loaded binary mesh: %s (%zu vertices, %zu indices)",
-			FilePath.c_str(), StaticMeshData.Vertices.size(), StaticMeshData.Indices.size());
+		       FilePath.c_str(), StaticMeshData.Vertices.size(), StaticMeshData.Indices.size());
 		return true;
 	}
 	catch (const std::exception& e)
@@ -319,6 +321,7 @@ FString UStaticMesh::GetBinaryFilePath(const FString& ObjFilePath)
 {
 	return FArchiveHelpers::GetBinaryFilePath(ObjFilePath);
 }
+
 void UStaticMesh::SetMaterialSlots(const TArray<UMaterialInterface*>& InMaterialSlots)
 {
 	MaterialSlots = InMaterialSlots;

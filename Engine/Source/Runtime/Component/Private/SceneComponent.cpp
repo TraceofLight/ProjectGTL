@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Runtime/Component/Public/SceneComponent.h"
 
-#include "Manager/Asset/Public/AssetManager.h"
-
 IMPLEMENT_CLASS(USceneComponent, UActorComponent)
 
 USceneComponent::USceneComponent()

@@ -2,7 +2,7 @@
 #include "Editor/Public/BatchLines.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Editor/Public/EditorPrimitive.h"
-#include "Manager/Asset/Public/AssetManager.h"
+#include "Render/Renderer/Public/EditorRenderResources.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 
 IMPLEMENT_CLASS(UBatchLines, UObject)
@@ -28,21 +28,21 @@ UBatchLines::UBatchLines()
 	Primitive.NumIndices = static_cast<uint32>(Indices.size());
 	Primitive.IndexBuffer = Renderer.CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));
 	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+	Primitive.Color = { 0.5f, 0.5f, 0.5f, 1.0f }; // 기본 색상(회색) 설정
 	Primitive.Vertexbuffer = Renderer.CreateVertexBuffer(
 		Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
 
-	Primitive.VertexShader = UAssetManager::GetInstance().GetVertexShader(EShaderType::BatchLine);
-	Primitive.InputLayout = UAssetManager::GetInstance().GetInputLayout(EShaderType::BatchLine);
-	Primitive.PixelShader = UAssetManager::GetInstance().GetPixelShader(EShaderType::BatchLine);
+	FEditorRenderResources* EditorResources = Renderer.GetEditorResources();
+	Primitive.VertexShader = EditorResources->GetEditorVertexShader(EShaderType::BatchLine);
+	Primitive.InputLayout = EditorResources->GetEditorInputLayout(EShaderType::BatchLine);
+	Primitive.PixelShader = EditorResources->GetEditorPixelShader(EShaderType::BatchLine);
 }
 
 UBatchLines::~UBatchLines()
 {
+	// 본인이 소유한 리소스만 해제
 	URenderer::ReleaseVertexBuffer(Primitive.Vertexbuffer);
-	Primitive.InputLayout->Release();
-	Primitive.VertexShader->Release();
 	Primitive.IndexBuffer->Release();
-	Primitive.PixelShader->Release();
 }
 
 void UBatchLines::UpdateUGridVertices(const float newCellSize)
@@ -52,6 +52,13 @@ void UBatchLines::UpdateUGridVertices(const float newCellSize)
 		return;
 	}
 	Grid.UpdateVerticesBy(newCellSize);
+
+	const uint32 totalVertices = Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices();
+	if (Vertices.size() != totalVertices)
+	{
+		Vertices.resize(totalVertices);
+	}
+
 	Grid.MergeVerticesAt(Vertices, 0);
 	bChangedVertices = true;
 }

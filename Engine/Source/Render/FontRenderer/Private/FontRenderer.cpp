@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Manager/Asset/Public/AssetManager.h"
+#include "Render/RHI/Public/RHIDevice.h"
 #include "Utility/Public/JsonSerializer.h"
 
 UFontRenderer::UFontRenderer() = default;
@@ -448,15 +448,14 @@ bool UFontRenderer::CreateShaders()
  */
 bool UFontRenderer::LoadFontTexture()
 {
-	UAssetManager& ResourceManager = UAssetManager::GetInstance();
+	URHIDevice& RHIDevice = URHIDevice::GetInstance();
 
 	path FontFilePath = "Asset/Texture/billboard_font_atlas.dds";
 	path MetricFilePath = "Asset/Texture/billboard_font_atlas_info.json";
 
 	// DDS 폰트 아틀라스 로드
 	UE_LOG("FontRenderer: DDS 폰트 텍스처 로드 시도: %ls", FontFilePath.c_str());
-	auto TextureComPtr = ResourceManager.LoadTexture(FontFilePath.string());
-	FontAtlasTexture = TextureComPtr.Get();
+	FontAtlasTexture = RHIDevice.CreateTextureFromFile(FontFilePath.wstring());
 
 	if (!FontAtlasTexture)
 	{

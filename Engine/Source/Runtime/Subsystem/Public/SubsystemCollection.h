@@ -5,8 +5,6 @@
 #include "EditorSubsystem.h"
 #include "GameInstanceSubsystem.h"
 #include "LocalPlayerSubsystem.h"
-#include "PathSubsystem.h"
-#include "OverlayManagerSubsystem.h"
 
 /**
  * @brief 특정 타입의 서브시스템들을 담아서 생명주기를 관리하는 컨테이너 클래스
@@ -130,8 +128,8 @@ void FSubsystemCollection<TBaseSubsystem>::Deinitialize()
 
 /**
  * @brief 서브시스템 생성 및 초기화 함수
- * 의존성 순서를 계산하고, 계산 순서대로 서브시스템 생성 및 초기화를 처리
- * 해야 하지만, 의존성 순서에 대한 계산을 할 정도의 고도화된 시스템이 아니기 때문에 그냥 들어 있는 순서대로 처리할 것
+ * RTTI 시스템을 활용한 자동 인스턴스 생성
+ * UClass::CreateDefaultObject()를 통해 동적으로 서브시스템 생성
  */
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::CreateAndInitializeSubsystems(TObjectPtr<UObject> InOuter)
@@ -141,31 +139,31 @@ void FSubsystemCollection<TBaseSubsystem>::CreateAndInitializeSubsystems(TObject
 	for (const FName& ClassName : InitializationOrder)
 	{
 		auto Iter = SubsystemClasses.find(ClassName);
-		if (Iter != SubsystemClasses.end())
+		if (Iter != SubsystemClasses.end() && Iter->second)
 		{
-			if (Iter->second)
-			{
-				// 직접 생성자 호출로 새 인스턴스 생성
-				TObjectPtr<TBaseSubsystem> NewSubsystem = nullptr;
+			// RTTI 기반 자동 인스턴스 생성
+			UClass* SubsystemClass = Iter->second;
+			TObjectPtr<UObject> NewObject = SubsystemClass->CreateDefaultObject();
 
-				// 클래스 이름을 기반으로 구체적인 타입 생성
-				FString ClassTypeName = Iter->second->GetClassTypeName().ToString();
-				if (ClassTypeName == "UPathSubsystem")
-				{
-					NewSubsystem = TObjectPtr<TBaseSubsystem>(reinterpret_cast<TBaseSubsystem*>(new UPathSubsystem()));
-				}
-				else if (ClassTypeName == "UOverlayManagerSubsystem")
-				{
-					NewSubsystem = TObjectPtr<TBaseSubsystem>(
-						reinterpret_cast<TBaseSubsystem*>(new UOverlayManagerSubsystem()));
-				}
-				// 다른 서브시스템 타입들도 여기에 추가
+			if (NewObject)
+			{
+				TObjectPtr<TBaseSubsystem> NewSubsystem = Cast<TBaseSubsystem>(NewObject);
+				NewSubsystem->SetOuter(InOuter);
 
 				if (NewSubsystem)
 				{
 					SubsystemInstances[ClassName] = NewSubsystem;
 					NewSubsystem->Initialize();
+					UE_LOG("SubsystemCollection: %s 생성 및 초기화 완료", ClassName.ToString().data());
 				}
+				else
+				{
+					UE_LOG_ERROR("SubsystemCollection: %s 타입 캐스팅 실패", ClassName.ToString().data());
+				}
+			}
+			else
+			{
+				UE_LOG_ERROR("SubsystemCollection: %s 인스턴스 생성 실패", ClassName.ToString().data());
 			}
 		}
 	}

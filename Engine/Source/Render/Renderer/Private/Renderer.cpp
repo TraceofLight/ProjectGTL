@@ -8,7 +8,6 @@
 #include "Manager/Level/Public/LevelManager.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
-#include "Manager/Asset/Public/AssetManager.h"
 #include "Material/Public/Material.h"
 #include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
@@ -17,6 +16,8 @@
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/ViewportClient.h"
+#include "Render/RHI/Public/RHIDevice.h"
+#include "Render/Renderer/Public/EditorRenderResources.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -28,6 +29,14 @@ void URenderer::Init(HWND InWindowHandle)
 {
 	DeviceResources = new UDeviceResources(InWindowHandle);
 	Pipeline = new UPipeline(GetDeviceContext());
+
+	// RHIDevice 초기화 (렌더링 리소스 생성 전담)
+	RHIDevice = &URHIDevice::GetInstance();
+	RHIDevice->Initialize(GetDevice(), GetDeviceContext());
+
+	// 에디터 렌더링 리소스 초기화 (기즈모, 그리드 등)
+	EditorResources = new FEditorRenderResources();
+	EditorResources->InitRHI(RHIDevice);
 
 	// 래스터라이저 상태 생성
 	CreateRasterizerState();
@@ -56,6 +65,20 @@ void URenderer::Release()
 
 	// FontRenderer 해제
 	SafeDelete(FontRenderer);
+
+	// 에디터 렌더링 리소스 해제
+	if (EditorResources)
+	{
+		EditorResources->ReleaseRHI(RHIDevice);
+		SafeDelete(EditorResources);
+	}
+
+	// RHIDevice 종료
+	if (RHIDevice)
+	{
+		RHIDevice->Shutdown();
+		RHIDevice = nullptr;
+	}
 
 	SafeDelete(Pipeline);
 	SafeDelete(DeviceResources);
@@ -479,10 +502,9 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 
 	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMeshComp)
 	{
-		auto& AssetManager = UAssetManager::GetInstance();
-		ID3D11VertexShader* StaticMeshVS = AssetManager.GetVertexShader(EShaderType::StaticMesh);
-		ID3D11PixelShader* StaticMeshPS = AssetManager.GetPixelShader(EShaderType::StaticMesh);
-		ID3D11InputLayout* StaticMeshLayout = AssetManager.GetInputLayout(EShaderType::StaticMesh);
+		ID3D11VertexShader* StaticMeshVS = EditorResources->GetEditorVertexShader(EShaderType::StaticMesh);
+		ID3D11PixelShader* StaticMeshPS = EditorResources->GetEditorPixelShader(EShaderType::StaticMesh);
+		ID3D11InputLayout* StaticMeshLayout = EditorResources->GetEditorInputLayout(EShaderType::StaticMesh);
 
 		if (StaticMeshVS) VertexShader = StaticMeshVS;
 		if (StaticMeshPS) PixelShader = StaticMeshPS;
@@ -813,7 +835,7 @@ void URenderer::RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const 
 
 					// 화면 공간에서 1픽셀이 월드 공간에서 차지하는 크기
 					float WorldUnitsPerPixel = (2.0f * DistanceToCamera * TanHalfFov) / InViewportHeight;
-					
+
 					// 화면 가장자리 보정 (원근 투영에서 가장자리로 갈수록 커지는 현상 방지)
 					FVector CameraToGizmo = InPrimitive.Location - InCameraLocation;
 					FVector CameraForward = CameraComp->GetForward();
@@ -826,19 +848,19 @@ void URenderer::RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const 
 
 					// 가장자리 보정 팩터 (가장자리로 갈수록 작아짐)
 					float EdgeCorrectionFactor = CosAngle;
-					
+
 					ScreenSpaceScale = (WorldUnitsPerPixel * InDesiredPixelSize) * EdgeCorrectionFactor;
 				}
 			else
 			{
 				// 직교 투영: 거리에 관계없이 일정한 크기
 				float OrthographicHeight = CameraComp->GetOrthographicHeight();
-				
+
 				if (OrthographicHeight > 0.0f && InViewportHeight > 0.0f)
 				{
 					float WorldUnitsPerPixel = OrthographicHeight / InViewportHeight;
 					ScreenSpaceScale = WorldUnitsPerPixel * InDesiredPixelSize;
-					
+
 					// 최소/최대 스케일 제한 (기즈모가 너무 작거나 커지는 방지)
 					ScreenSpaceScale = max(0.01f, min(100.0f, ScreenSpaceScale));
 				}
@@ -897,15 +919,11 @@ void URenderer::RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, cons
 
 	Pipeline->UpdatePipeline(PipelineInfo);
 
-	// 기본 상수 버퍼 사용하는 경우에만 업데이트
-	if (bInUseBaseConstantBuffer)
-	{
-		Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
-		UpdateConstant(InPrimitive.Location, InPrimitive.Rotation, InPrimitive.Scale);
+	Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
+	UpdateConstant(InPrimitive.Location, InPrimitive.Rotation, InPrimitive.Scale);
 
-		Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
-		UpdateConstant(InPrimitive.Color);
-	}
+	Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+	UpdateConstant(InPrimitive.Color);
 
 	// Set buffers and draw indexed
 	Pipeline->SetIndexBuffer(InPrimitive.IndexBuffer, InIndexBufferStride);

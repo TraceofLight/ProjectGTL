@@ -24,6 +24,9 @@ void UEditor::Update()
 	// Viewport 내 마우스 상호 작용 처리
 	HandleViewportInteraction();
 
+	// 그리드 정점 데이터 업데이트
+	BatchLines.UpdateUGridVertices(BatchLines.GetCellSize());
+
 	// Actor 바운딩 박스 업데이트
 	UpdateSelectionBounds();
 

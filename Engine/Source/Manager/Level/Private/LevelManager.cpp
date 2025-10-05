@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Manager/Level/Public/LevelManager.h"
-#include "Manager/Asset/Public/AssetManager.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Window/Public/ViewportClient.h"
 #include "Utility/Public/JsonSerializer.h"
@@ -12,6 +11,9 @@
 #include "Asset/Public/StaticMesh.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Window/Public/Viewport.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
+#include "Runtime/Subsystem/Public/PathSubsystem.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(ULevelManager)
 
@@ -419,13 +421,15 @@ bool ULevelManager::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FLev
 			{
 				if (TObjectPtr<AStaticMeshActor> StaticMeshActor = Cast<AStaticMeshActor>(NewActor))
 				{
-					UAssetManager& AssetManager = UAssetManager::GetInstance();
-					TObjectPtr<UStaticMesh> PrimitiveMesh = AssetManager.LoadStaticMesh(
-						PrimitiveMeta.ObjStaticMeshAsset);
-
-					if (PrimitiveMesh)
+					UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
+					UStaticMesh* StaticMesh = nullptr;
+					if (AssetSubsystem)
 					{
-						StaticMeshActor->SetStaticMesh(PrimitiveMesh);
+						StaticMesh = AssetSubsystem->LoadStaticMesh(PrimitiveMeta.ObjStaticMeshAsset);
+					}
+					if (StaticMesh)
+					{
+						StaticMeshActor->SetStaticMesh(StaticMesh);
 					}
 					else
 					{

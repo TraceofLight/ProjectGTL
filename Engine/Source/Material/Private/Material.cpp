@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Material/Public/Material.h"
-#include "Manager/Asset/Public/AssetManager.h"
+#include "Render/RHI/Public/RHIDevice.h"
 
 IMPLEMENT_CLASS(UMaterialInterface, UObject)
 IMPLEMENT_CLASS(UMaterial, UMaterialInterface)
@@ -11,15 +11,15 @@ UMaterial::~UMaterial()
 	SafeDelete(RenderProxy);
 	if (DiffuseTexture)
 	{
-		DiffuseTexture->Release();
+		URHIDevice::GetInstance().ReleaseTexture(DiffuseTexture);
 	}
 	if (NormalTexture)
 	{
-		NormalTexture->Release();
+		URHIDevice::GetInstance().ReleaseTexture(NormalTexture);
 	}
 	if (SpecularTexture)
 	{
-		SpecularTexture->Release();
+		URHIDevice::GetInstance().ReleaseTexture(SpecularTexture);
 	}
 }
 
@@ -35,7 +35,7 @@ const FObjMaterialInfo& UMaterial::GetMaterialInfo() const
 
 void UMaterial::ImportAllTextures()
 {
-	UAssetManager& AssetManager = UAssetManager::GetInstance();
+	URHIDevice& RHIDevice = URHIDevice::GetInstance();
 
 	const auto ImportTexture = [&](const FString& TexturePath, void (UMaterial::*Setter)(ID3D11ShaderResourceView*))
 	{
@@ -44,13 +44,13 @@ void UMaterial::ImportAllTextures()
 			return;
 		}
 
-		ComPtr<ID3D11ShaderResourceView> Texture = AssetManager.LoadTexture(TexturePath);
-		if (!Texture)
-		{
-			return;
-		}
+		std::wstring WTexturePath(TexturePath.begin(), TexturePath.end());
+		ID3D11ShaderResourceView* SRV = RHIDevice.CreateTextureFromFile(WTexturePath);
 
-		(this->*Setter)(Texture.Get());
+		if (SRV)
+		{
+			(this->*Setter)(SRV);
+		}
 	};
 
 	ImportTexture(MaterialInfo.DiffuseTexturePath, &UMaterial::SetDiffuseTexture);

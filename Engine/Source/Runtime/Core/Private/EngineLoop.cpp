@@ -10,12 +10,12 @@
 
 #include "Manager/Input/Public/InputManager.h"
 #include "Manager/Level/Public/LevelManager.h"
-#include "Manager/Asset/Public/AssetManager.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Viewport/Public/ViewportManager.h"
 
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
+#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 
 #define EDITOR_MODE 1
 
@@ -112,8 +112,6 @@ void FEngineLoop::Init() const
 	auto& Renderer = URenderer::GetInstance();
 	Renderer.Init(Window->GetWindowHandle());
 
-	UAssetManager::GetInstance().Initialize();
-
 	// UIManager Initialize
 	auto& UIManger = UUIManager::GetInstance();
 	UIManger.Initialize(Window->GetWindowHandle());
@@ -173,8 +171,7 @@ void FEngineLoop::Tick()
 	// 일단 Editor만 Tick 처리
 	// 나머지는 필요하면 추가할 것
 #ifdef EDITOR_MODE
-	auto& CoreEditor = UEngineEditor::GetInstance();
-	CoreEditor.EditorUpdate();
+	GEditor->EditorUpdate();
 #endif
 
 	auto& InputManager = UInputManager::GetInstance();
@@ -196,17 +193,15 @@ void FEngineLoop::Tick()
  */
 void FEngineLoop::Exit() const
 {
-	auto& CoreEngine = UEngine::GetInstance();
-	auto& CoreEditor = UEngineEditor::GetInstance();
-	auto& CoreGameInstance = UGameInstance::GetInstance();
-	auto& CoreLocalPlayer = ULocalPlayer::GetInstance();
+	LocalPlayer->Shutdown();
+	GameInstance->Shutdown();
 
-	CoreLocalPlayer.Shutdown();
-	CoreGameInstance.Shutdown();
-	CoreEditor.Shutdown();
-	CoreEngine.Shutdown();
+#ifdef EDITOR_MODE
+	GEditor->Shutdown();
+#endif
 
-	UAssetManager::GetInstance().Release();
+	GEngine->Shutdown();
+
 	URenderer::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();
 	ULevelManager::GetInstance().Shutdown();
