@@ -232,6 +232,11 @@
     <ClInclude Include="Source\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Source\ImGui\imstb_textedit.h" />
     <ClInclude Include="Source\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Templates\EnableSharedFromThis.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Templates\SharedPointerInternals.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Templates\SharedPtr.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Templates\UniquePtr.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Templates\WeakPtr.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\Engine.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\EngineEditor.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\GameInstance.h" />
