@@ -5,6 +5,7 @@
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
+#include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
 
 UEngine* GEngine = nullptr;
 
@@ -85,6 +86,7 @@ void UEngine::RegisterDefaultEngineSubsystems()
 {
 	// 기본 엔진 서브시스템 등록
 	RegisterEngineSubsystem<UPathSubsystem>();
+	RegisterEngineSubsystem<UConfigSubsystem>();  // Config는 다른 서브시스템보다 먼저 초기화되어야 함
 	RegisterEngineSubsystem<UAssetSubsystem>();
 	RegisterEngineSubsystem<UInputSubsystem>();
 	RegisterEngineSubsystem<UWorldSubsystem>();

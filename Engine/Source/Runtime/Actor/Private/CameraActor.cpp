@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "Runtime/Actor/Public/CameraActor.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
-#include "Manager/Config/Public/ConfigManager.h"
+#include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
+#include "Runtime/Engine/Public/Engine.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
@@ -13,12 +14,22 @@ ACameraActor::ACameraActor()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(FName("CameraComponent"));
 	SetRootComponent(CameraComponent.Get());
 
-	CurrentMoveSpeed = UConfigManager::GetInstance().GetCameraSensitivity();
+	if (UConfigSubsystem* ConfigSubsystem = GEngine ? GEngine->GetEngineSubsystem<UConfigSubsystem>() : nullptr)
+	{
+		CurrentMoveSpeed = ConfigSubsystem->GetCameraSensitivity();
+	}
+	else
+	{
+		CurrentMoveSpeed = DEFAULT_SPEED;
+	}
 }
 
 ACameraActor::~ACameraActor()
 {
-	UConfigManager::GetInstance().SetCameraSensitivity(CurrentMoveSpeed);
+	if (UConfigSubsystem* ConfigSubsystem = GEngine ? GEngine->GetEngineSubsystem<UConfigSubsystem>() : nullptr)
+	{
+		ConfigSubsystem->SetCameraSensitivity(CurrentMoveSpeed);
+	}
 }
 
 void ACameraActor::BeginPlay()

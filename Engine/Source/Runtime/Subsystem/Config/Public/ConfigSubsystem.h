@@ -1,15 +1,22 @@
 #pragma once
 #include "Runtime/Core/Public/Object.h"
 #include "Runtime/Core/Public/Name.h"
+#include "Runtime/Subsystem/Public/EngineSubsystem.h"
 
 UCLASS()
-class UConfigManager :
-	public UObject
+class UConfigSubsystem :
+	public UEngineSubsystem
 {
 	GENERATED_BODY()
-	DECLARE_SINGLETON_CLASS(UConfigManager, UObject)
+	DECLARE_CLASS(UConfigSubsystem, UEngineSubsystem)
 
 public:
+	UConfigSubsystem();
+	~UConfigSubsystem() override;
+
+	// UEngineSubsystem 인터페이스
+	void Initialize() override;
+	void Deinitialize() override;
 	void SaveEditorSetting();
 	void LoadEditorSetting();
 

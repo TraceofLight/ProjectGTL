@@ -243,8 +243,8 @@
     <ClInclude Include="Source\Runtime\Engine\Public\GameInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\LocalPlayer.h" />
     <ClInclude Include="Source\Runtime\Level\Public\Level.h" />
-    <ClInclude Include="Source\Manager\Config\Public\ConfigManager.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Asset\Public\AssetSubsystem.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Config\Public\ConfigSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Input\Public\InputSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\PathSubsystem.h" />
     <ClInclude Include="Source\Manager\UI\Public\UIManager.h" />
@@ -355,8 +355,8 @@
     <ClCompile Include="Source\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Runtime\Level\Private\Level.cpp" />
-    <ClCompile Include="Source\Manager\Config\Private\ConfigManager.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Asset\Private\AssetSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Config\Private\ConfigSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Input\Private\InputSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\PathSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\OverlayManagerSubsystem.cpp" />

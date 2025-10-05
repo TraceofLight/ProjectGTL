@@ -1,6 +1,5 @@
 #pragma once
 #include "Runtime/Component/Public/SceneComponent.h"
-#include "Manager/Config/Public/ConfigManager.h"
 
 enum class ECameraType
 {

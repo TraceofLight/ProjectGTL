@@ -2,8 +2,8 @@
 #include "Editor/Public/Grid.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Editor/Public/EditorPrimitive.h"
-#include "Manager/Config/Public/ConfigManager.h"
-
+#include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
+#include "Runtime/Engine/Public/Engine.h"
 
 UGrid::UGrid()
 	: Vertices(TArray<FVector>())
@@ -12,11 +12,20 @@ UGrid::UGrid()
 {
 	NumVertices = NumLines * 4;
 	Vertices.reserve(NumVertices);
-	UpdateVerticesBy(UConfigManager::GetInstance().GetCellSize());
+
+	float InitialCellSize = 1.0f;
+	if (UConfigSubsystem* ConfigSubsystem = GEngine ? GEngine->GetEngineSubsystem<UConfigSubsystem>() : nullptr)
+	{
+		InitialCellSize = ConfigSubsystem->GetCellSize();
+	}
+	UpdateVerticesBy(InitialCellSize);
 }
 UGrid::~UGrid()
 {
-	UConfigManager::GetInstance().SetCellSize(CellSize);
+	if (UConfigSubsystem* ConfigSubsystem = GEngine ? GEngine->GetEngineSubsystem<UConfigSubsystem>() : nullptr)
+	{
+		ConfigSubsystem->SetCellSize(CellSize);
+	}
 }
 
 void UGrid::UpdateVerticesBy(float NewCellSize)

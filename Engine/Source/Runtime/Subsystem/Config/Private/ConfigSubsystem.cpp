@@ -1,23 +1,37 @@
 #include "pch.h"
-#include "Manager/Config/Public/ConfigManager.h"
+#include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
 
 #include "Runtime/Actor/Public/CameraActor.h"
 #include "Runtime/Core/Public/Class.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UConfigManager)
+IMPLEMENT_CLASS(UConfigSubsystem, UEngineSubsystem)
 
-UConfigManager::UConfigManager()
+UConfigSubsystem::UConfigSubsystem()
 	: EditorIniFileName("editor.ini")
 {
-	LoadEditorSetting();
+	// 생성자에서는 초기화하지 않음 - Initialize()에서 처리
 }
 
-UConfigManager::~UConfigManager()
+UConfigSubsystem::~UConfigSubsystem()
+{
+	// 소멸자에서는 정리하지 않음 - Deinitialize()에서 처리
+}
+
+void UConfigSubsystem::Initialize()
+{
+	Super::Initialize();
+	LoadEditorSetting();
+	UE_LOG("ConfigSubsystem: Initialized");
+}
+
+void UConfigSubsystem::Deinitialize()
 {
 	SaveEditorSetting();
+	Super::Deinitialize();
+	UE_LOG("ConfigSubsystem: Deinitialized");
 }
 
-void UConfigManager::SaveEditorSetting()
+void UConfigSubsystem::SaveEditorSetting()
 {
 	std::ofstream ofs(EditorIniFileName.ToString());
 	if (ofs.is_open())
@@ -29,7 +43,7 @@ void UConfigManager::SaveEditorSetting()
 	}
 }
 
-void UConfigManager::LoadEditorSetting()
+void UConfigSubsystem::LoadEditorSetting()
 {
 	const FString& fileNameStr = EditorIniFileName.ToString();
 	std::ifstream ifs(fileNameStr);

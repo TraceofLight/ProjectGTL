@@ -3,6 +3,8 @@
 #include "Manager/Viewport/Public/ViewportManager.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Core/Public/AppWindow.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
 #include "Window/Public/Window.h"
 #include "Window/Public/Splitter.h"
 #include "Window/Public/SplitterV.h"
@@ -69,8 +71,16 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	// 기본 직교카메라를 클라이언트에게 셋합니다.
 	BindOrthoGraphicCameraToClient();
 
-	IniSaveSharedV = UConfigManager::GetInstance().GetSplitV();
-	IniSaveSharedH = UConfigManager::GetInstance().GetSplitH();
+	if (UConfigSubsystem* ConfigSubsystem = GEngine ? GEngine->GetEngineSubsystem<UConfigSubsystem>() : nullptr)
+	{
+		IniSaveSharedV = ConfigSubsystem->GetSplitV();
+		IniSaveSharedH = ConfigSubsystem->GetSplitH();
+	}
+	else
+	{
+		IniSaveSharedV = 0.5f;
+		IniSaveSharedH = 0.5f;
+	}
 
 	SplitterValueV = IniSaveSharedV;
 	SplitterValueH = IniSaveSharedH;
@@ -848,10 +858,12 @@ void UViewportManager::PersistSplitterRatios()
 	// 세로
 	IniSaveSharedV = static_cast<SSplitter*>(Root)->Ratio;
 
-	auto& Config = UConfigManager::GetInstance();
-	Config.SetSplitV(IniSaveSharedV);
-	Config.SetSplitH(IniSaveSharedH);
-	Config.SaveEditorSetting();
+	if (UConfigSubsystem* ConfigSubsystem = GEngine ? GEngine->GetEngineSubsystem<UConfigSubsystem>() : nullptr)
+	{
+		ConfigSubsystem->SetSplitV(IniSaveSharedV);
+		ConfigSubsystem->SetSplitH(IniSaveSharedH);
+		ConfigSubsystem->SaveEditorSetting();
+	}
 }
 
 void UViewportManager::TickInput()
