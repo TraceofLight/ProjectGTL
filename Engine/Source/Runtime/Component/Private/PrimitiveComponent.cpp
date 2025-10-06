@@ -155,12 +155,6 @@ bool UPrimitiveComponent::UseIndexedRendering() const
 	return false;
 }
 
-EShaderType UPrimitiveComponent::GetShaderType() const
-{
-	// 기본 프리미티브는 기본 셰이더 사용
-	return EShaderType::Default;
-}
-
 void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax) const
 {
 	// 기본 구현: AABB가 없으면 빈 박스 반환
@@ -175,6 +169,12 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax) const
 		OutMin = FVector(0.0f, 0.0f, 0.0f);
 		OutMax = FVector(0.0f, 0.0f, 0.0f);
 	}
+}
+
+FMatrix UPrimitiveComponent::GetWorldMatrix() const
+{
+	// USceneComponent에서 상속하므로 GetWorldTransformMatrix() 사용
+	return GetWorldTransformMatrix();
 }
 
 /*

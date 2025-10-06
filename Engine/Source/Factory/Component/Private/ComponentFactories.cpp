@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "Factory/Component/Public/ComponentFactory.h"
-#include "Runtime/Component/Public/LineComponent.h"
+// LineComponent 제거 - 언리얼 엔진에 없는 컴포넌트
 #include "Runtime/Component/Public/SceneComponent.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 
 // 정적 인스턴스
-static TObjectPtr<TComponentFactory<ULineComponent>> GLineComponentFactory;
+// static TObjectPtr<TComponentFactory<ULineComponent>> GLineComponentFactory; // 제거
 static TObjectPtr<TComponentFactory<USceneComponent>> GSceneComponentFactory;
 static TObjectPtr<TComponentFactory<UPrimitiveComponent>> GPrimitiveComponentFactory;
 // static TObjectPtr<TComponentFactory<UStaticMeshComponent>> GStaticMeshComponentFactory;
@@ -16,7 +16,7 @@ struct FComponentFactoryRegistrar
 {
 	FComponentFactoryRegistrar()
 	{
-		UFactory::RegisterFactory(GLineComponentFactory);
+		// UFactory::RegisterFactory(GLineComponentFactory); // LineComponent 제거
 		UFactory::RegisterFactory(GSceneComponentFactory);
 		UFactory::RegisterFactory(GPrimitiveComponentFactory);
 		// UFactory::RegisterFactory(GStaticMeshComponentFactory);

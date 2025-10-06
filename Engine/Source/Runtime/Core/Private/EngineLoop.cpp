@@ -8,8 +8,6 @@
 #include "Runtime/Engine/Public/LocalPlayer.h"
 #include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
-#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
-#include "Render/Renderer/Public/Renderer.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
 
 #define EDITOR_MODE 1
@@ -90,11 +88,6 @@ void FEngineLoop::Init() const
 	UEngine::GetInstance();
 	GEngine->SetAppWindow(Window);
 
-	// CRITICAL: 렌더러는 서브시스템들이 초기화되기 전에 먼저 준비되어야 함
-	// TODO(KHJ): 렌더러 제거
-	auto& Renderer = URenderer::GetInstance();
-	Renderer.Init(Window->GetWindowHandle());
-
 	GEngine->Initialize();
 
 #ifdef EDITOR_MODE
@@ -153,29 +146,24 @@ void FEngineLoop::MainLoop()
  */
 void FEngineLoop::Tick()
 {
-    UpdateDeltaTime();
+	UpdateDeltaTime();
 
 	// Process input task
-    if (auto* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>())
-    {
-        InputSubsystem->PrepareNewFrame();
-    	Window->ProcessPendingInputMessages();
-    }
+	if (auto* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>())
+	{
+		InputSubsystem->PrepareNewFrame();
+		Window->ProcessPendingInputMessages();
+	}
 
 	// Engine tick
-    GEngine->TickEngineSubsystems();
+	GEngine->TickEngineSubsystems();
 
 	// Editor tick
 #ifdef EDITOR_MODE
-    GEditor->EditorUpdate();
+	GEditor->EditorUpdate();
 #endif
 
-	if (auto* UISubsystem = GEngine->GetEngineSubsystem<UUISubsystem>())
-	{
-		UISubsystem->Render();
-	}
-
-    URenderer::GetInstance().Update();
+	// UI 렌더링은 ViewportClient::Draw()에서 처리 (언리얼 패턴)
 }
 
 /**
@@ -192,8 +180,6 @@ void FEngineLoop::Exit() const
 #endif
 
 	GEngine->Shutdown();
-
-	URenderer::GetInstance().Release();
 
 	// Release되지 않은 UObject의 메모리 할당 해제
 	// TODO(KHJ): 추후 GC가 처리할 것

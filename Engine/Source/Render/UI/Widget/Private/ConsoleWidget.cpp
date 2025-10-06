@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ConsoleWidget.h"
-#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
+#include "Runtime/Subsystem/Public/DebugRenderingSubsystem.h"
 #include "Utility/Public/UELogParser.h"
 
 IMPLEMENT_SINGLETON_CLASS(UConsoleWidget, UWidget)
@@ -471,14 +471,14 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 		transform(CommandLower.begin(), CommandLower.end(), CommandLower.begin(), ::tolower),
 		CommandLower.substr(0, 4) == "stat")
 	{
-		if (auto* OverlayManager = GEngine->GetEngineSubsystem<UOverlayManagerSubsystem>())
+		if (auto* DebugRenderingSystem = GEngine->GetEngineSubsystem<UDebugRenderingSubsystem>())
 		{
-			OverlayManager->ProcessStatCommand(CommandLower);
-			AddLog(ELogType::Success, "OverlayManagerSubsystem: Command processed: %s", InCommand);
+			DebugRenderingSystem->ProcessStatCommand(CommandLower);
+			AddLog(ELogType::Success, "DebugRenderingSubsystem: Command processed: %s", InCommand);
 		}
 		else
 		{
-			AddLog(ELogType::Error, "OverlayManagerSubsystem: Not available");
+			AddLog(ELogType::Error, "DebugRenderingSubsystem: Not available");
 		}
 	}
 	else
@@ -535,11 +535,10 @@ void UConsoleWidget::ExecuteTerminalCommand(const char* InCommand)
 		PROCESS_INFORMATION ProcessInformation = {};
 
 		// lpCommandLine Param Setting
-		FString CommandLine(FullCommand.begin(), FullCommand.end());
-		CommandLine.push_back('\0');
+		FullCommand.push_back('\0');
 
 		// Create Process
-		if (!CreateProcessA(nullptr, CommandLine.data(), nullptr,
+		if (!CreateProcessA(nullptr, FullCommand.data(), nullptr,
 		                    nullptr, TRUE, CREATE_NO_WINDOW,
 		                    nullptr, nullptr, &StartUpInfo, &ProcessInformation))
 		{

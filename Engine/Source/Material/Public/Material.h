@@ -2,6 +2,7 @@
 #include "Runtime/Core/Public/Object.h"
 #include "Asset/Public/StaticMeshData.h"
 
+class UShader;
 struct FMaterialRenderProxy;
 struct ID3D11ShaderResourceView;
 
@@ -14,8 +15,12 @@ class UMaterialInterface : public UObject
 	GENERATED_BODY()
 	DECLARE_CLASS(UMaterialInterface, UObject)
 public:
-	virtual const FString& GetMaterialName() const { return FString(); }
+	// 이름은 UObject::GetName() 사용
 	virtual FMaterialRenderProxy* GetRenderProxy() { return nullptr; } // GPU 바인딩용
+
+	// DrawIndexedPrimitivesCommand 호환성을 위한 메서드
+	virtual class UTexture* GetTexture() const { return nullptr; }
+	virtual bool HasTexture() const { return false; }
 };
 
 /*
@@ -34,7 +39,12 @@ public:
 	const FObjMaterialInfo& GetMaterialInfo() const;
 
 	void ImportAllTextures();
-	const FString& GetMaterialName() const override { return MaterialInfo.MaterialName; }
+	// Material 이름은 UObject::GetName() 사용
+
+	// DrawIndexedPrimitivesCommand에서 필요한 메서드들 (오버라이드)
+	UShader* GetShader() const { return nullptr; }
+	UTexture* GetTexture() const override;
+	bool HasTexture() const override;
 
 	void SetDiffuseTexture(ID3D11ShaderResourceView* InTexture);
 	ID3D11ShaderResourceView* GetDiffuseTexture() const;

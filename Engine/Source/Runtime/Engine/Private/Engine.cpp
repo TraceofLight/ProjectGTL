@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "Runtime/Engine/Public/Engine.h"
+#include "Renderer/Public/RendererModule.h"
+#include "Render/RHI/Public/RHIDevice.h"
 #include "Runtime/Subsystem/Public/PathSubsystem.h"
-#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
+#include "Runtime/Subsystem/Public/DebugRenderingSubsystem.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
@@ -37,10 +39,15 @@ void UEngine::Initialize()
 {
 	if (!bIsInitialized)
 	{
+		// ModuleManager를 통한 RendererModule 초기화
+		FRendererModule& RendererModule = FRendererModule::Get();
+		
 		RegisterDefaultEngineSubsystems();
 
 		EngineSubsystemCollection.Initialize(TObjectPtr(this));
 		bIsInitialized = true;
+		
+		UE_LOG("UEngine: 초기화 완료");
 	}
 }
 
@@ -53,8 +60,33 @@ void UEngine::Shutdown()
 	if (bIsInitialized)
 	{
 		EngineSubsystemCollection.Deinitialize();
+		
+		// ModuleManager를 통한 모듈 정리
+		FModuleManager::Get().ShutdownAllModules();
+		
 		bIsInitialized = false;
+		
+		UE_LOG("UEngine: 종료 완료");
 	}
+}
+
+FRendererModule& UEngine::GetRendererModule() const
+{
+	return FRendererModule::Get();
+}
+
+void UEngine::InitializeRHIDevice(URHIDevice* InRHIDevice)
+{
+	if (!InRHIDevice)
+	{
+		UE_LOG_ERROR("UEngine: InitializeRHIDevice 실패 - InRHIDevice가 null입니다");
+		return;
+	}
+	
+	FRendererModule& RendererModule = GetRendererModule();
+	RendererModule.SetRHIDevice(InRHIDevice);
+	
+	UE_LOG("UEngine: RHIDevice 초기화 완료");
 }
 
 /**
@@ -94,5 +126,5 @@ void UEngine::RegisterDefaultEngineSubsystems()
 	RegisterEngineSubsystem<UViewportSubsystem>();
 	RegisterEngineSubsystem<UUISubsystem>();
 	RegisterEngineSubsystem<UWorldSubsystem>();
-	RegisterEngineSubsystem<UOverlayManagerSubsystem>();
+	RegisterEngineSubsystem<UDebugRenderingSubsystem>();
 }

@@ -1,8 +1,18 @@
 #include "pch.h"
+#include "Source/Window/Public/ViewportClient.h"
+
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Engine/Public/World.h"
 #include "Runtime/Actor/Public/CameraActor.h"
 #include "Runtime/Component/Public/CameraComponent.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
+
 #include "Source/Window/Public/Viewport.h"
-#include "Source/Window/Public/ViewportClient.h"
+
+#include "Renderer/SceneViewFamily/Public/SceneViewFamily.h"
+#include "Renderer/SceneView/Public/SceneView.h"
+#include "Renderer/SceneRenderer.h"
+
 
 FViewportClient::FViewportClient() = default;
 
@@ -33,21 +43,37 @@ void FViewportClient::Draw(const FViewport* InViewport) const
 {
 	if (!InViewport) { return; }
 
-	const float Aspect = InViewport->GetAspect();
+	// Get World
+	UWorld* World = GEngine->GetWorld();
+	if (!World) { return; }
 
-    if (IsOrtho())
-    {
-        if (OrthoGraphicCameras && OrthoGraphicCameras->GetCameraComponent())
-        {
-            OrthoGraphicCameras->GetCameraComponent()->SetAspect(Aspect);
-            OrthoGraphicCameras->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
-            OrthoGraphicCameras->GetCameraComponent()->UpdateMatrixByOrth();
-        }
-    }
-    else if (PerspectiveCamera && PerspectiveCamera->GetCameraComponent())
-    {
-        PerspectiveCamera->GetCameraComponent()->SetAspect(Aspect);
-        PerspectiveCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
-        PerspectiveCamera->GetCameraComponent()->UpdateMatrixByPers();
-    }
+	// Get Camera
+	ACameraActor* CurrentCamera = IsOrtho() ? OrthoGraphicCameras : PerspectiveCamera;
+	if (!CurrentCamera) { return; }
+
+	// SceneViewFamily
+	FSceneViewFamily ViewFamily;
+	ViewFamily.SetRenderTarget(const_cast<FViewport*>(InViewport));
+	ViewFamily.SetCurrentTime(GEngine->GetWorld()->GetTimeSeconds());
+	ViewFamily.SetDeltaWorldTime(GEngine->GetWorld()->GetDeltaSeconds());
+
+	// SceneView
+	FSceneView* View = new FSceneView();
+	View->Initialize(CurrentCamera, const_cast<FViewport*>(InViewport), World);
+	ViewFamily.AddView(View);
+
+	// SceneRenderer
+	if (FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily))
+	{
+		SceneRenderer->Render();
+		delete SceneRenderer;
+	}
+
+	// UI 렌더링 (언리얼 패턴: 3D 장면 렌더링 후 UI 렌더링)
+	if (auto* UISubsystem = GEngine->GetEngineSubsystem<UUISubsystem>())
+	{
+		UISubsystem->Render();
+	}
+
+	delete View;
 }

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
+#include "Factory/Public/NewObject.h"
 #include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Core/Public/AppWindow.h"

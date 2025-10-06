@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Asset/Public/StaticMeshData.h"
-#include "Render/Renderer/Public/Renderer.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Renderer/Public/RendererModule.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Utility/Public/Archive.h"
 
@@ -31,12 +32,14 @@ bool UStaticMesh::IsValidMesh() const
 
 void UStaticMesh::CreateRenderBuffers()
 {
-	if (!IsValidMesh())
+	if (!IsValidMesh() || !GEngine)
 	{
 		return;
 	}
 
-	URenderer& Renderer = URenderer::GetInstance();
+	// TODO: 새로운 렌더링 시스템에서 Buffer 생성 방식 결정 필요
+	/*
+	RenderModule& Renderer = *GEngine->GetRenderModule();
 
 	const TArray<FVertex>& Vertices = StaticMeshData.Vertices;
 	const TArray<uint32>& Indices = StaticMeshData.Indices;
@@ -52,6 +55,7 @@ void UStaticMesh::CreateRenderBuffers()
 		const uint32 IndexBufferSize = static_cast<uint32>(Indices.Num()) * sizeof(uint32);
 		IndexBuffer = Renderer.CreateIndexBuffer(Indices.GetData(), IndexBufferSize);
 	}
+	*/
 }
 
 void UStaticMesh::ReleaseRenderBuffers()
@@ -265,7 +269,7 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 			for (UMaterial* Material : MakeObjectRange<UMaterial>())
 			{
 				// TODO: nullptr 체크 안 하면 nullptr 참조로 터지는 경우 있음. 원인 조사 필요.
-				if (Material && Material->GetMaterialName() == MaterialInfo.MaterialName)
+				if (Material && Material->GetName() == MaterialInfo.MaterialName)
 				{
 					MaterialSlots[i] = Material;
 					bFound = true;
@@ -325,4 +329,10 @@ FString UStaticMesh::GetBinaryFilePath(const FString& ObjFilePath)
 void UStaticMesh::SetMaterialSlots(const TArray<UMaterialInterface*>& InMaterialSlots)
 {
 	MaterialSlots = InMaterialSlots;
+}
+
+EVertexLayoutType UStaticMesh::GetVertexType() const
+{
+	// FVertex 사용시 기본 Vertex Layout (Position + Color + Texture + Normal)
+	return EVertexLayoutType::PositionColorTexturNormal;
 }

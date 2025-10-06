@@ -114,13 +114,6 @@ void UFPSWidget::RenderWidget()
 		}
 	}
 
-	// TODO(KHJ): Grid 툴바 상단으로 이동
-	// CellSize = BatchLinePtr->GetCellSize();
-	// if (ImGui::SliderFloat("Grid Spacing", &CellSize, 0.0f, 10.0f, "%.1f"))
-	// {
-	// 	BatchLinePtr->UpdateUGridVertices(CellSize);
-	// }
-
 	ImGui::Separator();
 }
 

@@ -1,8 +1,6 @@
 #pragma once
 #include "Widget.h"
 
-class UBatchLines;
-
 /**
  * @brief Frame과 관련된 내용을 제공하는 UI Widget
  */
@@ -19,7 +17,6 @@ public:
 	void RenderWidget() override;
 
 	// Setter
-	// void SetBatchLine(TObjectPtr<UBatchLines> InBatchLinePtr) { BatchLinePtr = InBatchLinePtr; }
 
 	// Special member function
 	UFPSWidget();
@@ -50,7 +47,6 @@ private:
 	float PrintFPS = 0.0f;
 	float PrintDeltaTime = 0.0f;
 	bool bShowGraph = false;
-	// TObjectPtr<UBatchLines> BatchLinePtr;
 
 	void CalculateFPS();
 	static ImVec4 GetFPSColor(float InFPS);

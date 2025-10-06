@@ -6,8 +6,7 @@
 #include "Window/Public/ViewportClient.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/Splitter.h"
-#include "Editor/Public/Editor.h"
-#include "Editor/Public/BatchLines.h"
+#include "Renderer/Public/RendererModule.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 // 정적 멤버 정의
@@ -350,27 +349,16 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 
 void UViewportControlWidget::RenderGridSizeControl()
 {
-	// Editor에서 BatchLines 포인터 가져오기
-	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
-	if (!WorldSS)
+	// RendererModule을 통해 EditorRenderResources 접근
+	FRendererModule& RendererModule = FRendererModule::Get();
+	FEditorRenderResources* EditorResources = RendererModule.GetEditorResources();
+	if (!EditorResources)
 	{
 		return;
 	}
 
-	UEditor* Editor = WorldSS->GetEditor();
-	if (!Editor)
-	{
-		return;
-	}
-
-	// Editor에서 현재 그리드 사이즈 가져오기
-	UBatchLines* BatchLines = Editor->GetBatchLines();
-	if (!BatchLines)
-	{
-		return;
-	}
-
-	float CurrentGridSize = BatchLines->GetCellSize();
+	// 현재 그리드 사이즈는 정적 변수로 관리 (임시 해결책)
+	static float CurrentGridSize = 1.0f;
 
 	// 그리드 사이즈 표시
 	ImGui::Text("Grid: %.1f", CurrentGridSize);
@@ -397,8 +385,9 @@ void UViewportControlWidget::RenderGridSizeControl()
 			(void)snprintf(GridText, sizeof(GridText), "%.1f", GridSize);
 			if (ImGui::MenuItem(GridText, nullptr, bIsSelected))
 			{
-				BatchLines->UpdateUGridVertices(GridSize);
+				CurrentGridSize = GridSize;
 				UE_LOG("ViewportControl: 그리드 사이즈를 %.1f로 변경", GridSize);
+				// TODO: EditorRenderResources에 Grid 사이즈 업데이트 메서드 추가 필요
 			}
 		}
 
@@ -408,7 +397,8 @@ void UViewportControlWidget::RenderGridSizeControl()
 		float TempGridSize = CurrentGridSize;
 		if (ImGui::SliderFloat("세밀 조정", &TempGridSize, 0.1f, 50.0f, "%.1f"))
 		{
-			BatchLines->UpdateUGridVertices(TempGridSize);
+			CurrentGridSize = TempGridSize;
+			// TODO: EditorRenderResources에 Grid 사이즈 업데이트 메서드 추가 필요
 		}
 
 		ImGui::EndPopup();

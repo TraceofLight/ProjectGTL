@@ -42,7 +42,8 @@ void UActorDetailWidget::RenderWidget()
 		return;
 	}
 
-	TObjectPtr<AActor> SelectedActor = CurrentLevel->GetSelectedActor();
+	// Editor를 통해 선택된 Actor 가져오기
+	TObjectPtr<AActor> SelectedActor = WorldSS->GetEditor() ? WorldSS->GetEditor()->GetSelectedActor() : nullptr;
 	if (!SelectedActor)
 	{
 		ImGui::TextUnformatted("No Object Selected");

@@ -46,7 +46,13 @@ void UTargetActorTransformWidget::SetActorProperties()
 
 	if (CurrentLevel)
 	{
-		TObjectPtr<AActor> CurrentSelectedActor = CurrentLevel->GetSelectedActor();
+		UEditor* Editor = WorldSS->GetEditor();
+		if (!Editor)
+		{
+			return;
+		}
+
+		TObjectPtr<AActor> CurrentSelectedActor = TObjectPtr(Editor->GetSelectedActor());
 
 		// Update Current Selected Actor
 		if (SelectedActor != CurrentSelectedActor)
@@ -328,7 +334,7 @@ void UTargetActorTransformWidget::RefreshMaterialList()
 		if (Material)
 		{
 			AvailableMaterials.Add(Material);
-			FString MaterialName = Material->GetMaterialName();
+			FString MaterialName = Material->GetName().ToString();
 			AvailableMaterialNames.Add(MaterialName);
 		}
 	}

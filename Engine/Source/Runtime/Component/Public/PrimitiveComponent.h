@@ -2,6 +2,7 @@
 #include "Runtime/Component/Public/SceneComponent.h"
 #include "Physics/Public/BoundingVolume.h"
 
+class UMaterial;
 UCLASS()
 class UPrimitiveComponent :
 	public USceneComponent
@@ -18,7 +19,7 @@ public:
 
 	void SetTopology(D3D11_PRIMITIVE_TOPOLOGY InTopology);
 	D3D11_PRIMITIVE_TOPOLOGY GetTopology() const;
-	//void Render(const URenderer& Renderer) const override;
+	// Legacy render function removed
 
 	bool IsVisible() const { return bVisible; }
 	void SetVisibility(bool bVisibility) { bVisible = bVisibility; }
@@ -36,7 +37,11 @@ public:
 	virtual uint32 GetRenderIndexCount() const;
 	virtual uint32 GetRenderVertexStride() const;
 	virtual bool UseIndexedRendering() const;
-	virtual EShaderType GetShaderType() const;
+	virtual EShaderType GetShaderType() const { return EShaderType::Default; }
+
+	// DrawIndexedPrimitivesCommand에서 필요한 메서드들
+	virtual UMaterial* GetMaterial() const { return nullptr; }
+	FMatrix GetWorldMatrix() const;
 
 	// BoundingVolume 관련 함수들
 	/**

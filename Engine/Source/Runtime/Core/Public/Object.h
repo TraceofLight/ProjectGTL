@@ -235,10 +235,10 @@ T* GetTypedOuter(const UObject* InObject)
 	const UObject* CurrentOuter = InObject->GetOuter();
 	while (CurrentOuter != nullptr)
 	{
-		if (CurrentOuter->IsA(T::StaticClass))
-		{
-			return static_cast<T*>(const_cast<UObject*>(CurrentOuter));
-		}
+	if (CurrentOuter->IsA(T::StaticClass()))
+	{
+		return static_cast<T*>(const_cast<UObject*>(CurrentOuter));
+	}
 
 		CurrentOuter = CurrentOuter->GetOuter();
 	}

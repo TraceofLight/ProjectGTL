@@ -1,6 +1,9 @@
 #pragma once
 #include "Runtime/Core/Public/Object.h"
+#include "Runtime/Core/Public/Containers/TMap.h"
+#include "Source/Global/Enum.h"
 
+struct FObjMaterialInfo;
 struct FVertex;
 
 /**
@@ -22,9 +25,11 @@ public:
 	void Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InDeviceContext);
 	void Shutdown();
 
-	// Device/Context 접근자
+	// Device/Context/SwapChain 접근자
 	ID3D11Device* GetDevice() const { return Device; }
 	ID3D11DeviceContext* GetDeviceContext() const { return DeviceContext; }
+	IDXGISwapChain* GetSwapChain() const { return SwapChain; }
+	void SetSwapChain(IDXGISwapChain* InSwapChain) { SwapChain = InSwapChain; }
 	bool IsInitialized() const { return bIsInitialized; }
 
 	// Vertex Buffer 관리
@@ -50,12 +55,56 @@ public:
 	ID3D11ShaderResourceView* CreateTextureFromMemory(const void* InData, size_t InDataSize);
 	void ReleaseTexture(ID3D11ShaderResourceView* InTexture);
 
+	// 상태 설정 함수들
+	void RSSetState(EViewMode ViewMode);
+	void OmSetDepthStencilState(EComparisonFunc CompareFunction);
+	void OmSetBlendState(bool bEnableBlending);
+
+	// 상수 버퍼 업데이트
+	void UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix);
+	void UpdateHighLightConstantBuffers(const uint32 InPicked, const FVector& InColor, const uint32 X, const uint32 Y, const uint32 Z, const uint32 Gizmo);
+	void UpdateColorConstantBuffers(const FVector4& InColor);
+	void UpdatePixelConstantBuffers(const FObjMaterialInfo& InMaterialInfo, bool bHasMaterial, bool bHasTexture);
+
+	// 추가 블렌드 상태 함수
+	void OMSetBlendState(bool bIsBlendMode);
+
+	// Depth/Color Write 설정
+	void OMSetDepthWriteEnabled(bool bEnabled);
+	void OMSetColorWriteEnabled(bool bEnabled);
+
+	// 샘플러 상태 설정
+	void PSSetDefaultSampler(UINT StartSlot);
+
 private:
 	ID3D11Device* Device = nullptr;
 	ID3D11DeviceContext* DeviceContext = nullptr;
+	IDXGISwapChain* SwapChain = nullptr;
 	bool bIsInitialized = false;
+
+	// 상태 객체들 캐시
+	TMap<EViewMode, ID3D11RasterizerState*> RasterizerStates;
+	TMap<EComparisonFunc, ID3D11DepthStencilState*> DepthStencilStates;
+	ID3D11BlendState* BlendStateEnabled = nullptr;
+	ID3D11BlendState* BlendStateDisabled = nullptr;
+
+	// 상수 버퍼들
+	ID3D11Buffer* ConstantBuffer = nullptr;
+	ID3D11Buffer* HighLightCB = nullptr;
+	ID3D11Buffer* ColorCB = nullptr;
+	ID3D11Buffer* PixelConstCB = nullptr;
+
+	// 샘플러 상태
+	ID3D11SamplerState* DefaultSamplerState = nullptr;
 
 	// Shader 컴파일 헬퍼
 	bool CompileShaderFromFile(const wstring& InFilePath, const char* InEntryPoint,
 	                           const char* InShaderModel, ID3DBlob** OutBlob);
+
+	// 상태 객체 생성 헬퍼들
+	void CreateRasterizerStates();
+	void CreateDepthStencilStates();
+	void CreateBlendStates();
+	void CreateConstantBuffer();
+	void CreateSamplerState();
 };

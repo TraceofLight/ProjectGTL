@@ -88,3 +88,16 @@ ID3D11ShaderResourceView* UMaterial::GetSpecularTexture() const
 	return SpecularTexture;
 }
 
+// DrawIndexedPrimitivesCommand 호환성을 위한 메서드들 구현
+UTexture* UMaterial::GetTexture() const
+{
+	// 기본적으로 DiffuseTexture를 UTexture로 캐스팅해서 반환
+	// 실제로는 UTexture 시스템과 연동해야 함
+	return nullptr; // 임시로 nullptr 반환
+}
+
+bool UMaterial::HasTexture() const
+{
+	return DiffuseTexture != nullptr || NormalTexture != nullptr || SpecularTexture != nullptr;
+}
+

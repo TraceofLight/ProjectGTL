@@ -22,13 +22,13 @@ void UInputSubsystem::Deinitialize()
 {
 	Super::Deinitialize();
 
-	CurrentKeyState.clear();
-	PreviousKeyState.clear();
-	VirtualKeyMap.clear();
+	CurrentKeyState.Empty();
+	PreviousKeyState.Empty();
+	VirtualKeyMap.Empty();
 	KeysInStatus.Empty();
-	LastClickTime.clear();
-	DoubleClickState.clear();
-	ClickCount.clear();
+	LastClickTime.Empty();
+	DoubleClickState.Empty();
+	ClickCount.Empty();
 
 	UE_LOG("InputSubsystem: Deinitialized");
 }
@@ -195,39 +195,31 @@ void UInputSubsystem::UpdateMousePosition(const FAppWindow* InWindow)
 
 bool UInputSubsystem::IsKeyDown(EKeyInput InKey) const
 {
-	auto Iter = CurrentKeyState.find(InKey);
-	if (Iter != CurrentKeyState.end())
+	const bool* FoundKeyStatePtr = CurrentKeyState.Find(InKey);
+
+	if (FoundKeyStatePtr)
 	{
-		return Iter->second;
+
+		return *FoundKeyStatePtr;
 	}
+
 	return false;
 }
 
 bool UInputSubsystem::IsKeyPressed(EKeyInput InKey) const
 {
-	auto CurrentIter = CurrentKeyState.find(InKey);
-	auto PrevIter = PreviousKeyState.find(InKey);
+	const bool bIsCurrentlyDown = CurrentKeyState.FindRef(InKey);
+	const bool bWasPreviouslyDown = PreviousKeyState.FindRef(InKey);
 
-	if (CurrentIter != CurrentKeyState.end() && PrevIter != PreviousKeyState.end())
-	{
-		// 이전 프레임에는 안 눌렸고, 현재 프레임에는 눌림
-		return CurrentIter->second && !PrevIter->second;
-	}
-
-	return false;
+	return bIsCurrentlyDown && !bWasPreviouslyDown;
 }
 
 bool UInputSubsystem::IsKeyReleased(EKeyInput InKey) const
 {
-	auto CurrentIter = CurrentKeyState.find(InKey);
-	auto PrevIter = PreviousKeyState.find(InKey);
+	const bool bIsCurrentlyDown = CurrentKeyState.FindRef(InKey);
+	const bool bWasPreviouslyDown = PreviousKeyState.FindRef(InKey);
 
-	if (CurrentIter != CurrentKeyState.end() && PrevIter != PreviousKeyState.end())
-	{
-		// 이전 프레임에는 눌렸고, 현재 프레임에는 안 눌림
-		return !CurrentIter->second && PrevIter->second;
-	}
-	return false;
+	return bIsCurrentlyDown && !bWasPreviouslyDown;
 }
 
 void UInputSubsystem::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LParam)
@@ -376,27 +368,32 @@ const TArray<EKeyInput>& UInputSubsystem::GetKeysByStatus(EKeyStatus InStatus)
 
 EKeyStatus UInputSubsystem::GetKeyStatus(EKeyInput InKey) const
 {
-	auto CurrentIter = CurrentKeyState.find(InKey);
-	auto PrevIter = PreviousKeyState.find(InKey);
+	const bool* CurrentStatePtr = CurrentKeyState.Find(InKey);
+	const bool* PreviousStatePtr = PreviousKeyState.Find(InKey);
 
-	if (CurrentIter == CurrentKeyState.end() || PrevIter == PreviousKeyState.end())
+	if (!CurrentStatePtr || !PreviousStatePtr)
 	{
 		return EKeyStatus::Unknown;
 	}
 
-	// Pressed -> Released -> Down -> Up
-	if (CurrentIter->second && !PrevIter->second)
+	const bool bIsCurrentlyDown = *CurrentStatePtr;
+	const bool bWasPreviouslyDown = *PreviousStatePtr;
+
+	if (bIsCurrentlyDown && !bWasPreviouslyDown)
 	{
 		return EKeyStatus::Pressed;
 	}
-	if (!CurrentIter->second && PrevIter->second)
+
+	if (!bIsCurrentlyDown && bWasPreviouslyDown)
 	{
 		return EKeyStatus::Released;
 	}
-	if (CurrentIter->second)
+
+	if (bIsCurrentlyDown)
 	{
 		return EKeyStatus::Down;
 	}
+
 	return EKeyStatus::Up;
 }
 
@@ -476,12 +473,7 @@ void UInputSubsystem::UpdateDoubleClickDetection()
  */
 bool UInputSubsystem::IsMouseDoubleClicked(EKeyInput InMouseButton) const
 {
-	auto Iter = DoubleClickState.find(InMouseButton);
-	if (Iter != DoubleClickState.end())
-	{
-		return Iter->second;
-	}
-	return false;
+	return DoubleClickState.FindRef(InMouseButton);
 }
 
 void UInputSubsystem::PrepareNewFrame()

@@ -51,6 +51,24 @@ void UMainBarWidget::RenderWidget()
 		return;
 	}
 
+	// ImGui Context 유효성 검사
+	ImGuiContext* ctx = ImGui::GetCurrentContext();
+	if (!ctx)
+	{
+		UE_LOG_ERROR("MainBarWidget: ImGui Context가 유효하지 않습니다");
+		MenuBarHeight = 0.0f;
+		return;
+	}
+
+	// ImGui Backend 초기화 상태 검사
+	ImGuiIO& io = ImGui::GetIO();
+	if (!io.BackendRendererUserData || !io.BackendPlatformUserData)
+	{
+		UE_LOG_ERROR("MainBarWidget: ImGui Backend가 초기화되지 않았습니다");
+		MenuBarHeight = 0.0f;
+		return;
+	}
+
 	// 메뉴바 스타일 설정
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 8.0f));
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -244,28 +262,28 @@ void UMainBarWidget::RenderViewMenu()
 			return;
 		}
 
-		EViewModeIndex CurrentMode = EditorInstance->GetViewMode();
+		EViewMode CurrentMode = EditorInstance->GetViewMode();
 
 		// ViewMode 메뉴 아이템
-		bool bIsLit = (CurrentMode == EViewModeIndex::VMI_Lit);
-		bool bIsUnlit = (CurrentMode == EViewModeIndex::VMI_Unlit);
-		bool bIsWireframe = (CurrentMode == EViewModeIndex::VMI_Wireframe);
+		bool bIsLit = (CurrentMode == EViewMode::Lit);
+		bool bIsUnlit = (CurrentMode == EViewMode::Unlit);
+		bool bIsWireframe = (CurrentMode == EViewMode::WireFrame);
 
 		if (ImGui::MenuItem("조명 적용(Lit)", nullptr, bIsLit) && !bIsLit)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Lit);
+			EditorInstance->SetViewMode(EViewMode::Lit);
 			UE_LOG("MainBarWidget: ViewMode를 Lit으로 변경");
 		}
 
 		if (ImGui::MenuItem("조명 비적용(Unlit)", nullptr, bIsUnlit) && !bIsUnlit)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Unlit);
+			EditorInstance->SetViewMode(EViewMode::Unlit);
 			UE_LOG("MainBarWidget: ViewMode를 Unlit으로 변경");
 		}
 
 		if (ImGui::MenuItem("와이어프레임(Wireframe)", nullptr, bIsWireframe) && !bIsWireframe)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Wireframe);
+			EditorInstance->SetViewMode(EViewMode::WireFrame);
 			UE_LOG("MainBarWidget: ViewMode를 Wireframe으로 변경");
 		}
 

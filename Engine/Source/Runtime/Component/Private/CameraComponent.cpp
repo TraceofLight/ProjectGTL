@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Runtime/Component/Public/CameraComponent.h"
-#include "Render/Renderer/Public/Renderer.h"
 
 IMPLEMENT_CLASS(UCameraComponent, USceneComponent)
 
@@ -160,17 +159,17 @@ float UCameraComponent::GetOrthographicHeight() const
 	float SafeFovY = max(5.0f, min(179.0f, abs(FovY))); // 절대값 사용 + 5도~179도 제한
 	float FovYRadians = FVector::GetDegreeToRadian(SafeFovY);
 	float TanHalfFov = std::tanf(FovYRadians * 0.5f);
-	
+
 	// TanHalfFov 값도 안전성 검사
 	if (TanHalfFov <= 0.0f || !isfinite(TanHalfFov))
 	{
 		return 10.0f; // 비정상 값이면 기본값 반환
 	}
-	
+
 	float OrthoWidth = 2.0f * TanHalfFov;
 	float SafeAspect = max(0.1f, Aspect); // Aspect 비율 안전 보장
 	float OrthographicHeight = OrthoWidth / SafeAspect;
-	
+
 	// 최소/최대 크기 보장 (기즈모가 사라지거나 너무 커지지 않도록)
 	return max(0.1f, min(1000.0f, OrthographicHeight));
 }

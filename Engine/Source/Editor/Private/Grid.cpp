@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Editor/Public/Grid.h"
-#include "Render/Renderer/Public/Renderer.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
@@ -85,7 +84,7 @@ void UGrid::MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartInd
 		insertStartIndex = destVertices.Num();
 
 	// 미리 메모리 확보
-	destVertices.Reserve(destVertices.Num() + std::distance(Vertices.begin(), Vertices.end()));
+	destVertices.Reserve(destVertices.Num() + static_cast<int32>(std::distance(Vertices.begin(), Vertices.end())));
 
 	// 덮어쓸 수 있는 개수 계산
 	size_t overwriteCount = std::min(

@@ -160,7 +160,7 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 	}
 
 	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
-	bool bIsSelected = CurrentLevel && Editor->GetGizmo()->GetSelectedActor() == InActor;
+	bool bIsSelected = CurrentLevel && Editor->GetSelectedActor() == InActor;
 
 	// 선택된 Actor는 하이라이트
 	if (bIsSelected)
@@ -334,7 +334,7 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 			return;
 		}
 
-		Editor->GetGizmo()->SetSelectedActor(InActor);
+		Editor->SetSelectedActor(InActor);
 
 		// 카메라 포커싱은 더블 클릭에서만 수행
 		// 우클릭 중에는 포커싱하지 않음 (카메라 조작 모드)
@@ -686,9 +686,8 @@ bool USceneHierarchyWidget::IsCameraAnimating(TObjectPtr<ACameraActor> InCamera)
 		return false;
 	}
 
-	FName CameraName = InCamera->GetName();
-	auto It = CameraAnimatingStates.find(CameraName);
-	return It != CameraAnimatingStates.end() && It->second;
+	const FName CameraName = InCamera->GetName();
+	return CameraAnimatingStates.FindRef(CameraName);
 }
 
 /**
@@ -713,7 +712,7 @@ bool USceneHierarchyWidget::IsAnyCameraAnimating() const
 void USceneHierarchyWidget::StopAllCameraAnimations()
 {
 	// 이미 비어있으면 아무것도 하지 않음
-	if (CameraAnimatingStates.empty())
+	if (CameraAnimatingStates.IsEmpty())
 	{
 		return;
 	}

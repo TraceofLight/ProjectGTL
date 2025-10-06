@@ -2,7 +2,8 @@
 #include "Runtime/Core/Public/Object.h"
 #include "Editor/Public/EditorPrimitive.h"
 
-class UGrid : public UObject
+class UGrid :
+	public UObject
 {
 public:
 	UGrid();

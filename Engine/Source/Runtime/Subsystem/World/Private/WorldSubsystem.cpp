@@ -9,7 +9,6 @@
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Asset/Public/StaticMesh.h"
-#include "Render/Renderer/Public/Renderer.h"
 #include "Window/Public/Viewport.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
@@ -73,9 +72,13 @@ void UWorldSubsystem::RegisterLevel(const FName& InName, TObjectPtr<ULevel> InLe
 
 void UWorldSubsystem::LoadLevel(const FName& InName)
 {
-	if (Levels.find(InName) == Levels.end())
+	TObjectPtr<ULevel>* FoundLevelPtr = Levels.Find(InName);
+
+	if (!FoundLevelPtr)
 	{
 		assert(!"Load할 레벨을 탐색하지 못함");
+
+		return;
 	}
 
 	if (CurrentLevel)
@@ -83,7 +86,7 @@ void UWorldSubsystem::LoadLevel(const FName& InName)
 		CurrentLevel->Cleanup();
 	}
 
-	CurrentLevel = Levels[InName];
+	CurrentLevel = *FoundLevelPtr;
 
 	CurrentLevel->Init();
 }
@@ -103,7 +106,7 @@ void UWorldSubsystem::Shutdown()
 		}
 	}
 
-	Levels.clear();
+	Levels.Empty();
 	CurrentLevel = nullptr;
 }
 
@@ -113,7 +116,7 @@ void UWorldSubsystem::Shutdown()
 void UWorldSubsystem::CreateAndRegisterLevel()
 {
 	TObjectPtr<ULevel> Level = NewObject<ULevel>();
-	FName InternalName = "Level_" + to_string(Level->GetClass()->GetNextGenNumber());
+	FName InternalName("Level_" + to_string(Level->GetClass()->GetNextGenNumber()));
 	Level->SetName(InternalName);
 	Level->SetDisplayName("New Level");
 
@@ -138,7 +141,7 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 	}
 
 	// 기본 파일 경로 생성
-	path FilePath = InFilePath;
+	path FilePath(static_cast<const std::string&>(InFilePath));
 	if (FilePath.empty())
 	{
 		// 기본 파일명은 Level 이름으로 세팅
@@ -399,7 +402,7 @@ FLevelMetadata UWorldSubsystem::ConvertLevelToMetadata(TObjectPtr<ULevel> InLeve
 
 	Metadata.NextUUID = CurrentID;
 
-	UE_LOG("WorldSubsystem: Converted %zu Actors To Metadata", Metadata.Primitives.size());
+	UE_LOG("WorldSubsystem: Converted %d Actors To Metadata", Metadata.Primitives.Num());
 	return Metadata;
 }
 
@@ -414,7 +417,7 @@ bool UWorldSubsystem::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FL
 		return false;
 	}
 
-	UE_LOG("WorldSubsystem: Loading %zu Primitives From Metadata", InMetadata.Primitives.size());
+	UE_LOG("WorldSubsystem: Loading %d Primitives From Metadata", InMetadata.Primitives.Num());
 
 	// Metadata의 각 Primitive를 Actor로 생성
 	for (const auto& [ID, PrimitiveMeta] : InMetadata.Primitives)

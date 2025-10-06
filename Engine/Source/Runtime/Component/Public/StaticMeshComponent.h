@@ -77,6 +77,9 @@ public:
 	 */
 	void RemoveMaterialOverride(int32 SlotIndex);
 
+	// DrawIndexedPrimitivesCommand에서 필요한 메서드
+	const TArray<UMaterialInterface*>& GetMaterailSlots() const;
+
 	/**
 	 * @brief 모든 머티리얼 오버라이드를 제거
 	 */

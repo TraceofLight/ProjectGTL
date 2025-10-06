@@ -204,7 +204,7 @@ void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInf
 {
 	OutMaterialNames.Empty();
 
-	TMap<FString, bool> RegisteredNames;
+	TSet<FString> RegisteredNames;
 
 	for (const FObjInfo& ObjInfo : ObjInfos)
 	{
@@ -215,17 +215,18 @@ void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInf
 				continue;
 			}
 
-			if (Section.MaterialName.empty())
+			if (Section.MaterialName.IsEmpty())
 			{
 				continue;
 			}
 
-			if (RegisteredNames.find(Section.MaterialName) != RegisteredNames.end())
+			if (RegisteredNames.Contains(Section.MaterialName))
 			{
 				continue;
 			}
 
-			RegisteredNames.emplace(Section.MaterialName, true);
+			RegisteredNames.Add(Section.MaterialName); // TSet에 키 추가
+
 			OutMaterialNames.Add(Section.MaterialName);
 		}
 	}
@@ -235,13 +236,15 @@ const FObjMaterialInfo* UAssetSubsystem::FindMaterialInfoByName(const TArray<FOb
 {
 	for (const FObjInfo& Info : ObjInfos)
 	{
-		auto MaterialIt = Info.MaterialInfos.find(MaterialName);
-		if (MaterialIt != Info.MaterialInfos.end())
+		const FObjMaterialInfo* FoundInfoPtr = Info.MaterialInfos.Find(MaterialName);
+
+		if (FoundInfoPtr)
 		{
-			return &MaterialIt->second;
+			return FoundInfoPtr;
 		}
 	}
 
+	// 전체 순회 후 찾지 못했으면 nullptr을 반환합니다.
 	return nullptr;
 }
 
@@ -262,7 +265,7 @@ UMaterialInterface* UAssetSubsystem::CreateMaterial(const FObjMaterialInfo& Mate
 void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<UMaterialInterface*>& OutMaterialSlots, TMap<FString, int32>& OutMaterialNameToSlot)
 {
 	OutMaterialSlots.Empty();
-	OutMaterialNameToSlot.clear();
+	OutMaterialNameToSlot.Empty();
 
 	// ObjInfos를 이루는 각 FObjInfo 객체에 명시된 머티리얼 전부 모아 저장
 	TArray<FString> MaterialNames;
@@ -271,41 +274,50 @@ void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArra
 	for (const FString& MaterialName : MaterialNames)
 	{
 		// 이미 등록된 머티리얼인지 확인
-		if (OutMaterialNameToSlot.find(MaterialName) != OutMaterialNameToSlot.end())
+		if (OutMaterialNameToSlot.Contains(MaterialName))
 		{
 			continue;
 		}
 
-		// 아직 등록 안 된 머티리얼이면 새로 생성
+		// MaterialInfo 찾기 및 생성
 		const FObjMaterialInfo* MaterialInfoPtr = FindMaterialInfoByName(ObjInfos, MaterialName);
 		FObjMaterialInfo MaterialInfo = MaterialInfoPtr ? *MaterialInfoPtr : FObjMaterialInfo(MaterialName);
 
+		// 머티리얼 에셋 생성 및 등록
 		if (UMaterialInterface* MaterialAsset = CreateMaterial(MaterialInfo))
 		{
 			int32 SlotIndex = OutMaterialSlots.Num();
+
 			OutMaterialSlots.Add(MaterialAsset);
-			OutMaterialNameToSlot.emplace(MaterialName, SlotIndex);
+			OutMaterialNameToSlot.Emplace(MaterialName, SlotIndex);
 		}
 	}
 }
-
 void UAssetSubsystem::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const
 {
 	TArray<FStaticMeshSection>& Sections = StaticMeshData.Sections;
+
 	for (FStaticMeshSection& Section : Sections)
 	{
-		if (!Section.MaterialName.empty())
+		// FString 유효성 검사
+		if (!Section.MaterialName.IsEmpty())
 		{
-			auto SlotIt = MaterialNameToSlot.find(Section.MaterialName);
-			if (SlotIt != MaterialNameToSlot.end())
+			// 슬롯 인덱스 포인터를 탐색
+			const int32* FoundSlotIndexPtr = MaterialNameToSlot.Find(Section.MaterialName);
+
+			// 포인터 유효성 검사
+			if (FoundSlotIndexPtr)
 			{
-				Section.MaterialSlotIndex = SlotIt->second;
+				// 찾은 경우 찾은 값을 할당
+				Section.MaterialSlotIndex = *FoundSlotIndexPtr;
 			}
 			else
 			{
+				// 찾지 못한 경우 -1 할당
 				Section.MaterialSlotIndex = -1;
 			}
 		}
+		// MaterialName이 비어있는 경우
 		else
 		{
 			Section.MaterialSlotIndex = -1;
@@ -336,7 +348,6 @@ void UAssetSubsystem::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArra
 		{
 			if (Section.MaterialSlotIndex == -1)
 			{
-				Section.MaterialName = DefaultMaterial->GetMaterialName();
 				Section.MaterialSlotIndex = 0;
 			}
 		}
@@ -354,7 +365,6 @@ void UAssetSubsystem::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArra
 			}
 			else if (Section.MaterialSlotIndex == -1)
 			{
-				Section.MaterialName = DefaultMaterial->GetMaterialName();
 				Section.MaterialSlotIndex = 0;
 			}
 		}

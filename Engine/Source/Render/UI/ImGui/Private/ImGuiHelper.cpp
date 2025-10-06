@@ -4,8 +4,9 @@
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "imGui/imgui_impl_win32.h"
+#include "Render/RHI/Public/RHIDevice.h"
 
-#include "Render/Renderer/Public/Renderer.h"
+#include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/Public/PathSubsystem.h"
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
@@ -38,8 +39,18 @@ void UImGuiHelper::Initialize(HWND InWindowHandle)
 	IO.Fonts->AddFontFromFileTTF(
 		reinterpret_cast<char*>(FontFilePath.u8string().data()), 16.0f, nullptr, IO.Fonts->GetGlyphRangesKorean());
 
-	auto& Renderer = URenderer::GetInstance();
-	ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
+	// Singleton RHIDevice 접근 (서브시스템 의존성 제거)
+	URHIDevice& RHIDevice = URHIDevice::GetInstance();
+	if (RHIDevice.IsInitialized())
+	{
+		ImGui_ImplDX11_Init(RHIDevice.GetDevice(), RHIDevice.GetDeviceContext());
+	}
+	else
+	{
+		UE_LOG_ERROR("ImGuiHelper: RHIDevice가 초기화되지 않았습니다");
+		bIsInitialized = false;
+		return;
+	}
 
 	bIsInitialized = true;
 }

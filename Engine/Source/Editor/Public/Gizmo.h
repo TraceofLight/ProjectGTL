@@ -117,6 +117,7 @@ public:
 
 	// Special member function
 	UGizmo();
+	UGizmo(FRendererModule* InRenderModule);
 	~UGizmo() override;
 
 private:
@@ -134,6 +135,7 @@ private:
 	// 렌더 시 하이라이트 색상 계산 (상태 오염 방지)
 	FVector4 ColorFor(EGizmoDirection InAxis, int32 ViewportIndex) const;
 
+	FRendererModule* RenderModule = nullptr;
 	TArray<FEditorPrimitive> Primitives;
 	AActor* TargetActor = nullptr;
 

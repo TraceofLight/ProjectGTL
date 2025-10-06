@@ -357,23 +357,23 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	{
 		CurrentMaterialName = Tokens[1];
 
-		// MaterialInfos에 등록(있으면 갱신, 없으면 기본 생성)
-		auto it = MaterialLibrary.find(CurrentMaterialName);
-		if (it != MaterialLibrary.end())
+		FObjMaterialInfo* FoundMaterialInfo = MaterialLibrary.Find(CurrentMaterialName);
+
+		if (FoundMaterialInfo)
 		{
-			ObjectInfo.MaterialInfos[CurrentMaterialName] = it->second;
+			ObjectInfo.MaterialInfos.Add(CurrentMaterialName, *FoundMaterialInfo);
 		}
 		else
 		{
-			ObjectInfo.MaterialInfos[CurrentMaterialName] = FObjMaterialInfo(CurrentMaterialName);
+			ObjectInfo.MaterialInfos.Add(CurrentMaterialName, FObjMaterialInfo(CurrentMaterialName));
 		}
 
 		// 새 섹션 시작: 이후 f 인덱스가 여기에 누적됨
-		const int32 start = static_cast<int32>(ObjectInfo.VertexIndexList.Num());
+		const int32 start = ObjectInfo.VertexIndexList.Num();
 		FObjSectionInfo NewSec(CurrentMaterialName, start);
 		NewSec.IndexCount = 0;
 		ObjectInfo.Sections.Add(NewSec);
-		CurrentSectionIndex = static_cast<int32>(ObjectInfo.Sections.Num()) - 1;
+		CurrentSectionIndex = ObjectInfo.Sections.Num() - 1;
 	}
 }
 

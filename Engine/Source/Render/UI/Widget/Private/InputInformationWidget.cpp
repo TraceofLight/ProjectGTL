@@ -36,7 +36,7 @@ void UInputInformationWidget::Update()
 		FString KeyName = UInputSubsystem::KeyInputToString(Key);
 
 		// 키 통계 업데이트
-		if (!KeyPressCount.contains(KeyName))
+		if (!KeyPressCount.Contains(KeyName))
 		{
 			KeyPressCount[KeyName] = 0;
 		}
@@ -189,7 +189,7 @@ void UInputInformationWidget::RenderKeyStatistics()
 	ImGui::Text("Key Press Statistics:");
 	ImGui::Separator();
 
-	if (KeyPressCount.empty())
+	if (KeyPressCount.IsEmpty())
 	{
 		ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "No statistics yet");
 	}
@@ -212,7 +212,7 @@ void UInputInformationWidget::RenderKeyStatistics()
 
 		if (ImGui::Button("Clear Statistics"))
 		{
-			KeyPressCount.clear();
+			KeyPressCount.Empty();
 		}
 	}
 }

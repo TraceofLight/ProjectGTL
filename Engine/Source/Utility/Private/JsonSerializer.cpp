@@ -375,7 +375,7 @@ bool FJsonSerializer::ValidateLevelData(const FLevelMetadata& InLevelData, FStri
 	}
 
 	// NextUUID가 사용된 ID보다 큰지 체크
-	if (!InLevelData.Primitives.empty() && InLevelData.NextUUID <= MaxUsedID)
+	if (!InLevelData.Primitives.IsEmpty() && InLevelData.NextUUID <= MaxUsedID)
 	{
 		OutErrorMessage = "Invalid NextUUID: Must Be Greater Than The Highest Used ID (" +
 			to_string(MaxUsedID) + ")";
@@ -434,12 +434,12 @@ FJsonSerializer::FLevelStats FJsonSerializer::GenerateLevelStats(const FLevelMet
 {
 	FLevelStats Stats;
 
-	if (InLevelData.Primitives.empty())
+	if (InLevelData.Primitives.IsEmpty())
 	{
 		return Stats;
 	}
 
-	Stats.TotalPrimitives = static_cast<uint32>(InLevelData.Primitives.size());
+	Stats.TotalPrimitives = static_cast<uint32>(InLevelData.Primitives.Num());
 
 	// 바운딩 박스 초기화
 	// bool bFirstPrimitive = true;
@@ -479,9 +479,9 @@ void FJsonSerializer::PrintLevelInfo(const FLevelMetadata& InLevelData)
 	cout << "=== Level Information ===" << "\n";
 	cout << "Version: " << InLevelData.Version << "\n";
 	cout << "NextUUID: " << InLevelData.NextUUID << "\n";
-	cout << "Total Primitives: " << InLevelData.Primitives.size() << "\n";
+	cout << "Total Primitives: " << InLevelData.Primitives.Num() << "\n";
 
-	if (!InLevelData.Primitives.empty())
+	if (!InLevelData.Primitives.IsEmpty())
 	{
 		FLevelStats Stats = GenerateLevelStats(InLevelData);
 
@@ -590,8 +590,8 @@ bool FJsonSerializer::LoadFontMetrics(TMap<uint32, CharacterMetric>& OutFontMetr
 		OutAtlasWidth = static_cast<float>(MaxWidth);
 		OutAtlasHeight = static_cast<float>(MaxHeight);
 
-		UE_LOG_SUCCESS("JsonParser: 폰트 메트릭 로드 완료 (JSON에서 %zu개 문자 발견, 유니코드 맵에 %zu개 저장, Atlas Size: %fx%f)",
-		               TotalCharacters, OutFontMetrics.size(), OutAtlasWidth, OutAtlasHeight);
+		UE_LOG_SUCCESS("JsonParser: 폰트 메트릭 로드 완료 (JSON에서 %zu개 문자 발견, 유니코드 맵에 %d개 저장, Atlas Size: %fx%f)",
+		               TotalCharacters, OutFontMetrics.Num(), OutAtlasWidth, OutAtlasHeight);
 
 		return true;
 	}

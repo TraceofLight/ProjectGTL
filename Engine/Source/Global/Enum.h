@@ -137,7 +137,7 @@ enum class EPrimitiveType : uint8
 	Arrow,				// For Location Gizmo
 	CubeArrow,			// For Scale Gizmo
 	Ring,				// For Rotation Gizmo
-	Line,				// For Line Rendering
+	// Line,				// 제거 - 언리얼 엔진에서는 LineComponent가 없음. 대신 Debug Drawing 사용
 	BillBoard,			// For BillBoard Component Rendering
 
 	End = 0xFF
@@ -164,8 +164,6 @@ enum class EFillMode : uint8_t
 	End = 0xFF
 };
 
-
-
 enum class EViewMode : uint8
 {
 	Lit,
@@ -190,4 +188,31 @@ enum class EViewportChange : uint8
 {
 	Single,
 	Quad
+};
+
+/**
+ * @brief Depth/Stencil 비교 함수 열거형 (D3D11 기반)
+ */
+enum class EComparisonFunc : uint8
+{
+	Never = 0,          // D3D11_COMPARISON_NEVER
+	Less,               // D3D11_COMPARISON_LESS
+	Equal,              // D3D11_COMPARISON_EQUAL
+	LessEqual,          // D3D11_COMPARISON_LESS_EQUAL
+	Greater,            // D3D11_COMPARISON_GREATER
+	NotEqual,           // D3D11_COMPARISON_NOT_EQUAL
+	GreaterEqual,       // D3D11_COMPARISON_GREATER_EQUAL
+	Always              // D3D11_COMPARISON_ALWAYS
+};
+
+/**
+ * @brief 버텍스 레이아웃 타입 열거형
+ */
+enum class EVertexLayoutType : uint8
+{
+	PositionColor = 0,				// Position + Color (Simple)
+	PositionColorTexturNormal,		// Position + Color + Texture + Normal (Dynamic)
+	PositionTexture,				// Position + Texture
+	PositionNormal,					// Position + Normal
+	End = 0xFF
 };

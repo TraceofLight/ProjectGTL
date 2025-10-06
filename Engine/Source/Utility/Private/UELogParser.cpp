@@ -601,3 +601,14 @@ UELogParser::ParseResult ParseUELogFromString(const string& InString)
 {
     return FDynamicUELogParser::ParseFromString(InString);
 }
+
+/**
+ * @brief FString 버전의 외부 인터페이스 함수
+ * @param InString UE_LOG FString
+ * @return 파싱 결과
+ */
+UELogParser::ParseResult ParseUELogFromString(const FString& InString)
+{
+    // FString을 std::string으로 변환 후 기존 함수 호출
+    return FDynamicUELogParser::ParseFromString(std::string(InString));
+}

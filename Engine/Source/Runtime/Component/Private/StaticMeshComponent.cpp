@@ -18,7 +18,7 @@ void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
 	if (StaticMesh && StaticMesh->IsValidMesh())
 	{
 		InitializeMeshRenderData();
-		MaterialOverrideMap.clear(); // 스태틱메시 바뀌었으므로 머티리얼 오버라이드 맵 초기화
+		MaterialOverrideMap.Empty(); // 스태틱메시 바뀌었으므로 머티리얼 오버라이드 맵 초기화
 	}
 }
 
@@ -196,20 +196,34 @@ void UStaticMeshComponent::SetMaterialOverride(int32 SlotIndex, UMaterialInterfa
 
 UMaterialInterface* UStaticMeshComponent::GetMaterialOverride(int32 SlotIndex) const
 {
-	auto It = MaterialOverrideMap.find(SlotIndex);
-	if (It != MaterialOverrideMap.end())
+	UMaterialInterface* const* Found = MaterialOverrideMap.Find(SlotIndex);
+	if (Found)
 	{
-		return It->second;
+		return *Found;
 	}
 	return nullptr;
 }
 
 void UStaticMeshComponent::RemoveMaterialOverride(int32 SlotIndex)
 {
-	MaterialOverrideMap.erase(SlotIndex);
+	MaterialOverrideMap.Remove(SlotIndex);
 }
 
 void UStaticMeshComponent::ClearMaterialOverrides()
 {
-	MaterialOverrideMap.clear();
+	MaterialOverrideMap.Empty();
+}
+
+const TArray<UMaterialInterface*>& UStaticMeshComponent::GetMaterailSlots() const
+{
+	// StaticMesh의 MaterialSlots를 반환
+	// 버그: 실제로는 MaterialOverride도 고려해야 함
+	if (StaticMesh)
+	{
+		return StaticMesh->GetMaterialSlots();
+	}
+	
+	// 빈 배열 반환
+	static TArray<UMaterialInterface*> EmptyMaterials;
+	return EmptyMaterials;
 }

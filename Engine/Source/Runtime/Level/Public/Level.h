@@ -4,8 +4,8 @@
 #include "Factory/Public/NewObject.h"
 
 class AAxis;
-class AGizmo;
-class AGrid;
+class UGizmo;
+class UGrid;
 class AActor;
 class UPrimitiveComponent;
 
@@ -17,6 +17,9 @@ enum class EEngineShowFlags : uint64
 	SF_Primitives = 0x01,
 	SF_BillboardText = 0x10,
 	SF_Bounds = 0x20,
+	SF_Grid = 0x40,
+	SF_StaticMeshes = 0x80,
+	SF_BoundingBoxes = 0x100,
 };
 
 inline uint64 operator|(EEngineShowFlags lhs, EEngineShowFlags rhs)
@@ -67,7 +70,10 @@ private:
 
 	// 빌보드는 처음에 표시 안하는 게 좋다는 의견이 있어 빌보드만 꺼놓고 출력
 	uint64 ShowFlags = static_cast<uint64>(EEngineShowFlags::SF_Primitives) |
-		static_cast<uint64>(EEngineShowFlags::SF_Bounds);
+		static_cast<uint64>(EEngineShowFlags::SF_Bounds) |
+		static_cast<uint64>(EEngineShowFlags::SF_Grid) |
+		static_cast<uint64>(EEngineShowFlags::SF_StaticMeshes) |
+		static_cast<uint64>(EEngineShowFlags::SF_BoundingBoxes);
 };
 
 // TODO(KHJ): 이거 쓰는지 확인하고 안 쓰면 지울 것
@@ -82,7 +88,7 @@ TObjectPtr<T> ULevel::SpawnActor(const FName& InName, const FTransform& InTransf
 		bFactorySystemInitialized = true;
 	}
 
-	TObjectPtr<T> NewActor = ::SpawnActor<T>(this, InTransform, InName);
+	TObjectPtr<T> NewActor = ::SpawnActor<T>(TObjectPtr<ULevel>(this), InTransform, InName);
 
 	if (NewActor)
 	{

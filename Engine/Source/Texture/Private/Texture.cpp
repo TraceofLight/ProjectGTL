@@ -21,3 +21,11 @@ UTexture::UTexture(const FString& InFilePath, FName InName)
 }
 
 UTexture::~UTexture() = default;
+
+ID3D11ShaderResourceView* UTexture::GetShaderResourceView() const
+{
+	// RenderProxy에서 SRV를 발취해야 하지만
+	// 현재 FTextureRenderProxy 구조체가 정의되지 않음
+	// 임시로 nullptr 반환
+	return nullptr;
+}

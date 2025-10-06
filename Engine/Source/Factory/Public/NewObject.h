@@ -77,7 +77,7 @@ TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransfo
 		TObjectPtr<AActor> NewActor = ActorFactory->CreateActor(nullptr, InLevel, InTransform);
 		if (NewActor)
 		{
-			return NewActor;
+			return Cast<T>(NewActor);
 		}
 	}
 
@@ -85,7 +85,7 @@ TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransfo
 	UE_LOG_WARNING("NewObject: %s를 생성할 Factory를 찾지 못해, new를 통한 폴백 생성으로 처리합니다",
 	               T::StaticClass()->GetClassTypeName().ToString().data());
 
-	TObjectPtr<T> NewActor = NewObject<T>(InLevel, T::StaticClass, InName);
+	TObjectPtr<T> NewActor = NewObject<T>(InLevel, T::StaticClass(), InName);
 
 	// 폴백 경로에서도 RootComponent 확인 필요
 	if (NewActor)

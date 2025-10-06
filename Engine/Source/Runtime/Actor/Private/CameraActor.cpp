@@ -4,7 +4,7 @@
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Render/Renderer/Public/Renderer.h"
+#include "Renderer/Public/RendererModule.h"
 #include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
@@ -80,11 +80,14 @@ void ACameraActor::Tick(float DeltaSeconds)
 			{
 				// OrthoWidth/Height 기반 픽셀당 월드 단위 추정
 				float widthPx = 1.0f, heightPx = 1.0f;
-				if (URenderer::GetInstance().GetDeviceResources())
+				// TODO: 대체 API를 통해 viewport 정보 가져오기 필요
+				/*
+				if (GEngine->GetRenderModule()->GetDeviceResources())
 				{
-					widthPx = max(1.0f, URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Width);
-					heightPx = max(1.0f, URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Height);
+					widthPx = max(1.0f, GEngine->GetRenderModule()->GetDeviceResources()->GetViewportInfo().Width);
+					heightPx = max(1.0f, GEngine->GetRenderModule()->GetDeviceResources()->GetViewportInfo().Height);
 				}
+				*/
 				const float FovY = CameraComponent->GetFovY();
 				const float Aspect = CameraComponent->GetAspect();
 				const float OrthoWidthNow = 2.0f * std::tanf(FVector::GetDegreeToRadian(FovY) * 0.5f);
@@ -130,12 +133,15 @@ void ACameraActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (URenderer::GetInstance().GetDeviceResources())
+	// TODO: 대체 API를 통해 viewport 정보 가져오기 필요
+	/*
+	if (GEngine->GetRenderModule()->GetDeviceResources())
 	{
-		float Width = URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Width;
-		float Height = URenderer::GetInstance().GetDeviceResources()->GetViewportInfo().Height;
+		float Width = GEngine->GetRenderModule()->GetDeviceResources()->GetViewportInfo().Width;
+		float Height = GEngine->GetRenderModule()->GetDeviceResources()->GetViewportInfo().Height;
 		CameraComponent->SetAspect(Width / Height);
 	}
+	*/
 
 	switch (CameraComponent->GetCameraType())
 	{
@@ -147,6 +153,6 @@ void ACameraActor::Tick(float DeltaSeconds)
 		break;
 	}
 
-	// TEST CODE
-	URenderer::GetInstance().UpdateConstant(CameraComponent->GetFViewProjConstants());
+	// TODO: 새로운 렌더링 시스템에서 Constant 업데이트 방식 결정 필요
+	// GEngine->GetRenderModule()->UpdateConstant(CameraComponent->GetFViewProjConstants());
 }

@@ -184,7 +184,7 @@ bool UUISubsystem::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 	UIWindows.Add(InWindow);
 
 	UE_LOG("UISubsystem: UI Window 등록: %s", InWindow->GetWindowTitle().ToString().data());
-	UE_LOG("UISubsystem: 전체 등록된 Window 갯수: %zu", UIWindows.Num());
+	UE_LOG("UISubsystem: 전체 등록된 Window 갯수: %d", UIWindows.Num());
 
 	// 오른쪽 패널 윈도우가 등록되면 레이아웃 정리 호출
 	const FString& WindowTitle = InWindow->GetWindowTitle().ToString();
@@ -333,12 +333,12 @@ void UUISubsystem::PrintDebugInfo() const
 
 	UE_LOG("UISubsystem: All ImGui windows hidden due to minimization.");
 	UE_LOG("--- Window List ---");
-	for (size_t i = 0; i < UIWindows.Num(); ++i)
+	for (uint32 i = 0; i < UIWindows.Num(); ++i)
 	{
 		auto Window = UIWindows[i];
 		if (Window)
 		{
-			UE_LOG("[%zu] %u (%s)", i, Window->GetWindowID(), Window->GetWindowTitle().ToString().data());
+			UE_LOG("[%u] %u (%s)", i, Window->GetWindowID(), Window->GetWindowTitle().ToString().data());
 			UE_LOG("    State: %s", (Window->IsVisible() ? "Visible" : "Hidden"));
 			UE_LOG("    Priority: %d", Window->GetPriority());
 			UE_LOG("    Focused: %s", (Window->IsFocused() ? "Yes" : "No"));

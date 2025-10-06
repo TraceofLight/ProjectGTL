@@ -3,7 +3,6 @@
 #include <d2d1.h>
 #include <dwrite.h>
 
-class URenderer;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 
