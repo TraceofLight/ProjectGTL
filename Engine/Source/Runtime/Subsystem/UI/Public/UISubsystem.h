@@ -1,29 +1,35 @@
 #pragma once
-#include "Runtime/Core/Public/Object.h"
+#include "Runtime/Subsystem/Public/EngineSubsystem.h"
 
 class UUIWindow;
 class UImGuiHelper;
 class UMainMenuWindow;
 
 /**
- * @brief UI 매니저 클래스
- * 모든 UI 윈도우를 관리하는 싱글톤 클래스
+ * @brief UI 관리 서브시스템
+ * 기존 UUIManager의 모든 기능을 서브시스템 패턴으로 이관
+ * 모든 UI 윈도우를 관리하고 ImGui 통합을 담당
  * @param UIWindows 등록된 모든 UI 윈도우들
  * @param FocusedWindow 현재 포커스된 윈도우
- * @param bIsInitialized 초기화 상태
  * @param TotalTime 전체 경과 시간
  */
 UCLASS()
-class UUIManager : public UObject
+class UUISubsystem :
+	public UEngineSubsystem
 {
 	GENERATED_BODY()
-	DECLARE_SINGLETON_CLASS(UUIManager, UObject)
+	DECLARE_CLASS(UUISubsystem, UEngineSubsystem)
 
 public:
-	void Initialize();
-	void Initialize(HWND InWindowHandle);
-	void Shutdown();
-	void Update();
+	UUISubsystem();
+	~UUISubsystem() override;
+
+	// ISubsystem 인터페이스 구현
+	void Initialize() override;
+	void Deinitialize() override;
+	bool IsTickable() const override { return true; }
+	void Tick() override;
+
 	void Render();
 	bool RegisterUIWindow(TObjectPtr<UUIWindow> InWindow);
 	bool UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow);
@@ -67,7 +73,6 @@ public:
 private:
 	TArray<TObjectPtr<UUIWindow>> UIWindows;
 	TObjectPtr<UUIWindow> FocusedWindow = nullptr;
-	bool bIsInitialized = false;
 	float TotalTime = 0.0f;
 
 	// 윈도우 상태 저장

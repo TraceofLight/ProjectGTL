@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
-#include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
-#include "Manager/UI/Public/UIManager.h"
-#include "Render/UI/Window/Public/UIWindow.h"
 
 #include <shobjidl.h>
 
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
+#include "Render/UI/Window/Public/UIWindow.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Level/Public/Level.h"
+
 IMPLEMENT_CLASS(UMainBarWidget, UWidget)
 
 UMainBarWidget::UMainBarWidget()
@@ -21,8 +22,8 @@ UMainBarWidget::UMainBarWidget()
  */
 void UMainBarWidget::Initialize()
 {
-	UIManager = &UUIManager::GetInstance();
-	if (!UIManager)
+	auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
+	if (!UISS)
 	{
 		UE_LOG("MainBarWidget: UIManager를 찾을 수 없습니다!");
 		return;
@@ -138,9 +139,10 @@ void UMainBarWidget::RenderFileMenu()
  */
 void UMainBarWidget::RenderWindowsMenu() const
 {
+	auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
 	if (ImGui::BeginMenu("창"))
 	{
-		if (!UIManager)
+		if (!UISS)
 		{
 			ImGui::Text("UIManager를 사용할 수 없습니다");
 			ImGui::EndMenu();
@@ -148,7 +150,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 		}
 
 		// 모든 등록된 UIWindow에 대해 토글 메뉴 항목 생성
-		const auto& AllWindows = UIManager->GetAllUIWindows();
+		const auto& AllWindows = UISS->GetAllUIWindows();
 
 		if (AllWindows.empty())
 		{
@@ -176,7 +178,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 					const FString& Title = Window->GetWindowTitle().ToString();
 					if (Title == "Outliner" || Title == "Details")
 					{
-						UIManager->OnPanelVisibilityChanged();
+						UISS->OnPanelVisibilityChanged();
 					}
 
 					UE_LOG("MainBarWidget: %s 창 토글됨 (현재 상태: %s)",
@@ -190,13 +192,13 @@ void UMainBarWidget::RenderWindowsMenu() const
 			// 전체 창 제어 옵션
 			if (ImGui::MenuItem("모든 창 표시"))
 			{
-				UIManager->ShowAllWindows();
+				UISS->ShowAllWindows();
 				UE_LOG("MainBarWidget: 모든 창 표시됨");
 			}
 
 			if (ImGui::MenuItem("모든 창 숨김"))
 			{
-				for (auto Window : UIManager->GetAllUIWindows())
+				for (auto Window : UISS->GetAllUIWindows())
 				{
 					if (!Window)
 					{

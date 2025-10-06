@@ -246,7 +246,6 @@
     <ClInclude Include="Source\Runtime\Subsystem\Config\Public\ConfigSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Input\Public\InputSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\PathSubsystem.h" />
-    <ClInclude Include="Source\Manager\UI\Public\UIManager.h" />
     <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h" />
     <ClInclude Include="Source\Render\Renderer\Public\DeviceResources.h" />
     <ClInclude Include="Source\Render\Renderer\Public\EditorRenderResources.h" />
@@ -285,6 +284,7 @@
     <ClInclude Include="Source\Runtime\Core\Public\EngineEditor.h" />
     <ClInclude Include="Source\Runtime\Core\Public\GameInstance.h" />
     <ClInclude Include="Source\Runtime\Core\Public\LocalPlayer.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\UI\Public\UISubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Viewport\Public\ViewportSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\World\Public\WorldSubsystem.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
@@ -359,7 +359,6 @@
     <ClCompile Include="Source\Runtime\Subsystem\Input\Private\InputSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\PathSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\OverlayManagerSubsystem.cpp" />
-    <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\DeviceResources.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\EditorRenderResources.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\Pipeline.cpp" />
@@ -397,6 +396,7 @@
     <ClCompile Include="Source\Runtime\Engine\Private\EngineEditor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\GameInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\LocalPlayer.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\UI\Private\UISubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Viewport\Private\ViewportSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\World\Private\WorldSubsystem.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />

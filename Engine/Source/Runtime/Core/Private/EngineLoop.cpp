@@ -2,20 +2,15 @@
 #include "Runtime/Core/Public/EngineLoop.h"
 
 #include "Runtime/Core/Public/AppWindow.h"
-
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Engine/Public/EngineEditor.h"
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
-
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
-#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
-#include "Manager/UI/Public/UIManager.h"
-#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
-
+#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
-#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 
 #define EDITOR_MODE 1
 
@@ -113,11 +108,6 @@ void FEngineLoop::Init() const
 	ULocalPlayer::GetInstance();
 	LocalPlayer->Initialize();
 
-	// UIManager Initialize
-	auto& UIManger = UUIManager::GetInstance();
-	UIManger.Initialize(Window->GetWindowHandle());
-	UUIWindowFactory::CreateDefaultUILayout();
-
 	// 모든 엔진 서브시스템 초기화가 완료되었으므로, 이제 WndProc에서 서브시스템을 안전하게 사용할 수 있음
 	// CreateWindowEx 호출 시 발생한 지연된 윈도우 이벤트들을 이제 처리
 	Window->SetEngineInitialized(true);
@@ -180,7 +170,11 @@ void FEngineLoop::Tick()
     GEditor->EditorUpdate();
 #endif
 
-    UUIManager::GetInstance().Update();
+	if (auto* UISubsystem = GEngine->GetEngineSubsystem<UUISubsystem>())
+	{
+		UISubsystem->Render();
+	}
+
     URenderer::GetInstance().Update();
 }
 
@@ -200,7 +194,6 @@ void FEngineLoop::Exit() const
 	GEngine->Shutdown();
 
 	URenderer::GetInstance().Release();
-	UUIManager::GetInstance().Shutdown();
 
 	// Release되지 않은 UObject의 메모리 할당 해제
 	// TODO(KHJ): 추후 GC가 처리할 것

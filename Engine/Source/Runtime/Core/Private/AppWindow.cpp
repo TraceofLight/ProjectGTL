@@ -7,7 +7,7 @@
 #include "ImGui/imgui.h"
 
 #include "Window/Public/Window.h"
-#include "Manager/UI/Public/UIManager.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 #include "Render/Renderer/Public/Renderer.h"
@@ -120,11 +120,16 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 	// 이 작업은 다른 모든 메시지 처리보다 반드시 먼저 수행되어야 함
 	FAppWindow* WindowInstance = GetWindowInstance(InWindowHandle, InMessage, InLParam);
 
-	if (UUIManager::WndProcHandler(InWindowHandle, InMessage, InWParam, InLParam))
+	// ImGui 메시지 처리는 안전하므로 바로 처리
+	// UISubsystem은 엔진 초기화 전에도 존재
+	if (GEngine)
 	{
-		if (ImGui::GetIO().WantCaptureMouse)
+		if (UUISubsystem::WndProcHandler(InWindowHandle, InMessage, InWParam, InLParam))
 		{
-			return true;
+			if (ImGui::GetIO().WantCaptureMouse)
+			{
+				return true;
+			}
 		}
 	}
 
@@ -149,7 +154,8 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 	// 엔진 서브시스템에 의존하는 메시지들
 	const bool bRequiresEngineSubsystem =
 		InMessage == WM_SIZE ||
-		InMessage == WM_EXITSIZEMOVE;
+		InMessage == WM_EXITSIZEMOVE ||
+		InMessage == WM_ACTIVATE;
 
 	if (WindowInstance && bRequiresEngineSubsystem)
 	{
@@ -213,26 +219,9 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 		PostQuitMessage(0);
 		break;
 
-	case WM_ENTERSIZEMOVE: //드래그 시작
+	// 드래그 시작
+	case WM_ENTERSIZEMOVE:
 		URenderer::GetInstance().SetIsResizing(true);
-		break;
-
-	case WM_ACTIVATE:
-		if (LOWORD(InWParam) == WA_INACTIVE)
-		{
-			if (WindowInstance)
-			{
-				WindowInstance->EnqueueInputMessage(WM_KILLFOCUS, 0, 0);
-			}
-		}
-		else
-		{
-			if (WindowInstance)
-			{
-				WindowInstance->EnqueueInputMessage(WM_SETFOCUS, 0, 0);
-			}
-			UUIManager::GetInstance().OnWindowRestored();
-		}
 		break;
 
 	default:
@@ -308,10 +297,11 @@ void FAppWindow::ProcessWindowMessage(const FQueuedWindowEvent& Event)
 {
 	switch (Event.Message)
 	{
-	case WM_EXITSIZEMOVE: // 드래그 종료
+	// 드래그 종료
+	case WM_EXITSIZEMOVE:
 		URenderer::GetInstance().SetIsResizing(false);
 		URenderer::GetInstance().OnResize();
-		UUIManager::GetInstance().RepositionImGuiWindows();
+		GEngine->GetEngineSubsystem<UUISubsystem>()->RepositionImGuiWindows();
 		if (auto* ViewportSubsystem = GEngine->GetEngineSubsystem<UViewportSubsystem>())
 		{
 			if (auto* Root = ViewportSubsystem->GetRoot())
@@ -332,7 +322,7 @@ void FAppWindow::ProcessWindowMessage(const FQueuedWindowEvent& Event)
 			{
 				// 드래그 X 일때 추가 처리
 				URenderer::GetInstance().OnResize(LOWORD(Event.LParam), HIWORD(Event.LParam));
-				UUIManager::GetInstance().RepositionImGuiWindows();
+				GEngine->GetEngineSubsystem<UUISubsystem>()->RepositionImGuiWindows();
 				if (auto* ViewportSubsystem = GEngine->GetEngineSubsystem<UViewportSubsystem>())
 				{
 					if (auto* Root = ViewportSubsystem->GetRoot())
@@ -345,7 +335,19 @@ void FAppWindow::ProcessWindowMessage(const FQueuedWindowEvent& Event)
 		else // SIZE_MINIMIZED
 		{
 			EnqueueInputMessage(WM_KILLFOCUS, 0, 0);
-			UUIManager::GetInstance().OnWindowMinimized();
+			GEngine->GetEngineSubsystem<UUISubsystem>()->OnWindowMinimized();
+		}
+		break;
+
+	case WM_ACTIVATE:
+		if (LOWORD(Event.WParam) == WA_INACTIVE)
+		{
+			EnqueueInputMessage(WM_KILLFOCUS, 0, 0);
+		}
+		else
+		{
+			EnqueueInputMessage(WM_SETFOCUS, 0, 0);
+			GEngine->GetEngineSubsystem<UUISubsystem>()->OnWindowRestored();
 		}
 		break;
 	}

@@ -10,6 +10,7 @@
 #include "Window/Public/Viewport.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
+#include "Render/UI/Factory/Public/UIWindowFactory.h"
 
 IMPLEMENT_CLASS(UEditor, UObject)
 
@@ -23,6 +24,10 @@ void UEditor::Initialize()
 	Gizmo = MakeUnique<UGizmo>();
 	Axis = MakeUnique<UAxis>();
 	Grid = MakeUnique<UBatchLines>();
+
+	// UI 레이아웃 생성
+	UUIWindowFactory::CreateDefaultUILayout();
+	UE_LOG("UEditor: 기본 UI 레이아웃이 생성되었습니다");
 }
 
 /**

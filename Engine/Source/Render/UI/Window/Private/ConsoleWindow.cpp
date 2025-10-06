@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
 #include "Render/UI/Widget/Public/ConsoleWidget.h"
-#include "Manager/UI/Public/UIManager.h"
 
 IMPLEMENT_SINGLETON_CLASS(UConsoleWindow, UUIWindow)
 

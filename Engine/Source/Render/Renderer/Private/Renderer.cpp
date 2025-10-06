@@ -1,13 +1,13 @@
 #include "pch.h"
 #include "Render/Renderer/Public/Renderer.h"
 
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
-#include "Manager/UI/Public/UIManager.h"
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
 #include "Material/Public/Material.h"
 #include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
@@ -336,8 +336,9 @@ void URenderer::Update()
 		ScreenFull.bottom = (LONG)(FullVP.TopLeftY + FullVP.Height);
 		DevictContext->RSSetScissorRects(1, &ScreenFull);
 	}
+
 	// ImGui 자체 Render 처리가 진행되어야 하므로 따로 처리
-    UUIManager::GetInstance().Render();
+    GEngine->GetEngineSubsystem<UUISubsystem>()->Render();
 
     // 오버레이 렌더링
     if (auto* OverlayManager = GEngine->GetEngineSubsystem<UOverlayManagerSubsystem>())
@@ -359,7 +360,7 @@ void URenderer::RenderBegin() const
 	ID3D11DepthStencilView* DepthStencilView = DeviceResources->GetDepthStencilView();
 	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	float MainMenuH = UUIManager::GetInstance().GetMainMenuBarHeight();
+	float MainMenuH = GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight();
 
 	DeviceResources->UpdateViewport(MainMenuH);
 	GetDeviceContext()->RSSetViewports(1, &DeviceResources->GetViewportInfo());
@@ -1337,7 +1338,7 @@ void URenderer::UpdateConstant(const FVector4& InColor, float InUseVertexColor, 
 
 			// UV Scroll 값을 ActorDetailWidget에서 가져오기
 			float UseUVScroll = 0.0f;
-			if (TObjectPtr<UWidget> Widget = UUIManager::GetInstance().FindWidget(FName("Actor Detail Widget")))
+			if (TObjectPtr<UWidget> Widget = GEngine->GetEngineSubsystem<UUISubsystem>()->FindWidget(FName("Actor Detail Widget")))
 			{
 				if (UActorDetailWidget* ActorDetailWidget = Cast<UActorDetailWidget>(Widget))
 				{

@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ToolbarWidget.h"
+
 #include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
-#include "Manager/UI/Public/UIManager.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
@@ -44,7 +45,7 @@ void UToolbarWidget::RenderWidget()
 
 	// 메인 뷰포트 영역에 툴바를 직접 배치
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	float MenuBarHeight = UUIManager::GetInstance().GetMainMenuBarHeight();
+	float MenuBarHeight = GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight();
 	ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + MenuBarHeight)); // 메뉴바 바로 아래
 	ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, 0)); // 너비는 전체, 높이는 자동
 

@@ -1,9 +1,11 @@
 #include "pch.h"
-#include "Manager/UI/Public/UIManager.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Render/UI/Window/Public/UIWindow.h"
 #include "Render/UI/ImGui/Public/ImGuiHelper.h"
 #include "Render/UI/Widget/Public/Widget.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Core/Public/AppWindow.h"
 
 // For overlay rendering after ImGui::NewFrame()
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
@@ -13,15 +15,14 @@ static ImVec2 LastOutlinerSize = ImVec2(0, 0);
 static ImVec2 LastDetailSize = ImVec2(0, 0);
 static bool bFirstRun = true;
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UUIManager)
+IMPLEMENT_CLASS(UUISubsystem, UEngineSubsystem)
 
-UUIManager::UUIManager()
+UUISubsystem::UUISubsystem()
 {
 	ImGuiHelper = new UImGuiHelper();
-	Initialize();
 }
 
-UUIManager::~UUIManager()
+UUISubsystem::~UUISubsystem()
 {
 	if (ImGuiHelper)
 	{
@@ -31,51 +32,36 @@ UUIManager::~UUIManager()
 }
 
 /**
- * @brief UI 매니저 초기화
+ * @brief UI 서브시스템 초기화
  */
-void UUIManager::Initialize()
+void UUISubsystem::Initialize()
 {
-	if (bIsInitialized)
-	{
-		return;
-	}
-
-	UE_LOG("UIManager: UI System 초기화 진행 중...");
+	UE_LOG("UISubsystem: UI System 초기화 진행 중...");
 
 	UIWindows.clear();
 	FocusedWindow = nullptr;
 	TotalTime = 0.0f;
 
-	bIsInitialized = true;
+	// GEngine에서 AppWindow 가져와서 ImGui 초기화
+	if (GEngine && GEngine->GetAppWindow())
+	{
+		HWND WindowHandle = GEngine->GetAppWindow()->GetWindowHandle();
+		if (ImGuiHelper)
+		{
+			ImGuiHelper->Initialize(WindowHandle);
+			cout << "UISubsystem: ImGui Initialized Successfully." << "\n";
+		}
+	}
 
-	UE_LOG("UIManager: UI System 초기화 성공");
+	UE_LOG("UISubsystem: UI System 초기화 성공");
 }
 
 /**
- * @brief ImGui를 포함한 UI Manager 초기화
+ * @brief UI 서브시스템 종료 및 정리
  */
-void UUIManager::Initialize(HWND InWindowHandle)
+void UUISubsystem::Deinitialize()
 {
-	Initialize();
-
-	if (ImGuiHelper)
-	{
-		ImGuiHelper->Initialize(InWindowHandle);
-		cout << "UIManager: ImGui Initialized Successfully." << "\n";
-	}
-}
-
-/**
- * @brief UI 매니저 종료 및 정리
- */
-void UUIManager::Shutdown()
-{
-	if (!bIsInitialized)
-	{
-		return;
-	}
-
-	UE_LOG("UIManager: UI system 종료 중...");
+	UE_LOG("UISubsystem: UI system 종료 중...");
 
 	// ImGui 정리
 	if (ImGuiHelper)
@@ -95,21 +81,15 @@ void UUIManager::Shutdown()
 
 	UIWindows.clear();
 	FocusedWindow = nullptr;
-	bIsInitialized = false;
 
-	UE_LOG("UIManager: UI 시스템 종료 완료");
+	UE_LOG("UISubsystem: UI 시스템 종료 완료");
 }
 
 /**
- * @brief 모든 UI 윈도우 업데이트
+ * @brief 모든 UI 윈도우 업데이트 (매 프레임 호출)
  */
-void UUIManager::Update()
+void UUISubsystem::Tick()
 {
-	if (!bIsInitialized)
-	{
-		return;
-	}
-
 	TotalTime += DT;
 
 	// 모든 UI 윈도우 업데이트
@@ -131,13 +111,8 @@ void UUIManager::Update()
 /**
  * @brief 모든 UI 윈도우 렌더링
  */
-void UUIManager::Render()
+void UUISubsystem::Render()
 {
-	if (!bIsInitialized)
-	{
-		return;
-	}
-
 	if (!ImGuiHelper)
 	{
 		return;
@@ -145,8 +120,6 @@ void UUIManager::Render()
 
 	// ImGui 프레임 시작
 	ImGuiHelper->BeginFrame();
-
-	// UE_LOG("begin frame after");
 
 	// 뷰포트 자동 조정을 위해 메인 메뉴바를 가장 먼저 렌더링
 	if (MainMenuWindow && MainMenuWindow->IsVisible())
@@ -167,7 +140,10 @@ void UUIManager::Render()
 	}
 
 	// Overlay (splitter handles etc.) should render after NewFrame() and before ImGui::Render()
-	GEngine->GetEngineSubsystem<UViewportSubsystem>()->RenderOverlay();
+	if (auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>())
+	{
+		ViewportSS->RenderOverlay();
+	}
 
 	// ImGui 프레임 종료
 	ImGuiHelper->EndFrame();
@@ -178,11 +154,11 @@ void UUIManager::Render()
  * @param InWindow 등록할 UI 윈도우
  * @return 등록 성공 여부
  */
-bool UUIManager::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
+bool UUISubsystem::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 {
 	if (!InWindow)
 	{
-		UE_LOG("UIManager: Error: Attempted To Register Null Window!");
+		UE_LOG("UISubsystem: Error: Attempted To Register Null Window!");
 		return false;
 	}
 
@@ -190,7 +166,7 @@ bool UUIManager::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 	auto Iter = std::find(UIWindows.begin(), UIWindows.end(), InWindow);
 	if (Iter != UIWindows.end())
 	{
-		UE_LOG("UIManager: Warning: Window Already Registered: %u", InWindow->GetWindowID());
+		UE_LOG("UISubsystem: Warning: Window Already Registered: %u", InWindow->GetWindowID());
 		return false;
 	}
 
@@ -201,14 +177,14 @@ bool UUIManager::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 	}
 	catch (const exception& Exception)
 	{
-		UE_LOG("UIManager: Error: Window 생성에 실패했습니다 %u: %s", InWindow->GetWindowID(), Exception.what());
+		UE_LOG("UISubsystem: Error: Window 생성에 실패했습니다 %u: %s", InWindow->GetWindowID(), Exception.what());
 		return false;
 	}
 
 	UIWindows.push_back(InWindow);
 
-	UE_LOG("UIManager: UI Window 등록: %s", InWindow->GetWindowTitle().ToString().data());
-	UE_LOG("UIManager: 전체 등록된 Window 갯수: %zu", UIWindows.size());
+	UE_LOG("UISubsystem: UI Window 등록: %s", InWindow->GetWindowTitle().ToString().data());
+	UE_LOG("UISubsystem: 전체 등록된 Window 갯수: %zu", UIWindows.size());
 
 	// 오른쪽 패널 윈도우가 등록되면 레이아웃 정리 호출
 	const FString& WindowTitle = InWindow->GetWindowTitle().ToString();
@@ -216,7 +192,7 @@ bool UUIManager::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 	{
 		// 다른 UI 초기화가 완료된 후 레이아웃 정리
 		bFirstRun = true;
-		UE_LOG("UIManager: 오른쪽 패널 윈도우 등록 및 초기 레이아웃 세팅 예약");
+		UE_LOG("UISubsystem: 오른쪽 패널 윈도우 등록 및 초기 레이아웃 세팅 예약");
 	}
 
 	return true;
@@ -227,7 +203,7 @@ bool UUIManager::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
  * @param InWindow 해제할 UI 윈도우
  * @return 해제 성공 여부
  */
-bool UUIManager::UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow)
+bool UUISubsystem::UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 {
 	if (!InWindow)
 	{
@@ -237,7 +213,7 @@ bool UUIManager::UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 	auto It = std::find(UIWindows.begin(), UIWindows.end(), InWindow);
 	if (It == UIWindows.end())
 	{
-		UE_LOG("UIManager: Warning: Attempted to unregister non-existent window: %u", InWindow->GetWindowID());
+		UE_LOG("UISubsystem: Warning: Attempted to unregister non-existent window: %u", InWindow->GetWindowID());
 		return false;
 	}
 
@@ -252,8 +228,8 @@ bool UUIManager::UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 
 	UIWindows.erase(It);
 
-	UE_LOG("UIManager: UI Window 등록 해제: %u", InWindow->GetWindowID());
-	UE_LOG("UIManager: 전체 등록된 Window 갯수: %zu", UIWindows.size());
+	UE_LOG("UISubsystem: UI Window 등록 해제: %u", InWindow->GetWindowID());
+	UE_LOG("UISubsystem: 전체 등록된 Window 갯수: %zu", UIWindows.size());
 
 	return true;
 }
@@ -263,7 +239,7 @@ bool UUIManager::UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow)
  * @param InWindowName 검색할 윈도우 제목
  * @return 찾은 윈도우 (없으면 nullptr)
  */
-TObjectPtr<UUIWindow> UUIManager::FindUIWindow(const FName& InWindowName) const
+TObjectPtr<UUIWindow> UUISubsystem::FindUIWindow(const FName& InWindowName) const
 {
 	for (auto Window : UIWindows)
 	{
@@ -275,7 +251,7 @@ TObjectPtr<UUIWindow> UUIManager::FindUIWindow(const FName& InWindowName) const
 	return nullptr;
 }
 
-TObjectPtr<UWidget> UUIManager::FindWidget(const FName& InWidgetName) const
+TObjectPtr<UWidget> UUISubsystem::FindWidget(const FName& InWidgetName) const
 {
 	for (const auto Window : UIWindows)
 	{
@@ -293,7 +269,7 @@ TObjectPtr<UWidget> UUIManager::FindWidget(const FName& InWidgetName) const
 /**
  * @brief 모든 UI 윈도우 숨기기
  */
-void UUIManager::HideAllWindows() const
+void UUISubsystem::HideAllWindows() const
 {
 	for (const auto Window : UIWindows)
 	{
@@ -302,13 +278,13 @@ void UUIManager::HideAllWindows() const
 			Window->SetWindowState(EUIWindowState::Hidden);
 		}
 	}
-	UE_LOG("UIManager: All Windows Hidden.");
+	UE_LOG("UISubsystem: All Windows Hidden.");
 }
 
 /**
  * @brief 모든 UI 윈도우 보이기
  */
-void UUIManager::ShowAllWindows() const
+void UUISubsystem::ShowAllWindows() const
 {
 	for (const auto Window : UIWindows)
 	{
@@ -317,13 +293,13 @@ void UUIManager::ShowAllWindows() const
 			Window->SetWindowState(EUIWindowState::Visible);
 		}
 	}
-	UE_LOG("UIManager: All Windows Shown.");
+	UE_LOG("UISubsystem: All Windows Shown.");
 }
 
 /**
  * @brief 특정 윈도우에 포커스 설정
  */
-void UUIManager::SetFocusedWindow(TObjectPtr<UUIWindow> InWindow)
+void UUISubsystem::SetFocusedWindow(TObjectPtr<UUIWindow> InWindow)
 {
 	if (FocusedWindow != InWindow)
 	{
@@ -345,16 +321,15 @@ void UUIManager::SetFocusedWindow(TObjectPtr<UUIWindow> InWindow)
  * @brief 디버그 정보 출력
  * 필요한 지점에서 호출해서 로그로 체크하는 용도
  */
-void UUIManager::PrintDebugInfo() const
+void UUISubsystem::PrintDebugInfo() const
 {
 	UE_LOG("");
-	UE_LOG("=== UI Manager Debug Info ===");
-	UE_LOG("Initialized: %s", (bIsInitialized ? "Yes" : "No"));
+	UE_LOG("=== UI Subsystem Debug Info ===");
 	UE_LOG("Total Time: %.2fs", TotalTime);
 	UE_LOG("Registered Windows: %zu", UIWindows.size());
 	UE_LOG("Focused Window: %s", (FocusedWindow ? to_string(FocusedWindow->GetWindowID()).c_str() : "None"));
 
-	UE_LOG("UIManager: All ImGui windows hidden due to minimization.");
+	UE_LOG("UISubsystem: All ImGui windows hidden due to minimization.");
 	UE_LOG("--- Window List ---");
 	for (size_t i = 0; i < UIWindows.size(); ++i)
 	{
@@ -368,13 +343,13 @@ void UUIManager::PrintDebugInfo() const
 		}
 	}
 	UE_LOG("===========================");
-	UE_LOG("UIManager: All ImGui windows hidden due to minimization.");
+	UE_LOG("UISubsystem: All ImGui windows hidden due to minimization.");
 }
 
 /**
  * @brief UI 윈도우들을 우선순위에 따라 정렬
  */
-void UUIManager::SortUIWindowsByPriority()
+void UUISubsystem::SortUIWindowsByPriority()
 {
 	// 우선순위가 낮을수록 먼저 렌더링되고 가려짐
 	std::sort(UIWindows.begin(), UIWindows.end(), [](const UUIWindow* A, const UUIWindow* B)
@@ -395,7 +370,7 @@ void UUIManager::SortUIWindowsByPriority()
 /**
  * @brief 포커스 상태 업데이트
  */
-void UUIManager::UpdateFocusState()
+void UUISubsystem::UpdateFocusState()
 {
 	// ImGui에서 현재 포커스된 윈도우 찾기
 	TObjectPtr<UUIWindow> NewFocusedWindow = nullptr;
@@ -419,12 +394,12 @@ void UUIManager::UpdateFocusState()
 /**
  * @brief 윈도우 프로시저 핸들러
  */
-LRESULT UUIManager::WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam)
+LRESULT UUISubsystem::WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam)
 {
 	return UImGuiHelper::WndProcHandler(hwnd, msg, wParam, lParam);
 }
 
-void UUIManager::RepositionImGuiWindows() const
+void UUISubsystem::RepositionImGuiWindows() const
 {
 	// 1. 현재 화면(Viewport)의 작업 영역을 가져옵니다.
 	for (auto& Window : UIWindows)
@@ -437,18 +412,18 @@ void UUIManager::RepositionImGuiWindows() const
  * @brief 메인 윈도우가 최소화될 때 호출되는 함수
  * 모든 ImGui 윈도우의 현재 상태를 저장
  */
-void UUIManager::OnWindowMinimized()
+void UUISubsystem::OnWindowMinimized()
 {
-	UE_LOG("UIManager: UI Minimize 작업 시작");
+	UE_LOG("UISubsystem: UI Minimize 작업 시작");
 
-	if (!bIsInitialized || bIsMinimized)
+	if (bIsMinimized)
 	{
 		return;
 	}
 
 	bIsMinimized = true;
 	SavedWindowStates.clear();
-	UE_LOG("UIManager: %zu개의 윈도우에 대해 상태 저장 시도", UIWindows.size());
+	UE_LOG("UISubsystem: %zu개의 윈도우에 대해 상태 저장 시도", UIWindows.size());
 
 	// 모든 UI 윈도우의 현재 상태 저장
 	for (auto Window : UIWindows)
@@ -461,7 +436,7 @@ void UUIManager::OnWindowMinimized()
 			SavedState.SavedSize = Window->GetLastWindowSize();
 			SavedState.bWasVisible = Window->IsVisible();
 
-			UE_LOG("UIManager: Saving Window ID=%u, Position=(%.1f,%.1f), Size=(%.1f,%.1f), Visible=%s",
+			UE_LOG("UISubsystem: Saving Window ID=%u, Position=(%.1f,%.1f), Size=(%.1f,%.1f), Visible=%s",
 			       SavedState.WindowID,
 			       SavedState.SavedPosition.x, SavedState.SavedPosition.y,
 			       SavedState.SavedSize.x, SavedState.SavedSize.y,
@@ -471,24 +446,24 @@ void UUIManager::OnWindowMinimized()
 		}
 	}
 
-	UE_LOG("UIManager: 최소화로 인한 %zu개의 윈도우 상태 저장 완료", SavedWindowStates.size());
+	UE_LOG("UISubsystem: 최소화로 인한 %zu개의 윈도우 상태 저장 완료", SavedWindowStates.size());
 }
 
 /**
  * @brief 메인 윈도우가 복원될 때 호출되는 함수
  * 저장된 상태로 모든 ImGui 윈도우를 복원
  */
-void UUIManager::OnWindowRestored()
+void UUISubsystem::OnWindowRestored()
 {
-	UE_LOG("UIManager: UI Restore 작업 시작");
+	UE_LOG("UISubsystem: UI Restore 작업 시작");
 
-	if (!bIsInitialized || !bIsMinimized)
+	if (!bIsMinimized)
 	{
 		return;
 	}
 
 	bIsMinimized = false;
-	UE_LOG("UIManager: %zu개의 윈도우에 대해 상태 복원 시도", SavedWindowStates.size());
+	UE_LOG("UISubsystem: %zu개의 윈도우에 대해 상태 복원 시도", SavedWindowStates.size());
 
 	// 저장된 상태로 모든 UI 윈도우 복원
 	for (auto Window : UIWindows)
@@ -496,7 +471,7 @@ void UUIManager::OnWindowRestored()
 		if (Window)
 		{
 			uint32 CurrentWindowID = Window->GetWindowID();
-			UE_LOG("UIManager: Restoring Window ID=%u", CurrentWindowID);
+			UE_LOG("UISubsystem: Restoring Window ID=%u", CurrentWindowID);
 
 			// 저장된 상태에서 해당 윈도우 찾기
 			FUIWindowSavedState* FoundState = nullptr;
@@ -512,7 +487,7 @@ void UUIManager::OnWindowRestored()
 			if (FoundState)
 			{
 				UE_LOG(
-					"UIManager: Restoring Window ID=%u: Position=(%.1f,%.1f) -> (%.1f,%.1f), Size=(%.1f,%.1f) -> (%.1f,%.1f)",
+					"UISubsystem: Restoring Window ID=%u: Position=(%.1f,%.1f) -> (%.1f,%.1f), Size=(%.1f,%.1f) -> (%.1f,%.1f)",
 					CurrentWindowID,
 					Window->GetLastWindowPosition().x, Window->GetLastWindowPosition().y,
 					FoundState->SavedPosition.x, FoundState->SavedPosition.y,
@@ -522,53 +497,53 @@ void UUIManager::OnWindowRestored()
 				// 위치와 크기 복원
 				Window->SetLastWindowPosition(FoundState->SavedPosition);
 				Window->SetLastWindowSize(FoundState->SavedSize);
-				UE_LOG("UIManager: %u번 윈도우에 대해 이후 10프레임 동안 복원을 시도합니다", CurrentWindowID);
+				UE_LOG("UISubsystem: %u번 윈도우에 대해 이후 10프레임 동안 복원을 시도합니다", CurrentWindowID);
 
 				// 가시성 복원
 				if (FoundState->bWasVisible)
 				{
 					Window->SetWindowState(EUIWindowState::Visible);
-					UE_LOG("UIManager: %u번 윈도우가 Visible 상태로 복원됩니다", CurrentWindowID);
+					UE_LOG("UISubsystem: %u번 윈도우가 Visible 상태로 복원됩니다", CurrentWindowID);
 				}
 				else
 				{
 					Window->SetWindowState(EUIWindowState::Hidden);
-					UE_LOG("UIManager: %u번 윈도우가 Hidden 상태로 복원됩니다", CurrentWindowID);
+					UE_LOG("UISubsystem: %u번 윈도우가 Hidden 상태로 복원됩니다", CurrentWindowID);
 				}
 			}
 			else
 			{
-				UE_LOG("UIManager: %u번 윈도우에 대한 정보를 찾을 수 없습니다", CurrentWindowID);
+				UE_LOG("UISubsystem: %u번 윈도우에 대한 정보를 찾을 수 없습니다", CurrentWindowID);
 			}
 		}
 	}
 
-	UE_LOG("UIManager: %zu개의 윈도우 상태가 복원되었습니다", SavedWindowStates.size());
+	UE_LOG("UISubsystem: %zu개의 윈도우 상태가 복원되었습니다", SavedWindowStates.size());
 	SavedWindowStates.clear();
 }
 
 /**
  * @brief 메인 메뉴바 윈도우를 등록하는 함수
  */
-void UUIManager::RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow> InMainMenuWindow)
+void UUISubsystem::RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow> InMainMenuWindow)
 {
 	if (MainMenuWindow)
 	{
-		UE_LOG("UIManager: 메인 메뉴바 윈도우가 이미 등록되어 있습니다. 기존 윈도우를 교체합니다.");
+		UE_LOG("UISubsystem: 메인 메뉴바 윈도우가 이미 등록되어 있습니다. 기존 윈도우를 교체합니다.");
 	}
 
 	MainMenuWindow = InMainMenuWindow;
 
 	if (MainMenuWindow)
 	{
-		UE_LOG("UIManager: 메인 메뉴바 윈도우가 등록되었습니다");
+		UE_LOG("UISubsystem: 메인 메뉴바 윈도우가 등록되었습니다");
 	}
 }
 
 /**
  * @brief 메인 메뉴바의 높이를 반환하는 함수
  */
-float UUIManager::GetMainMenuBarHeight() const
+float UUISubsystem::GetMainMenuBarHeight() const
 {
 	if (MainMenuWindow)
 	{
@@ -581,7 +556,7 @@ float UUIManager::GetMainMenuBarHeight() const
 /**
  * @brief 툴바의 높이를 반환하는 함수
  */
-float UUIManager::GetToolbarHeight() const
+float UUISubsystem::GetToolbarHeight() const
 {
 	if (MainMenuWindow)
 	{
@@ -594,7 +569,7 @@ float UUIManager::GetToolbarHeight() const
 /**
  * @brief 하단바의 높이를 반환하는 함수
  */
-float UUIManager::GetBottomBarHeight() const
+float UUISubsystem::GetBottomBarHeight() const
 {
 	if (MainMenuWindow)
 	{
@@ -608,7 +583,7 @@ float UUIManager::GetBottomBarHeight() const
  * @brief 오른쪽 UI 패널(Outliner, Details)이 차지하는 너비를 계산하는 함수
  * @return 오른쪽 패널이 차지하는 픽셀 너비
  */
-float UUIManager::GetRightPanelWidth() const
+float UUISubsystem::GetRightPanelWidth() const
 {
 	// 화면 너비 가져오기
 	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
@@ -644,7 +619,6 @@ float UUIManager::GetRightPanelWidth() const
 	// 오른쪽 패널이 없다면 0 반환
 	if (!bHasRightPanel)
 	{
-		// UE_LOG("UIManager: 오른쪽 패널이 발견되지 않음");
 		return 0.0f;
 	}
 
@@ -657,12 +631,8 @@ float UUIManager::GetRightPanelWidth() const
 /**
  * @brief 오른쪽 UI 패널(Outliner, Details)의 레이아웃을 자동으로 정리
  * 사이즈 변경을 감지하여 마지막으로 변경된 윈도우의 너비를 기준으로 정리
- * 1) Outliner: 화면 상단에 딱 붙이기
- * 2) Detail: Outliner 바로 아래 배치
- * 3) 두 패널 모두 동일한 왼쪽 시작점과 너빔
- * 4) Detail 패널은 하단까지 채우기
  */
-void UUIManager::ArrangeRightPanels()
+void UUISubsystem::ArrangeRightPanels()
 {
 	// 화면 크기와 메뉴바 높이 가져오기
 	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
@@ -761,12 +731,12 @@ void UUIManager::ArrangeRightPanels()
 	if (bOutlinerSizeChanged)
 	{
 		TargetWidth = CurrentOutlinerSize.x;
-		UE_LOG_DEBUG("UIManager: Outliner 사이즈 변경 감지: 새 너비: %.1f", TargetWidth);
+		UE_LOG_DEBUG("UISubsystem: Outliner 사이즈 변경 감지: 새 너비: %.1f", TargetWidth);
 	}
 	else // bDetailSizeChanged
 	{
 		TargetWidth = CurrentDetailSize.x;
-		UE_LOG_DEBUG("UIManager: Detail 사이즈 변경 감지: 새 너비: %.1f", TargetWidth);
+		UE_LOG_DEBUG("UISubsystem: Detail 사이즈 변경 감지: 새 너비: %.1f", TargetWidth);
 	}
 
 	// 이전 사이즈 업데이트
@@ -781,7 +751,7 @@ void UUIManager::ArrangeRightPanels()
 /**
  * @brief 오른쪽 패널들의 초기 위치를 설정하는 함수
  */
-void UUIManager::ArrangeRightPanelsInitial(TObjectPtr<UUIWindow> InOutlinerWindow, TObjectPtr<UUIWindow> InDetailWindow,
+void UUISubsystem::ArrangeRightPanelsInitial(TObjectPtr<UUIWindow> InOutlinerWindow, TObjectPtr<UUIWindow> InDetailWindow,
                                            float InScreenWidth, float InScreenHeight, float InMenuBarHeight,
                                            float InAvailableHeight)
 {
@@ -821,7 +791,7 @@ void UUIManager::ArrangeRightPanelsInitial(TObjectPtr<UUIWindow> InOutlinerWindo
 			InDetailWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, DetailHeight));
 		}
 
-		UE_LOG("UIManager: 초기 레이아웃 - 두 패널 모두 설정 (%.1fx%.1f)", DefaultPanelWidth, InAvailableHeight);
+		UE_LOG("UISubsystem: 초기 레이아웃 - 두 패널 모두 설정 (%.1fx%.1f)", DefaultPanelWidth, InAvailableHeight);
 	}
 	// Outliner만 있는 경우: 전체 오른쪽 영역 차지
 	else if (InOutlinerWindow)
@@ -831,7 +801,7 @@ void UUIManager::ArrangeRightPanelsInitial(TObjectPtr<UUIWindow> InOutlinerWindo
 		InOutlinerWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight));
 		InOutlinerWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, InAvailableHeight));
 
-		UE_LOG("UIManager: 초기 레이아웃 - Outliner만 설정 (%.1fx%.1f)", ActualPanelWidth, InAvailableHeight);
+		UE_LOG("UISubsystem: 초기 레이아웃 - Outliner만 설정 (%.1fx%.1f)", ActualPanelWidth, InAvailableHeight);
 	}
 	// Detail만 있는 경우: 전체 오른쪽 영역 차지
 	else if (InDetailWindow)
@@ -841,14 +811,14 @@ void UUIManager::ArrangeRightPanelsInitial(TObjectPtr<UUIWindow> InOutlinerWindo
 		InDetailWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight));
 		InDetailWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, InAvailableHeight));
 
-		UE_LOG("UIManager: 초기 레이아웃 - Detail만 설정 (%.1fx%.1f)", ActualPanelWidth, InAvailableHeight);
+		UE_LOG("UISubsystem: 초기 레이아웃 - Detail만 설정 (%.1fx%.1f)", ActualPanelWidth, InAvailableHeight);
 	}
 }
 
 /**
  * @brief 오른쪽 패널들의 동적 레이아웃을 업데이트하는 함수
  */
-void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindow, TObjectPtr<UUIWindow> InDetailWindow,
+void UUISubsystem::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindow, TObjectPtr<UUIWindow> InDetailWindow,
                                            float InScreenWidth, float InScreenHeight, float InMenuBarHeight,
                                            float InAvailableHeight, float InTargetWidth, bool bOutlinerChanged,
                                            bool bDetailChanged) const
@@ -884,7 +854,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 			{
 				OutlinerHeight = SavedOutlinerHeightForDual;
 				DetailHeight = SavedDetailHeightForDual;
-				UE_LOG("UIManager: 저장된 레이아웃 복원 (Outliner: %.1f, Detail: %.1f)", OutlinerHeight, DetailHeight);
+				UE_LOG("UISubsystem: 저장된 레이아웃 복원 (Outliner: %.1f, Detail: %.1f)", OutlinerHeight, DetailHeight);
 			}
 			else
 			{
@@ -914,7 +884,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 				InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, DetailHeight));
 			}
 
-			UE_LOG("UIManager: 동적 레이아웃: 두 패널 초기 분할 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
+			UE_LOG("UISubsystem: 동적 레이아웃: 두 패널 초기 분할 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
 		}
 
 		// Detail 위쪽 경계 드래그 감지
@@ -932,7 +902,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 				const float NewDetailHeight = InAvailableHeight - NewOutlinerHeight;
 				InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight + NewOutlinerHeight));
 				InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, NewDetailHeight));
-				UE_LOG_DEBUG("UIManager: Detail 위쪽 드래그 -> Outliner 조정 (%.1f)", NewOutlinerHeight);
+				UE_LOG_DEBUG("UISubsystem: Detail 위쪽 드래그 -> Outliner 조정 (%.1f)", NewOutlinerHeight);
 			}
 		}
 		else
@@ -948,7 +918,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 			InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight + CurrentOutlinerHeight));
 			InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, DetailHeight));
 
-			UE_LOG("UIManager: 동적 레이아웃: 두 패널 업데이트 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
+			UE_LOG("UISubsystem: 동적 레이아웃: 두 패널 업데이트 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
 		}
 	}
 
@@ -958,7 +928,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 		InOutlinerWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
 		InOutlinerWindow->SetLastWindowSize(ImVec2(ActualWidth, InAvailableHeight));
 
-		UE_LOG("UIManager: 동적 레이아웃: Outliner만 업데이트 (너비: %.1fx%.1f)", ActualWidth, InAvailableHeight);
+		UE_LOG("UISubsystem: 동적 레이아웃: Outliner만 업데이트 (너비: %.1fx%.1f)", ActualWidth, InAvailableHeight);
 	}
 
 	// Detail만 있는 경우: 저장된 너비 사용, Y 위치와 높이만 조정
@@ -967,7 +937,7 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
 		InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
 		InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, InAvailableHeight));
 
-		UE_LOG("UIManager: 동적 레이아웃: Detail만 업데이트 (너비: %.1fx%.1f)", ActualWidth, InAvailableHeight);
+		UE_LOG("UISubsystem: 동적 레이아웃: Detail만 업데이트 (너비: %.1fx%.1f)", ActualWidth, InAvailableHeight);
 	}
 }
 
@@ -975,11 +945,11 @@ void UUIManager::ArrangeRightPanelsDynamic(TObjectPtr<UUIWindow> InOutlinerWindo
  * @brief 오른쪽 패널 레이아웃을 강제로 적용하는 함수
  * 트리거를 거쳐 외부에서 호출하기 위한 함수
  */
-void UUIManager::ForceArrangeRightPanels()
+void UUISubsystem::ForceArrangeRightPanels()
 {
 	// bFirstRun 플래그를 리셋하여 초기 레이아웃 강제 실행
 	bFirstRun = true;
-	UE_LOG("UIManager: 오른쪽 패널 레이아웃 강제 적용 요청");
+	UE_LOG("UISubsystem: 오른쪽 패널 레이아웃 강제 적용 요청");
 
 	// 즉시 레이아웃 정리 실행
 	ArrangeRightPanels();
@@ -988,7 +958,7 @@ void UUIManager::ForceArrangeRightPanels()
 /**
  * @brief Console 패널을 하단에 배치하는 함수
  */
-void UUIManager::ArrangeConsolePanel()
+void UUISubsystem::ArrangeConsolePanel()
 {
 	// Console 윈도우 찾기
 	TObjectPtr<UUIWindow> ConsoleWindow = FindUIWindow(FName("Console"));
@@ -1020,8 +990,8 @@ void UUIManager::ArrangeConsolePanel()
 /**
  * @brief 메뉴바에서 패널 활성화 / 비활성화 시 호출하는 함수
  */
-void UUIManager::OnPanelVisibilityChanged()
+void UUISubsystem::OnPanelVisibilityChanged()
 {
-	UE_LOG_INFO("UIManager: 패널 가시성 변경 감지, 레이아웃 재정리 시작");
+	UE_LOG_INFO("UISubsystem: 패널 가시성 변경 감지, 레이아웃 재정리 시작");
 	ForceArrangeRightPanels();
 }

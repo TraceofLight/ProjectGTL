@@ -1,10 +1,11 @@
 #include "pch.h"
 #include "Runtime/Actor/Public/CameraActor.h"
+
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Manager/UI/Public/UIManager.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
 IMPLEMENT_CLASS(ACameraActor, AActor)
@@ -45,8 +46,8 @@ void ACameraActor::Tick()
 		return;
 
 	// SceneHierarchyWidget에서 카메라 애니메이션 상태 확인
-	auto& UIManager = UUIManager::GetInstance();
-	TObjectPtr<UWidget> SceneHierarchyWidgetPtr = UIManager.FindWidget(FName("Scene Hierarchy Widget"));
+	auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
+	TObjectPtr<UWidget> SceneHierarchyWidgetPtr = UISS->FindWidget(FName("Scene Hierarchy Widget"));
 	USceneHierarchyWidget* SceneHierarchyWidget = Cast<USceneHierarchyWidget>(SceneHierarchyWidgetPtr);
 
 	bool bIsAnimating = false;

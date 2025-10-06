@@ -7,6 +7,7 @@
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 
 UEngine* GEngine = nullptr;
 
@@ -91,6 +92,7 @@ void UEngine::RegisterDefaultEngineSubsystems()
 	RegisterEngineSubsystem<UAssetSubsystem>();
 	RegisterEngineSubsystem<UInputSubsystem>();
 	RegisterEngineSubsystem<UViewportSubsystem>();
+	RegisterEngineSubsystem<UUISubsystem>();
 	RegisterEngineSubsystem<UWorldSubsystem>();
 	RegisterEngineSubsystem<UOverlayManagerSubsystem>();
 }

@@ -1,6 +1,7 @@
 #include "pch.h"
-
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
+
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Core/Public/AppWindow.h"
 #include "Runtime/Engine/Public/Engine.h"
@@ -13,7 +14,6 @@
 #include "Window/Public/ViewportClient.h"
 #include "Runtime/Actor/Public/CameraActor.h"
 #include "Runtime/Component/Public/CameraComponent.h"
-#include "Manager/UI/Public/UIManager.h"
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
 IMPLEMENT_CLASS(UViewportSubsystem, UEngineSubsystem)
@@ -146,10 +146,10 @@ void UViewportSubsystem::BuildSingleLayout(int32 PromoteIdx)
 		AppWindow->GetClientSize(Width, Height);
 	}
 
-	const int32 MenuH = static_cast<int32>(UUIManager::GetInstance().GetMainMenuBarHeight());
-	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
-	const int32 BottomH = static_cast<int32>(UUIManager::GetInstance().GetBottomBarHeight());
-	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int32 MenuH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetToolbarHeight());
+	const int32 BottomH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetBottomBarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
 	const int32 ViewportHeight = Height - MenuH - ToolbarH - BottomH;
 
@@ -190,10 +190,10 @@ void UViewportSubsystem::BuildFourSplitLayout()
 		AppWindow->GetClientSize(Width, Height);
 	}
 
-	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
-	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
-	const int32 BottomH = static_cast<int32>(UUIManager::GetInstance().GetBottomBarHeight());
-	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int MenuHeight = static_cast<int>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetToolbarHeight());
+	const int32 BottomH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetBottomBarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
 	const int32 ViewportHeight = Height - MenuHeight - ToolbarH - BottomH;
 
@@ -343,8 +343,8 @@ void UViewportSubsystem::Update()
 	// 우클릭 또는 미들클릭으로 드래그 시작 시
 	if (InputSubsystem && (InputSubsystem->IsKeyDown(EKeyInput::MouseRight) || InputSubsystem->IsKeyDown(EKeyInput::MouseMiddle)))
 	{
-		auto& UIManager = UUIManager::GetInstance();
-		TObjectPtr<UWidget> Widget = UIManager.FindWidget(FName("Scene Hierarchy Widget"));
+		auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
+		TObjectPtr<UWidget> Widget = UISS->FindWidget(FName("Scene Hierarchy Widget"));
 		if (USceneHierarchyWidget* SceneWidget = Cast<USceneHierarchyWidget>(Widget))
 		{
 			if (SceneWidget->IsAnyCameraAnimating())
@@ -367,9 +367,9 @@ void UViewportSubsystem::Update()
 		AppWindow->GetClientSize(Width, Height);
 	}
 
-	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
-	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
-	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int MenuHeight = static_cast<int>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetToolbarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
 
 	if (Width > 0 && Height > 0)
@@ -1183,9 +1183,9 @@ void UViewportSubsystem::CreateAnimationSplitters()
 		AppWindow->GetClientSize(Width, Height);
 	}
 
-	const int MenuHeight = static_cast<int>(UUIManager::GetInstance().GetMainMenuBarHeight());
-	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
-	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int MenuHeight = static_cast<int>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetToolbarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
 	const FRect ViewportRect{0, MenuHeight + ToolbarH, max(0, ViewportWidth), max(0, Height - MenuHeight - ToolbarH)};
 
@@ -1447,9 +1447,9 @@ void UViewportSubsystem::FinalizeSingleLayoutFromAnimation()
 		AppWindow->GetClientSize(Width, Height);
 	}
 
-	const int32 MenuH = static_cast<int32>(UUIManager::GetInstance().GetMainMenuBarHeight());
-	const int32 ToolbarH = static_cast<int32>(UUIManager::GetInstance().GetToolbarHeight());
-	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());
+	const int32 MenuH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight());
+	const int32 ToolbarH = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetToolbarHeight());
+	const int32 RightPanelWidth = static_cast<int32>(GEngine->GetEngineSubsystem<UUISubsystem>()->GetRightPanelWidth());
 	const int32 ViewportWidth = Width - RightPanelWidth;
 
 	const FRect Rect{0, MenuH + ToolbarH, max(0, ViewportWidth), max(0, Height - MenuH - ToolbarH)};

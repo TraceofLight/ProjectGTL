@@ -4,7 +4,7 @@
 #include "ImGui/imgui_internal.h"
 
 #include "Render/UI/Widget/Public/Widget.h"
-#include "Manager/UI/Public/UIManager.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
 
 int UUIWindow::IssuedWindowID = 0;
@@ -272,8 +272,8 @@ void UUIWindow::RenderWindow()
 			OnWindowHidden();
 
 			// BottomBarWidget의 bShowConsole 플래그 동기화
-			auto& UIManager = UUIManager::GetInstance();
-			if (auto MainMenuWindow = UIManager.FindUIWindow(FName("MainMenuBar")))
+			auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
+			if (auto MainMenuWindow = UISS->FindUIWindow(FName("MainMenuBar")))
 			{
 				if (auto BottomBarWidget = static_cast<UMainMenuWindow*>(MainMenuWindow.Get())->GetBottomBarWidget())
 				{
@@ -305,13 +305,13 @@ void UUIWindow::RenderWindow()
 			const FString& Title = Config.WindowTitle.ToString();
 			if (Title == "Outliner" || Title == "Details")
 			{
-				UUIManager::GetInstance().ForceArrangeRightPanels();
+				GEngine->GetEngineSubsystem<UUISubsystem>()->ForceArrangeRightPanels();
 			}
 			else if (Title == "Console")
 			{
 				// BottomBarWidget의 bShowConsole 플래그 동기화
-				auto& UIManager = UUIManager::GetInstance();
-				if (auto MainMenuWindow = UIManager.FindUIWindow(FName("MainMenuBar")))
+				auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
+				if (auto MainMenuWindow = UISS->FindUIWindow(FName("MainMenuBar")))
 				{
 					if (auto BottomBarWidget = static_cast<UMainMenuWindow*>(MainMenuWindow.Get())->GetBottomBarWidget())
 					{
@@ -432,11 +432,11 @@ void UUIWindow::UpdateWindowInfo()
 	// Console 윈도우인 경우 위치와 너비를 하단에 고정
 	if (Config.WindowTitle == "Console" && IsVisible())
 	{
-		auto& UIManager = UUIManager::GetInstance();
+		auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
 		const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
 		const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
-		const float BottomBarHeight = UIManager.GetBottomBarHeight();
-		const float RightPanelWidth = UIManager.GetRightPanelWidth();
+		const float BottomBarHeight = UISS->GetBottomBarHeight();
+		const float RightPanelWidth = UISS->GetRightPanelWidth();
 
 		const float TargetX = 0.0f;
 		const float TargetWidth = ScreenWidth - RightPanelWidth;
@@ -460,7 +460,7 @@ void UUIWindow::UpdateWindowInfo()
 		}
 
 		// 높이 저장
-		UIManager.SaveConsoleHeight(LastWindowSize.y);
+		UISS->SaveConsoleHeight(LastWindowSize.y);
 	}
 }
 
