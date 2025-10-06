@@ -14,7 +14,7 @@
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Runtime/Actor/Public/Actor.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/ViewportClient.h"
 #include "Render/RHI/Public/RHIDevice.h"
@@ -252,7 +252,7 @@ void URenderer::Update()
 	RenderBegin();
 
     TArray<FRect> ViewRects;
-    UViewportManager::GetInstance().GetLeafRects(ViewRects);
+    GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetLeafRects(ViewRects);
 	if (ViewRects.empty())
 	{
 		RenderLevel();
@@ -266,8 +266,8 @@ void URenderer::Update()
 	{
 		ID3D11DeviceContext* DevictContext = GetDeviceContext();
 		const D3D11_VIEWPORT& FullVP = GetDeviceResources()->GetViewportInfo();
-		auto& ViewportManager = UViewportManager::GetInstance();
-		const auto& Viewports = ViewportManager.GetViewports();
+		auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+		const auto& Viewports = ViewportSS->GetViewports();
 
 		// 초기 뷰포트 값 0초기화
 		ViewportIdx = 0;
@@ -295,8 +295,8 @@ void URenderer::Update()
             DevictContext->RSSetScissorRects(1, &Screen);
 
             {
-                auto& ViewportManager = UViewportManager::GetInstance();
-                const auto& Viewports = ViewportManager.GetViewports();
+                auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+                const auto& Viewports = ViewportSS->GetViewports();
                 if (ViewportIdx < Viewports.size() && Viewports[ViewportIdx])
                 {
                     FViewport* ViewportObject = Viewports[ViewportIdx];
@@ -428,8 +428,8 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 			UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
 			if (BillBoardComponent)
 			{
-				auto& ViewportManager = UViewportManager::GetInstance();
-				const auto& VPs = ViewportManager.GetViewports();
+				auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+				const auto& VPs = ViewportSS->GetViewports();
 				FViewport* VP = (ViewportIdx < VPs.size()) ? VPs[ViewportIdx] : nullptr;
 				FViewportClient* VC = VP ? VP->GetViewportClient() : nullptr;
 
@@ -497,7 +497,7 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 	// 에디터 뷰 모드에 따른 렌더 상태 조정
 	//const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
 
-	FViewport* Viewport = UViewportManager::GetInstance().GetViewports()[ViewportIdx];
+	FViewport* Viewport = GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetViewports()[ViewportIdx];
 	FViewportClient* ViewportClient = Viewport->GetViewportClient();
 	const EViewMode ViewMode = Viewport->GetViewportClient()->GetViewMode();
 
@@ -821,9 +821,9 @@ void URenderer::RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const 
 	DistanceToCamera = max(DistanceToCamera, 0.1f); // 최소 거리 보장
 
 	// ViewProj 행렬에서 FOV 추출 (현재 렌더링 중인 뷰포트의 카메라 사용)
-	auto& ViewportManager = UViewportManager::GetInstance();
-	const auto& Viewports = ViewportManager.GetViewports();
-	const auto& Clients = ViewportManager.GetClients();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	const auto& Viewports = ViewportSS->GetViewports();
+	const auto& Clients = ViewportSS->GetClients();
 
 	if (ViewportIdx >= 0 && ViewportIdx < static_cast<int32>(Viewports.size()) &&
 		ViewportIdx < static_cast<int32>(Clients.size()) &&

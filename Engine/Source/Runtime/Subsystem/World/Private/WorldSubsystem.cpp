@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 #include "Window/Public/ViewportClient.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Utility/Public/Metadata.h"
@@ -160,8 +160,8 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 		FLevelMetadata Metadata = ConvertLevelToMetadata(CurrentLevel);
 
 		// 0번 ViewPort의 PerspectiveCamera 세팅을 Metadata에 포함
-		UViewportManager& ViewportManager = UViewportManager::GetInstance();
-		TArray<FViewportClient*>& Clients = ViewportManager.GetClients();
+		UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+		TArray<FViewportClient*>& Clients = ViewportSS->GetClients();
 		UE_LOG("WorldSubsystem: SaveCurrentLevel - Saving camera from Client[0]");
 		if (!Clients.empty() && Clients[0])
 		{
@@ -498,8 +498,8 @@ void UWorldSubsystem::ClearCurrentLevel()
  */
 void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMetadata)
 {
-	UViewportManager& ViewportManager = UViewportManager::GetInstance();
-	TArray<FViewportClient*>& Clients = ViewportManager.GetClients();
+	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	TArray<FViewportClient*>& Clients = ViewportSS->GetClients();
 
 	// FOV/Near/Far가 0이면 저장된 데이터가 손상되었으므로 기본값 사용
 	bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
@@ -511,7 +511,7 @@ void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraM
 
 	// 모든 Perspective 카메라에 동일한 설정 적용
 	// 각 Viewport의 실제 크기를 기반으로 Aspect 설정
-	TArray<FViewport*>& Viewports = ViewportManager.GetViewports();
+	TArray<FViewport*>& Viewports = ViewportSS->GetViewports();
 
 	for (size_t i = 0; i < Clients.size(); ++i)
 	{

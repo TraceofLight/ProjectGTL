@@ -11,7 +11,7 @@
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Manager/UI/Public/UIManager.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
@@ -117,7 +117,11 @@ void FEngineLoop::Init() const
 	auto& UIManger = UUIManager::GetInstance();
 	UIManger.Initialize(Window->GetWindowHandle());
 	UUIWindowFactory::CreateDefaultUILayout();
-	UViewportManager::GetInstance().Initialize(Window);
+
+	// 모든 엔진 서브시스템 초기화가 완료되었으므로, 이제 WndProc에서 서브시스템을 안전하게 사용할 수 있음
+	// CreateWindowEx 호출 시 발생한 지연된 윈도우 이벤트들을 이제 처리
+	Window->SetEngineInitialized(true);
+	Window->ProcessPendingWindowEvents();
 }
 
 /**
@@ -177,8 +181,6 @@ void FEngineLoop::Tick()
 #endif
 
     UUIManager::GetInstance().Update();
-    UViewportManager::GetInstance().Update();
-
     URenderer::GetInstance().Update();
 }
 
@@ -199,7 +201,6 @@ void FEngineLoop::Exit() const
 
 	URenderer::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();
-	UViewportManager::GetInstance().Release();
 
 	// Release되지 않은 UObject의 메모리 할당 해제
 	// TODO(KHJ): 추후 GC가 처리할 것

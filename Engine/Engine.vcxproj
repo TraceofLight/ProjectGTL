@@ -189,7 +189,6 @@
     <ClInclude Include="Source\Runtime\Component\Public\StaticMeshComponent.h" />
     <ClInclude Include="Source\Factory\Actor\Public\StaticMeshActorFactory.h" />
     <ClInclude Include="Source\Global\Quaternion.h" />
-    <ClInclude Include="Source\Manager\Viewport\Public\ViewportManager.h" />
     <ClInclude Include="Source\Material\Public\Material.h" />
     <ClInclude Include="Source\Physics\Public\AABB.h" />
     <ClInclude Include="Source\Physics\Public\BoundingSphere.h" />
@@ -286,6 +285,7 @@
     <ClInclude Include="Source\Runtime\Core\Public\EngineEditor.h" />
     <ClInclude Include="Source\Runtime\Core\Public\GameInstance.h" />
     <ClInclude Include="Source\Runtime\Core\Public\LocalPlayer.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Viewport\Public\ViewportSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\World\Public\WorldSubsystem.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
     <ClInclude Include="Source\Utility\Public\Archive.h" />
@@ -324,7 +324,6 @@
     <ClCompile Include="Source\Runtime\Component\Private\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Factory\Actor\Private\StaticMeshActorFactory.cpp" />
     <ClCompile Include="Source\Global\Quaternion.cpp" />
-    <ClCompile Include="Source\Manager\Viewport\Private\ViewportManager.cpp" />
     <ClCompile Include="Source\Physics\Private\AABB.cpp" />
     <ClCompile Include="Source\Physics\Private\BoundingSphere.cpp" />
     <ClCompile Include="Source\Runtime\Core\Private\AppWindow.cpp" />
@@ -398,6 +397,7 @@
     <ClCompile Include="Source\Runtime\Engine\Private\EngineEditor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\GameInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\LocalPlayer.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Viewport\Private\ViewportSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\World\Private\WorldSubsystem.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\Archive.cpp" />

@@ -1,14 +1,14 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
+#include "Window/Public/ViewportClient.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
-#include "Window/Public/ViewportClient.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 USceneHierarchyWidget::USceneHierarchyWidget()
 	: UWidget("Scene Hierarchy Widget")
@@ -25,9 +25,9 @@ void USceneHierarchyWidget::Initialize()
 void USceneHierarchyWidget::Update()
 {
 	// 카메라 애니메이션 업데이트 (카메라별로 개별 진행)
-	auto& ViewportManager = UViewportManager::GetInstance();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 
-	for (FViewportClient* Client : ViewportManager.GetClients())
+	for (FViewportClient* Client : ViewportSS->GetClients())
 	{
 		// Perspective 카메라 업데이트
 		TObjectPtr<ACameraActor> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
@@ -325,10 +325,10 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 		UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
 		if (InActor && bInFocusCamera && InputSubsystem && !InputSubsystem->IsKeyDown(EKeyInput::MouseRight))
 		{
-			auto& ViewportManager = UViewportManager::GetInstance();
+			auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 
 			// Start focus on all cameras
-			for (const auto Client : ViewportManager.GetClients())
+			for (const auto Client : ViewportSS->GetClients())
 			{
 				// Perspective 카메라 포커싱
 				if (Client->GetViewType() == EViewType::Perspective)
@@ -480,7 +480,7 @@ void USceneHierarchyWidget::UpdateCameraAnimation(TObjectPtr<ACameraActor> InCam
 			TObjectPtr<AActor> TargetActor = CameraAnimationTargets[CameraName];
 			if (TargetActor)
 			{
-				UViewportManager::GetInstance().SetOrthoGraphicCenter(TargetActor->GetActorLocation());
+				GEngine->GetEngineSubsystem<UViewportSubsystem>()->SetOrthoGraphicCenter(TargetActor->GetActorLocation());
 				UE_LOG_SUCCESS("SceneHierarchy: Ortho 중심점을 %s 위치로 업데이트", TargetActor->GetName().ToString().c_str());
 			}
 		}

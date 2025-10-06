@@ -4,12 +4,12 @@
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Window/Public/ViewportClient.h"
 #include "Window/Public/Viewport.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 IMPLEMENT_CLASS(UEditor, UObject)
 
@@ -66,10 +66,10 @@ void UEditor::RenderEditor()
 	AActor* SelectedActor = CurrentLevel ? CurrentLevel->GetSelectedActor() : nullptr;
 
 	// 렌더러에서 현재 렌더링 중인 뷰포트 인덱스를 가져와서 기즈모 크기 계산
-	auto& ViewportManager = UViewportManager::GetInstance();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 	auto& Renderer = URenderer::GetInstance();
-	const auto& Viewports = ViewportManager.GetViewports();
-	const auto& Clients = ViewportManager.GetClients();
+	const auto& Viewports = ViewportSS->GetViewports();
+	const auto& Clients = ViewportSS->GetClients();
 
 	// 렌더러에서 현재 렌더링 중인 뷰포트 인덱스 가져오기
 	int32 CurrentViewportIndex = Renderer.GetViewportIdx();
@@ -266,11 +266,11 @@ FRay UEditor::CreateWorldRayFromMouse(const ACameraActor* InPickingCamera)
 		assert(!"InputSubsystem does not exist");
 	}
 
-	auto& ViewportManager = UViewportManager::GetInstance();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 
 	float NdcX = 0.0f, NdcY = 0.0f;
-	int32 ViewportIndex = max(0, static_cast<int32>(ViewportManager.GetViewportIndexUnderMouse()));
-	bool bHaveLocalNDC = ViewportManager.ComputeLocalNDCForViewport(ViewportIndex, NdcX, NdcY);
+	int32 ViewportIndex = max(0, static_cast<int32>(ViewportSS->GetViewportIndexUnderMouse()));
+	bool bHaveLocalNDC = ViewportSS->ComputeLocalNDCForViewport(ViewportIndex, NdcX, NdcY);
 
 	// 뷰포트 로컬 좌표가 있으면 사용하고, 없으면 전체 화면 기준의 좌표를 사용
 	if (InPickingCamera && InPickingCamera->GetCameraComponent())
@@ -325,8 +325,8 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
 		// 모든 뷰포트의 기즈모 상태 초기화
-		auto& ViewportManager = UViewportManager::GetInstance();
-		const auto& Viewports = ViewportManager.GetViewports();
+		auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+		const auto& Viewports = ViewportSS->GetViewports();
 		for (int32 i = 0; i < static_cast<int32>(Viewports.size()); ++i)
 		{
 			Gizmo->SetGizmoDirectionForViewport(i, EGizmoDirection::None);
@@ -351,13 +351,13 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 
 	// 기즈모의 상태를 먼저 업데이트
 	// 현재 뷰포트 정보를 가져와서 올바른 피킹 범위 계산
-	auto& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = max(0, static_cast<int32>(ViewportManager.GetViewportIndexUnderMouse()));
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = max(0, static_cast<int32>(ViewportSS->GetViewportIndexUnderMouse()));
 	float ViewportWidth = 0.0f, ViewportHeight = 0.0f;
 
-	if (ViewportIndex >= 0 && ViewportIndex < static_cast<int32>(ViewportManager.GetViewports().size()))
+	if (ViewportIndex >= 0 && ViewportIndex < static_cast<int32>(ViewportSS->GetViewports().size()))
 	{
-		const auto& Viewports = ViewportManager.GetViewports();
+		const auto& Viewports = ViewportSS->GetViewports();
 		if (Viewports[ViewportIndex])
 		{
 			const FRect& ViewportRect = Viewports[ViewportIndex]->GetRect();
@@ -462,8 +462,8 @@ FVector UEditor::GetGizmoDragLocationForPerspective(const FRay& InWorldRay, ACam
 	FVector PlaneOrigin{Gizmo->GetGizmoLocation()};
 
 	// 현재 마우스가 있는 뷰포트의 기즈모 방향 사용
-	auto& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = ViewportSS->GetViewportIndexUnderMouse();
 	ViewportIndex = max(ViewportIndex, 0);
 	EGizmoDirection CurrentDirection = Gizmo->GetGizmoDirectionForViewport(ViewportIndex);
 
@@ -523,13 +523,13 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const ACameraActor& InCamer
 	}
 
 	// 현재 뷰포트 정보 가져오기
-	auto& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = ViewportSS->GetViewportIndexUnderMouse();
 	if (ViewportIndex < 0)
 	{
 		return Gizmo->GetGizmoLocation();
 	}
-	const auto& Clients = ViewportManager.GetClients();
+	const auto& Clients = ViewportSS->GetClients();
 	if (ViewportIndex >= static_cast<int32>(Clients.size()))
 	{
 		return Gizmo->GetGizmoLocation();
@@ -546,7 +546,7 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const ACameraActor& InCamer
 	}
 
 	// 뷰포트 크기 정보 가져오기
-	const auto& Viewports = ViewportManager.GetViewports();
+	const auto& Viewports = ViewportSS->GetViewports();
 	if (ViewportIndex >= static_cast<int32>(Viewports.size()))
 	{
 		return Gizmo->GetGizmoLocation();
@@ -704,8 +704,8 @@ FVector UEditor::GetGizmoDragRotation(const FRay& InWorldRay)
 	FVector PlaneOrigin{Gizmo->GetGizmoLocation()};
 
 	// 현재 마우스가 있는 뷰포트의 기즈모 방향 사용
-	auto& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = ViewportSS->GetViewportIndexUnderMouse();
 	ViewportIndex = max(ViewportIndex, 0);
 	EGizmoDirection CurrentDirection = Gizmo->GetGizmoDirectionForViewport(ViewportIndex);
 
@@ -791,8 +791,8 @@ FVector UEditor::GetGizmoDragScale(const FRay& InWorldRay, ACameraActor& InCamer
 	FVector PlaneOrigin = Gizmo->GetGizmoLocation();
 
 	// 현재 마우스가 있는 뷰포트의 기즈모 방향 사용
-	auto& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = ViewportSS->GetViewportIndexUnderMouse();
 	ViewportIndex = max(ViewportIndex, 0);
 	EGizmoDirection CurrentDirection = Gizmo->GetGizmoDirectionForViewport(ViewportIndex);
 
@@ -869,10 +869,15 @@ FVector UEditor::GetGizmoDragScale(const FRay& InWorldRay, ACameraActor& InCamer
  */
 ACameraActor* UEditor::GetActivePickingCamera()
 {
-	auto& ViewportManager = UViewportManager::GetInstance();
-	const auto& Clients = ViewportManager.GetClients();
+	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	if (!ViewportManager)
+	{
+		return nullptr;
+	}
 
-	int32 Index = ViewportManager.GetViewportIndexUnderMouse();
+	const auto& Clients = ViewportManager->GetClients();
+
+	int32 Index = ViewportManager->GetViewportIndexUnderMouse();
 	Index = max(Index, 0);
 
 	if (Index >= static_cast<int32>(Clients.size()))

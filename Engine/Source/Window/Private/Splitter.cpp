@@ -2,7 +2,7 @@
 #include "Window/Public/Splitter.h"
 
 #include "Editor/Public/Editor.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
@@ -108,7 +108,7 @@ bool SSplitter::OnMouseDown(FPoint Coord, int Button)
         }
         else // Horizontal
         {
-            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            if (auto* Root = Cast(GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot()))
             {
                 if (Root->Orientation == EOrientation::Vertical && Root->IsHandleHover(Coord))
                 {
@@ -132,7 +132,7 @@ bool SSplitter::OnMouseMove(FPoint Coord)
     // Cross-drag: update both axes
     if (bCrossDragging)
     {
-        if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+        if (auto* Root = Cast(GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot()))
         {
             // Vertical ratio from root rect
             const int32 spanX = std::max(1L, Root->Rect.W);
@@ -179,7 +179,7 @@ bool SSplitter::OnMouseMove(FPoint Coord)
 	}
 
 	// Re-layout entire viewport tree so siblings using shared ratio update too
-	if (auto* Root = UViewportManager::GetInstance().GetRoot())
+	if (auto* Root = GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot())
 	{
 		const FRect current = Root->GetRect();
 		Root->OnResize(current);
@@ -225,7 +225,7 @@ void SSplitter::OnPaint()
         // 1) If sibling horizontal handle is hovered, mirror-hover this one too
         if (!hovered)
         {
-            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            if (auto* Root = Cast(GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot()))
             {
                 if (Root->Orientation == EOrientation::Vertical)
                 {
@@ -242,7 +242,7 @@ void SSplitter::OnPaint()
         // 2) If vertical handle (root) is hovered and Y matches our handle band, also hover
         if (!hovered)
         {
-            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            if (auto* Root = Cast(GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot()))
             {
                 if (Root->Orientation == EOrientation::Vertical && Root->IsHandleHover(P))
                 {

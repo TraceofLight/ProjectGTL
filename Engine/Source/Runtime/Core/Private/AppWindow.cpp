@@ -1,16 +1,16 @@
 #include "pch.h"
 #include "Runtime/Core/Public/AppWindow.h"
 
+#include <dwmapi.h>
+
 #include "resource.h"
 #include "ImGui/imgui.h"
 
+#include "Window/Public/Window.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
-#include "Window/Public/Window.h"
-
-#include <dwmapi.h>
 
 FAppWindow::FAppWindow(FEngineLoop* InOwner)
 	: Owner(InOwner), InstanceHandle(nullptr), MainWindowHandle(nullptr)
@@ -130,7 +130,6 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 
 	switch (InMessage)
 	{
-	// 입력 메시지 처리
 	case WM_LBUTTONDOWN:
 	case WM_LBUTTONUP:
 	case WM_RBUTTONDOWN:
@@ -145,8 +144,32 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 			WindowInstance->EnqueueInputMessage(InMessage, InWParam, InLParam);
 		}
 		return 0;
+	}
 
-	// 윈도우 상태 메시지 처리
+	// 엔진 서브시스템에 의존하는 메시지들
+	const bool bRequiresEngineSubsystem =
+		InMessage == WM_SIZE ||
+		InMessage == WM_EXITSIZEMOVE;
+
+	if (WindowInstance && bRequiresEngineSubsystem)
+	{
+		if (WindowInstance->bIsEngineInitialized)
+		{
+			// 엔진 초기화 완료: 즉시 처리
+			WindowInstance->ProcessWindowMessage({InWindowHandle, InMessage, InWParam, InLParam});
+		}
+		else
+		{
+			// 엔진 초기화 미완료: 큐에 보관
+			lock_guard Lock(WindowInstance->WindowEventMutex);
+			WindowInstance->PendingWindowEvents.push_back({InWindowHandle, InMessage, InWParam, InLParam});
+		}
+		return 0;
+	}
+
+	// 나머지 메시지들은 기존 방식으로 처리
+	switch (InMessage)
+	{
 	case WM_NCCALCSIZE:
 		{
 			// non-client 영역을 완전히 제거
@@ -192,42 +215,6 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 
 	case WM_ENTERSIZEMOVE: //드래그 시작
 		URenderer::GetInstance().SetIsResizing(true);
-		break;
-	case WM_EXITSIZEMOVE: //드래그 종료
-		URenderer::GetInstance().SetIsResizing(false);
-		URenderer::GetInstance().OnResize();
-		UUIManager::GetInstance().RepositionImGuiWindows();
-		if (auto* Root = UViewportManager::GetInstance().GetRoot())
-		{
-			RECT Rect;
-			GetClientRect(InWindowHandle, &Rect);
-			Root->OnResize({
-				0, 0, static_cast<int32>(Rect.right - Rect.left), static_cast<int32>(Rect.bottom - Rect.top)
-			});
-		}
-		break;
-	case WM_SIZE:
-		if (InWParam != SIZE_MINIMIZED)
-		{
-			if (!URenderer::GetInstance().GetIsResizing())
-			{
-				// 드래그 X 일때 추가 처리
-				URenderer::GetInstance().OnResize(LOWORD(InLParam), HIWORD(InLParam));
-				UUIManager::GetInstance().RepositionImGuiWindows();
-				if (auto* Root = UViewportManager::GetInstance().GetRoot())
-				{
-					Root->OnResize({0, 0, static_cast<int32>(LOWORD(InLParam)), static_cast<int32>(HIWORD(InLParam))});
-				}
-			}
-		}
-		else // SIZE_MINIMIZED
-		{
-			if (WindowInstance)
-			{
-				WindowInstance->EnqueueInputMessage(WM_KILLFOCUS, 0, 0);
-			}
-			UUIManager::GetInstance().OnWindowMinimized();
-		}
 		break;
 
 	case WM_ACTIVATE:
@@ -312,4 +299,69 @@ void FAppWindow::ProcessPendingInputMessages()
 
 		InputMessageQueue.pop();
 	}
+}
+
+/**
+ * @brief 윈도우 이벤트 메시지를 실제로 처리하는 내부 함수
+ */
+void FAppWindow::ProcessWindowMessage(const FQueuedWindowEvent& Event)
+{
+	switch (Event.Message)
+	{
+	case WM_EXITSIZEMOVE: // 드래그 종료
+		URenderer::GetInstance().SetIsResizing(false);
+		URenderer::GetInstance().OnResize();
+		UUIManager::GetInstance().RepositionImGuiWindows();
+		if (auto* ViewportSubsystem = GEngine->GetEngineSubsystem<UViewportSubsystem>())
+		{
+			if (auto* Root = ViewportSubsystem->GetRoot())
+			{
+				RECT Rect;
+				GetClientRect(Event.hWnd, &Rect);
+				Root->OnResize({
+					0, 0, static_cast<int32>(Rect.right - Rect.left), static_cast<int32>(Rect.bottom - Rect.top)
+				});
+			}
+		}
+		break;
+
+	case WM_SIZE:
+		if (Event.WParam != SIZE_MINIMIZED)
+		{
+			if (!URenderer::GetInstance().GetIsResizing())
+			{
+				// 드래그 X 일때 추가 처리
+				URenderer::GetInstance().OnResize(LOWORD(Event.LParam), HIWORD(Event.LParam));
+				UUIManager::GetInstance().RepositionImGuiWindows();
+				if (auto* ViewportSubsystem = GEngine->GetEngineSubsystem<UViewportSubsystem>())
+				{
+					if (auto* Root = ViewportSubsystem->GetRoot())
+					{
+						Root->OnResize({0, 0, static_cast<int32>(LOWORD(Event.LParam)), static_cast<int32>(HIWORD(Event.LParam))});
+					}
+				}
+			}
+		}
+		else // SIZE_MINIMIZED
+		{
+			EnqueueInputMessage(WM_KILLFOCUS, 0, 0);
+			UUIManager::GetInstance().OnWindowMinimized();
+		}
+		break;
+	}
+}
+
+/**
+ * @brief 큐에 쌓인 윈도우 이벤트를 처리
+ */
+void FAppWindow::ProcessPendingWindowEvents()
+{
+	lock_guard Lock(WindowEventMutex);
+
+	for (const auto& Event : PendingWindowEvents)
+	{
+		ProcessWindowMessage(Event);
+	}
+
+	PendingWindowEvents.clear();
 }

@@ -2,12 +2,12 @@
 #include "Render/UI/Widget/Public/ToolbarWidget.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 IMPLEMENT_CLASS(UToolbarWidget, UWidget)
 
@@ -138,9 +138,9 @@ void UToolbarWidget::SpawnActorAtViewportCenter()
 		return;
 	}
 
-	// 뷰포트 매니저에서 마지막으로 사용된 뷰포트 인덱스 가져오기
-	UViewportManager& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	// 뷰포트 서브시스템에서 마지막으로 사용된 뷰포트 인덱스 가져오기
+	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = ViewportSS->GetViewportIndexUnderMouse();
 
 	// 유효하지 않으면 기본값으로 설정
 	ViewportIndex = max(ViewportIndex, 0);
@@ -180,9 +180,9 @@ void UToolbarWidget::SpawnStaticMeshActorAtViewportCenter()
 		return;
 	}
 
-	// 뷰포트 매니저에서 마지막으로 사용된 뷰포트 인덱스 가져오기
-	UViewportManager& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	// 뷰포트 서브시스템에서 마지막으로 사용된 뷰포트 인덱스 가져오기
+	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = ViewportSS->GetViewportIndexUnderMouse();
 
 	// 유효하지 않으면 기본값으로 설정
 	ViewportIndex = max(ViewportIndex, 0);

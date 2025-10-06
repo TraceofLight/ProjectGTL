@@ -1,5 +1,4 @@
 #pragma once
-#include "Runtime/Core/Public/Object.h"
 
 class SWindow;
 class SSplitter;
@@ -8,39 +7,93 @@ class ACameraActor;
 class FViewport;
 class FViewportClient;
 
+/**
+ * @brief 뷰포트 관리 서브시스템
+ * 기존 UViewportManager의 모든 기능을 서브시스템 패턴으로 이관
+ * 뷰포트 레이아웃 관리 (Single/Quad)
+ * 스플리터 시스템
+ * 뷰포트 애니메이션
+ * 카메라 관리 (Orthographic/Perspective)
+ * 입력 처리 및 라우팅
+ */
 UCLASS()
-class UViewportManager : public UObject
+class UViewportSubsystem :
+	public UEngineSubsystem
 {
 	GENERATED_BODY()
-	DECLARE_SINGLETON_CLASS(UViewportManager, UObject)
+	DECLARE_CLASS(UViewportSubsystem, UEngineSubsystem)
 
 public:
-	void Initialize(FAppWindow* InWindow);
+	UViewportSubsystem();
+	~UViewportSubsystem() override;
+
+	// ISubsystem 인터페이스 구현
+	void Initialize() override;
+	void PostInitialize() override;
+	void Deinitialize() override;
+	bool IsTickable() const override { return true; }
+	void Tick() override;
+
+	/**
+	 * @brief 뷰포트 서브시스템 초기화
+	 * @param InWindow 애플리케이션 윈도우
+	 */
+	void InitializeViewportSystem(FAppWindow* InWindow);
+
+	/**
+	 * @brief 매 프레임 업데이트
+	 */
 	void Update();
+
+	/**
+	 * @brief 오버레이 렌더링 (ImGui 등)
+	 */
 	void RenderOverlay();
+
+	/**
+	 * @brief 서브시스템 해제
+	 */
 	void Release();
 
-	// 마우스 입력을 스플리터/윈도우 트리에 라우팅 (드래그/리사이즈 처리)
+	/**
+	 * @brief 마우스 입력을 스플리터/윈도우 트리에 라우팅 (드래그/리사이즈 처리)
+	 */
 	void TickInput();
 
-	// 레이아웃
+	// 레이아웃 관리
+	/**
+	 * @brief 단일 뷰포트 레이아웃 구성
+	 * @param PromoteIdx 승격할 뷰포트 인덱스 (-1이면 현재 활성 뷰포트)
+	 */
 	void BuildSingleLayout(int32 PromoteIdx = -1);
+
+	/**
+	 * @brief 4분할 뷰포트 레이아웃 구성
+	 */
 	void BuildFourSplitLayout();
 
 	// 루트 접근
 	void SetRoot(SWindow* InRoot) { Root = InRoot; }
 	SWindow* GetRoot() const { return Root; }
 
-	// OrthoGraphicCamera의 중심점을 외부에서 설정하는 함수
+	/**
+	 * @brief OrthoGraphicCamera의 중심점을 외부에서 설정하는 함수
+	 */
 	void SetOrthoGraphicCenter(const FVector& NewCenter);
 
-	// 리프 Rect 수집
+	/**
+	 * @brief 리프 Rect 수집
+	 */
 	void GetLeafRects(TArray<FRect>& OutRects) const;
 
-	// 현재 마우스가 위치한 뷰포트 인덱스(-1이면 없음)
+	/**
+	 * @brief 현재 마우스가 위치한 뷰포트 인덱스(-1이면 없음)
+	 */
 	int32 GetViewportIndexUnderMouse() const;
 
-	// 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
+	/**
+	 * @brief 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
+	 */
 	bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;
 
 	TArray<FViewport*>& GetViewports() { return Viewports; }
@@ -54,7 +107,9 @@ public:
 	EViewportChange GetViewportChange() const { return ViewportChange; }
 	void SetViewportChange(EViewportChange InChange) { ViewportChange = InChange; }
 
-	// 스플리터 비율 저장
+	/**
+	 * @brief 스플리터 비율 저장
+	 */
 	void PersistSplitterRatios();
 
 	// 애니메이션 시스템 공개 인터페이스
@@ -132,21 +187,21 @@ private:
 		bool bIsAnimating = false;
 		float AnimationTime = 0.0f;
 		float AnimationDuration = 0.5f; // 애니메이션 지속 시간 (초)
-		
+
 		bool bSingleToQuad = true; // true: Single→Quad, false: Quad→Single
-		
+
 		// SWindow 트리 백업 및 복원을 위한 데이터
 		SWindow* BackupRoot = nullptr;
 		SWindow* AnimationRoot = nullptr; // 애니메이션용 임시 루트
-		
+
 		// 스플리터 비율 정보
-		float CurrentVerticalRatio = 0.5f;   // 현재 수직 스플리터 비율
+		float CurrentVerticalRatio = 0.5f; // 현재 수직 스플리터 비율
 		float CurrentHorizontalRatio = 0.5f; // 현재 수평 스플리터 비율
-		float StartRatio = 0.5f;  // 시작 스플리터 비율
+		float StartRatio = 0.5f; // 시작 스플리터 비율
 		float TargetRatio = 0.5f; // 목표 스플리터 비율
 		int32 PromotedViewportIndex = 0;
 	};
-	
+
 	FViewportAnimation ViewportAnimation;
 };
 

@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Core/Public/AppWindow.h"
 #include "Runtime/Engine/Public/Engine.h"
@@ -16,10 +16,10 @@
 #include "Manager/UI/Public/UIManager.h"
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UViewportManager)
+IMPLEMENT_CLASS(UViewportSubsystem, UEngineSubsystem)
 
-UViewportManager::UViewportManager() = default;
-UViewportManager::~UViewportManager() = default;
+UViewportSubsystem::UViewportSubsystem() = default;
+UViewportSubsystem::~UViewportSubsystem() = default;
 
 static void DestroyTree(SWindow*& Node)
 {
@@ -40,7 +40,30 @@ static void DestroyTree(SWindow*& Node)
 	Node = nullptr;
 }
 
-void UViewportManager::Initialize(FAppWindow* InWindow)
+void UViewportSubsystem::Initialize()
+{
+	Super::Initialize();
+	UE_LOG("ViewportSubsystem: Initialized");
+}
+
+void UViewportSubsystem::PostInitialize()
+{
+	InitializeViewportSystem(GEngine->GetAppWindow());
+}
+
+void UViewportSubsystem::Deinitialize()
+{
+	Super::Deinitialize();
+	UE_LOG("ViewportSubsystem: Deinitializing...");
+	Release();
+}
+
+void UViewportSubsystem::Tick()
+{
+	Update();
+}
+
+void UViewportSubsystem::InitializeViewportSystem(FAppWindow* InWindow)
 {
 	// 밖에서 윈도우를 가져와 크기를 가져온다
 	int32 Width = 0, Height = 0;
@@ -86,7 +109,7 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	SplitterValueH = IniSaveSharedH;
 }
 
-void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
+void UViewportSubsystem::BuildSingleLayout(int32 PromoteIdx)
 {
 	if (!Root)
 	{
@@ -143,7 +166,7 @@ void UViewportManager::BuildSingleLayout(int32 PromoteIdx)
 
 
 // 싱글->쿼드로 전환 시, 스플리터V를 할당합니다. 스플리터V는 트리구조로 스플리터H를 2개 자식으로 가지고 최종적으로 4개의 Swindow를 가집니다.
-void UViewportManager::BuildFourSplitLayout()
+void UViewportSubsystem::BuildFourSplitLayout()
 {
 	if (!Root)
 	{
@@ -213,7 +236,7 @@ void UViewportManager::BuildFourSplitLayout()
 	ForceRefreshOrthoViewsAfterLayoutChange();
 }
 
-void UViewportManager::GetLeafRects(TArray<FRect>& OutRects) const
+void UViewportSubsystem::GetLeafRects(TArray<FRect>& OutRects) const
 {
 	OutRects.clear();
 	if (!Root)
@@ -241,7 +264,7 @@ void UViewportManager::GetLeafRects(TArray<FRect>& OutRects) const
 }
 
 
-void UViewportManager::SyncRectsToViewports() const
+void UViewportSubsystem::SyncRectsToViewports() const
 {
 	TArray<FRect> Leaves;
 	GetLeafRects(Leaves);
@@ -258,7 +281,7 @@ void UViewportManager::SyncRectsToViewports() const
 	}
 }
 
-void UViewportManager::PumpAllViewportInput() const
+void UViewportSubsystem::PumpAllViewportInput() const
 {
 	// 각 뷰포트가 스스로 InputManager에서 읽어
 	// 로컬 좌표로 변환 → 각자의 Client로 MouseMove/CapturedMouseMove 전달
@@ -270,7 +293,7 @@ void UViewportManager::PumpAllViewportInput() const
 }
 
 // 오른쪽 마우스를 누르고 있는 뷰포트 인덱스를 셋 해줍니다.
-void UViewportManager::UpdateActiveRmbViewportIndex()
+void UViewportSubsystem::UpdateActiveRmbViewportIndex()
 {
 	ActiveRmbViewportIdx = -1;
 	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
@@ -297,7 +320,7 @@ void UViewportManager::UpdateActiveRmbViewportIndex()
 	}
 }
 
-void UViewportManager::TickCameras() const
+void UViewportSubsystem::TickCameras() const
 {
 	// 우클릭이 눌린 상태라면 해당 뷰포트의 카메라만 입력 반영(Update)
 	// 그렇지 않다면(비상호작용) 카메라 이동 입력은 생략하여 타 뷰포트에 영향이 가지 않도록 함
@@ -313,7 +336,7 @@ void UViewportManager::TickCameras() const
 	}
 }
 
-void UViewportManager::Update()
+void UViewportSubsystem::Update()
 {
 	// 사용자 입력으로 카메라 조작 시작 시, 모든 포커싱 애니메이션 중단
 	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
@@ -404,9 +427,9 @@ void UViewportManager::Update()
 						constexpr float DollyStep = 5.0f; // 튤닝 가능
 						constexpr float MinFovY = 10.0f; // 최소 FovY 값
 						constexpr float MaxFovY = 500.0f; // 최대 FovY 값
-						
+
 						float NewFovY = SharedFovY - (WheelDelta * DollyStep);
-						
+
 						// 갑작스러운 점프 방지를 위해 점진적 제한
 						if (NewFovY < MinFovY)
 						{
@@ -442,7 +465,7 @@ void UViewportManager::Update()
 	UpdateOrthoGraphicCameraPoint();
 
 	UpdateOrthoGraphicCameraFov();
-	
+
 	// FovY 업데이트 후 모든 직교 카메라의 행렬 갱신
 	for (ACameraActor* Camera : OrthoGraphicCameras)
 	{
@@ -466,7 +489,7 @@ void UViewportManager::Update()
 	}
 }
 
-void UViewportManager::RenderOverlay()
+void UViewportSubsystem::RenderOverlay()
 {
 	if (!Root)
 	{
@@ -476,7 +499,7 @@ void UViewportManager::RenderOverlay()
 	Root->OnPaint();
 }
 
-void UViewportManager::Release()
+void UViewportSubsystem::Release()
 {
 	Capture = nullptr;
 	ActiveRmbViewportIdx = -1;
@@ -512,7 +535,7 @@ void UViewportManager::Release()
 	AppWindow = nullptr;
 }
 
-void UViewportManager::InitializeViewportAndClient()
+void UViewportSubsystem::InitializeViewportAndClient()
 {
 	for (int i = 0; i < 4; i++)
 	{
@@ -538,7 +561,7 @@ void UViewportManager::InitializeViewportAndClient()
 	Clients[3]->SetViewMode(EViewMode::WireFrame);
 }
 
-void UViewportManager::InitializeOrthoGraphicCamera()
+void UViewportSubsystem::InitializeOrthoGraphicCamera()
 {
 	for (int i = 0; i < 6; ++i)
 	{
@@ -592,7 +615,7 @@ void UViewportManager::InitializeOrthoGraphicCamera()
 	InitialOffsets.emplace_back(-100.0f, 0.0f, 0.0f);
 }
 
-void UViewportManager::InitializePerspectiveCamera()
+void UViewportSubsystem::InitializePerspectiveCamera()
 {
 	for (int i = 0; i < 4; ++i)
 	{
@@ -608,7 +631,7 @@ void UViewportManager::InitializePerspectiveCamera()
 	}
 }
 
-void UViewportManager::UpdateOrthoGraphicCameraPoint()
+void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 {
 	// 인풋서브시스템을 가져옵니다.
 	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
@@ -724,7 +747,7 @@ void UViewportManager::UpdateOrthoGraphicCameraPoint()
 	}
 }
 
-void UViewportManager::UpdateOrthoGraphicCameraFov() const
+void UViewportSubsystem::UpdateOrthoGraphicCameraFov() const
 {
 	for (int i = 0; i < 6; ++i)
 	{
@@ -732,7 +755,7 @@ void UViewportManager::UpdateOrthoGraphicCameraFov() const
 	}
 }
 
-void UViewportManager::BindOrthoGraphicCameraToClient() const
+void UViewportSubsystem::BindOrthoGraphicCameraToClient() const
 {
 	Clients[1]->SetViewType(EViewType::OrthoLeft);
 	Clients[1]->SetOrthoCamera(OrthoGraphicCameras[2]);
@@ -744,7 +767,7 @@ void UViewportManager::BindOrthoGraphicCameraToClient() const
 	Clients[3]->SetOrthoCamera(OrthoGraphicCameras[3]);
 }
 
-void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
+void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 {
 	// 1) 현재 리프 Rect들을 뷰포트에 즉시 반영 (전환 직후 크기 확정)
 	SyncRectsToViewports();
@@ -824,7 +847,7 @@ void UViewportManager::ForceRefreshOrthoViewsAfterLayoutChange()
 	ActiveRmbViewportIdx = -1;
 }
 
-void UViewportManager::ApplySharedOrthoCenterToAllCameras() const
+void UViewportSubsystem::ApplySharedOrthoCenterToAllCameras() const
 {
 	// OrthoGraphicCamerapoint 기준으로 6개 오쏘 카메라 위치 갱신
 	for (ACameraActor* Camera : OrthoGraphicCameras)
@@ -848,7 +871,7 @@ void UViewportManager::ApplySharedOrthoCenterToAllCameras() const
 	}
 }
 
-void UViewportManager::PersistSplitterRatios()
+void UViewportSubsystem::PersistSplitterRatios()
 {
 	if (!Root)
 	{
@@ -866,7 +889,7 @@ void UViewportManager::PersistSplitterRatios()
 	}
 }
 
-void UViewportManager::TickInput()
+void UViewportSubsystem::TickInput()
 {
 	if (!Root)
 	{
@@ -929,7 +952,7 @@ void UViewportManager::TickInput()
  * @brief 마우스가 컨트롤 중인 Viewport의 인덱스를 반환하는 함수
  * @return 기본적으로는 index를 반환, 아무 것도 만지지 않았다면 -1
  */
-int32 UViewportManager::GetViewportIndexUnderMouse() const
+int32 UViewportSubsystem::GetViewportIndexUnderMouse() const
 {
 	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
 	if (!InputSubsystem)
@@ -958,7 +981,7 @@ int32 UViewportManager::GetViewportIndexUnderMouse() const
 	return -1;
 }
 
-bool UViewportManager::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, float& OutNdcY) const
+bool UViewportSubsystem::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, float& OutNdcY) const
 {
 	if (InIdx < 0 || InIdx >= static_cast<int32>(Viewports.size())) return false;
 	const FRect& Rect = Viewports[InIdx]->GetRect();
@@ -991,19 +1014,19 @@ bool UViewportManager::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, f
 	return true;
 }
 
-void UViewportManager::SetOrthoGraphicCenter(const FVector& NewCenter)
+void UViewportSubsystem::SetOrthoGraphicCenter(const FVector& NewCenter)
 {
 	OrthoGraphicCamerapoint = NewCenter;
 }
 
 #pragma region viewport animation
 
-void UViewportManager::StartLayoutAnimation(bool bSingleToQuad, int32 ViewportIndex)
+void UViewportSubsystem::StartLayoutAnimation(bool bSingleToQuad, int32 ViewportIndex)
 {
 	StartViewportAnimation(bSingleToQuad, ViewportIndex);
 }
 
-void UViewportManager::StartViewportAnimation(bool bSingleToQuad, int32 PromoteIdx)
+void UViewportSubsystem::StartViewportAnimation(bool bSingleToQuad, int32 PromoteIdx)
 {
 	// 현재 애니메이션이 진행 중이면 중단
 	if (ViewportAnimation.bIsAnimating)
@@ -1031,12 +1054,12 @@ void UViewportManager::StartViewportAnimation(bool bSingleToQuad, int32 PromoteI
 	ViewportAnimation.bIsAnimating = true;
 
 	// 디버깅 로그
-	UE_LOG("ViewportManager: SWindow 애니메이션 시작: %s, Duration: %.2f",
+	UE_LOG("ViewportSubsystem: SWindow 애니메이션 시작: %s, Duration: %.2f",
 	       bSingleToQuad ? "SingleToQuad" : "QuadToSingle",
 	       ViewportAnimation.AnimationDuration);
 }
 
-void UViewportManager::UpdateViewportAnimation()
+void UViewportSubsystem::UpdateViewportAnimation()
 {
 	if (!ViewportAnimation.bIsAnimating)
 	{
@@ -1073,7 +1096,7 @@ void UViewportManager::UpdateViewportAnimation()
 		ViewportAnimation.BackupRoot = nullptr; // 백업은 사용안함
 		ViewportAnimation.AnimationRoot = nullptr;
 
-		UE_LOG_SUCCESS("ViewportManager: SWindow 애니메이션 완료");
+		UE_LOG_SUCCESS("ViewportSubsystem: SWindow 애니메이션 완료");
 		return;
 	}
 
@@ -1082,7 +1105,7 @@ void UViewportManager::UpdateViewportAnimation()
 	AnimateSplitterTransition(EasedProgress);
 }
 
-float UViewportManager::EaseInOutCubic(float t) const
+float UViewportSubsystem::EaseInOutCubic(float t) const
 {
 	// 부드러운 3차 이징 함수 (가속 → 등속 → 감속)
 	if (t < 0.5f)
@@ -1096,7 +1119,7 @@ float UViewportManager::EaseInOutCubic(float t) const
 	}
 }
 
-void UViewportManager::SyncAnimationRectsToViewports() const
+void UViewportSubsystem::SyncAnimationRectsToViewports() const
 {
 	TArray<FRect> Leaves;
 	GetLeafRects(Leaves);
@@ -1151,7 +1174,7 @@ void UViewportManager::SyncAnimationRectsToViewports() const
 	}
 }
 
-void UViewportManager::CreateAnimationSplitters()
+void UViewportSubsystem::CreateAnimationSplitters()
 {
 	// 현재 창 크기 얻기
 	int32 Width = 0, Height = 0;
@@ -1256,7 +1279,7 @@ void UViewportManager::CreateAnimationSplitters()
 	Root = ViewportAnimation.AnimationRoot;
 }
 
-void UViewportManager::AnimateSplitterTransition(float Progress)
+void UViewportSubsystem::AnimateSplitterTransition(float Progress)
 {
 	if (!ViewportAnimation.AnimationRoot) return;
 
@@ -1381,7 +1404,7 @@ void UViewportManager::AnimateSplitterTransition(float Progress)
 	}
 }
 
-void UViewportManager::RestoreOriginalLayout()
+void UViewportSubsystem::RestoreOriginalLayout()
 {
 	if (ViewportAnimation.AnimationRoot)
 	{
@@ -1398,7 +1421,7 @@ void UViewportManager::RestoreOriginalLayout()
 	ViewportAnimation.bIsAnimating = false;
 }
 
-void UViewportManager::FinalizeSingleLayoutFromAnimation()
+void UViewportSubsystem::FinalizeSingleLayoutFromAnimation()
 {
 	// 현재 애니메이션 루트를 삭제하고 단일 레이아웃으로 직접 전환
 	if (ViewportAnimation.AnimationRoot)
@@ -1460,7 +1483,7 @@ void UViewportManager::FinalizeSingleLayoutFromAnimation()
 	}
 }
 
-void UViewportManager::FinalizeFourSplitLayoutFromAnimation()
+void UViewportSubsystem::FinalizeFourSplitLayoutFromAnimation()
 {
 	// 현재 애니메이션 루트의 구조를 그대로 유지하되 비율을 최종값으로 설정
 	if (!ViewportAnimation.AnimationRoot) return;

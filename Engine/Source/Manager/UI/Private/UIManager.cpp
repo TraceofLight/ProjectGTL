@@ -6,7 +6,7 @@
 #include "Render/UI/Window/Public/MainMenuWindow.h"
 
 // For overlay rendering after ImGui::NewFrame()
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 // 이전 사이즈 추적을 위한 정적 변수
 static ImVec2 LastOutlinerSize = ImVec2(0, 0);
@@ -167,7 +167,7 @@ void UUIManager::Render()
 	}
 
 	// Overlay (splitter handles etc.) should render after NewFrame() and before ImGui::Render()
-	UViewportManager::GetInstance().RenderOverlay();
+	GEngine->GetEngineSubsystem<UViewportSubsystem>()->RenderOverlay();
 
 	// ImGui 프레임 종료
 	ImGuiHelper->EndFrame();
