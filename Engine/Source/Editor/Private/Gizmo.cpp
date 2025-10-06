@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Editor/Public/Gizmo.h"
 
-#include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Render/Renderer/Public/EditorRenderResources.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Global/Quaternion.h"
 #include "Runtime/Actor/Public/CameraActor.h"
@@ -11,7 +11,9 @@ IMPLEMENT_CLASS(UGizmo, UObject)
 
 UGizmo::UGizmo()
 {
-	UAssetManager& ResourceManager = UAssetManager::GetInstance();
+	URenderer& Renderer = URenderer::GetInstance();
+	FEditorRenderResources* EditorResources = Renderer.GetEditorResources();
+
 	Primitives.resize(3);
 	GizmoColor.resize(3);
 
@@ -26,8 +28,8 @@ UGizmo::UGizmo()
 	* @brief Translation Setting
 	*/
 	const float ScaleT = TranslateCollisionConfig.Scale;
-	Primitives[0].Vertexbuffer = ResourceManager.GetVertexbuffer(EPrimitiveType::Arrow);
-	Primitives[0].NumVertices = ResourceManager.GetNumVertices(EPrimitiveType::Arrow);
+	Primitives[0].Vertexbuffer = EditorResources->GetGizmoVertexBuffer(EPrimitiveType::Arrow);
+	Primitives[0].NumVertices = EditorResources->GetGizmoVertexCount(EPrimitiveType::Arrow);
 	Primitives[0].Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	Primitives[0].Scale = FVector(ScaleT, ScaleT, ScaleT);
 	Primitives[0].bShouldAlwaysVisible = true;
@@ -35,8 +37,8 @@ UGizmo::UGizmo()
 	/* *
 	* @brief Rotation Setting
 	*/
-	Primitives[1].Vertexbuffer = ResourceManager.GetVertexbuffer(EPrimitiveType::Ring);
-	Primitives[1].NumVertices = ResourceManager.GetNumVertices(EPrimitiveType::Ring);
+	Primitives[1].Vertexbuffer = EditorResources->GetGizmoVertexBuffer(EPrimitiveType::Ring);
+	Primitives[1].NumVertices = EditorResources->GetGizmoVertexCount(EPrimitiveType::Ring);
 	Primitives[1].Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	Primitives[1].Scale = FVector(ScaleT, ScaleT, ScaleT);
 	Primitives[1].bShouldAlwaysVisible = true;
@@ -44,8 +46,8 @@ UGizmo::UGizmo()
 	/* *
 	* @brief Scale Setting
 	*/
-	Primitives[2].Vertexbuffer = ResourceManager.GetVertexbuffer(EPrimitiveType::CubeArrow);
-	Primitives[2].NumVertices = ResourceManager.GetNumVertices(EPrimitiveType::CubeArrow);
+	Primitives[2].Vertexbuffer = EditorResources->GetGizmoVertexBuffer(EPrimitiveType::CubeArrow);
+	Primitives[2].NumVertices = EditorResources->GetGizmoVertexCount(EPrimitiveType::CubeArrow);
 	Primitives[2].Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	Primitives[2].Scale = FVector(ScaleT, ScaleT, ScaleT);
 	Primitives[2].bShouldAlwaysVisible = true;

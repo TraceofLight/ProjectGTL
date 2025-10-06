@@ -2,9 +2,10 @@
 #include "Window/Public/Splitter.h"
 
 #include "Editor/Public/Editor.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
-#include "Manager/Input/Public/InputManager.h"
-#include "Manager/Level/Public/LevelManager.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 
 void SSplitter::SetChildren(SWindow* InLT, SWindow* InRB)
 {
@@ -74,11 +75,15 @@ void SSplitter::LayoutChildren()
 bool SSplitter::OnMouseDown(FPoint Coord, int Button)
 {
     // 기즈모가 드래그 중이면 스플리터 조작 차단
-    if (UEditor* Editor = ULevelManager::GetInstance().GetEditor())
+    UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+    if (WorldSS)
     {
-        if (Editor->GetGizmo() && Editor->GetGizmo()->IsDragging())
+        if (UEditor* Editor = WorldSS->GetEditor())
         {
-            return false;
+            if (Editor->GetGizmo() && Editor->GetGizmo()->IsDragging())
+            {
+                return false;
+            }
         }
     }
 
@@ -103,7 +108,7 @@ bool SSplitter::OnMouseDown(FPoint Coord, int Button)
         }
         else // Horizontal
         {
-            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            if (auto* Root = Cast(GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot()))
             {
                 if (Root->Orientation == EOrientation::Vertical && Root->IsHandleHover(Coord))
                 {
@@ -127,7 +132,7 @@ bool SSplitter::OnMouseMove(FPoint Coord)
     // Cross-drag: update both axes
     if (bCrossDragging)
     {
-        if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+        if (auto* Root = Cast(GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot()))
         {
             // Vertical ratio from root rect
             const int32 spanX = std::max(1L, Root->Rect.W);
@@ -174,7 +179,7 @@ bool SSplitter::OnMouseMove(FPoint Coord)
 	}
 
 	// Re-layout entire viewport tree so siblings using shared ratio update too
-	if (auto* Root = UViewportManager::GetInstance().GetRoot())
+	if (auto* Root = GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot())
 	{
 		const FRect current = Root->GetRect();
 		Root->OnResize(current);
@@ -205,8 +210,13 @@ void SSplitter::OnPaint()
 	//ImVec2 p0{ (float)h.X, (float)h.Y };
 	//ImVec2 p1{ (float)(h.X + h.W), (float)(h.Y + h.H) };
 	//dl->AddRectFilled(p0, p1, IM_COL32(80, 80, 80, 160));
-	auto& InputManager = UInputManager::GetInstance();
-	const FVector & mp = InputManager.GetMousePosition();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
+
+	const FVector & mp = InputSubsystem->GetMousePosition();
     FPoint P{ LONG(mp.X), LONG(mp.Y) };
     bool hovered = IsHandleHover(P);
 
@@ -215,7 +225,7 @@ void SSplitter::OnPaint()
         // 1) If sibling horizontal handle is hovered, mirror-hover this one too
         if (!hovered)
         {
-            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            if (auto* Root = Cast(GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot()))
             {
                 if (Root->Orientation == EOrientation::Vertical)
                 {
@@ -232,7 +242,7 @@ void SSplitter::OnPaint()
         // 2) If vertical handle (root) is hovered and Y matches our handle band, also hover
         if (!hovered)
         {
-            if (auto* Root = Cast(UViewportManager::GetInstance().GetRoot()))
+            if (auto* Root = Cast(GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetRoot()))
             {
                 if (Root->Orientation == EOrientation::Vertical && Root->IsHandleHover(P))
                 {
@@ -261,47 +271,53 @@ void SSplitter::OnPaint()
 
 SWindow* SSplitter::HitTest(FPoint ScreenCoord)
 {
-    // 기즈모가 드래그 중이면 스플리터 hit test 차단
-    if (UEditor* Editor = ULevelManager::GetInstance().GetEditor())
-    {
-        if (Editor->GetGizmo() && Editor->GetGizmo()->IsDragging())
-        {
-            // 기즈모 드래그 중에는 스플리터 hit test를 바이패스하고 자식에게 위임
-            // Handle has priority so splitter can capture drag
-            // 기즈모 드래그 중에는 스플리터가 캡처하지 않음
-        }
-        else if (IsHandleHover(ScreenCoord))
-        {
-            return this;
-        }
-    }
-    else
-    {
-        // Editor가 없는 경우 기존 로직 유지
-        if (IsHandleHover(ScreenCoord))
-            return this;
-    }
+	// 기즈모가 드래그 중이면 스플리터 hit test 차단
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (WorldSS)
+	{
+		if (UEditor* Editor = WorldSS->GetEditor())
+		{
+			if (Editor->GetGizmo() && Editor->GetGizmo()->IsDragging())
+			{
+				// 기즈모 드래그 중에는 스플리터 hit test를 바이패스하고 자식에게 위임
+				// Handle has priority so splitter can capture drag
+				// 기즈모 드래그 중에는 스플리터가 캡처하지 않음
+			}
+			else if (IsHandleHover(ScreenCoord))
+			{
+				return this;
+			}
+		}
+		else
+		{
+			// Editor가 없는 경우 기존 로직 유지
+			if (IsHandleHover(ScreenCoord))
+				return this;
+		}
 
-    // Delegate to children based on rect containment
-    if (SideLT)
-    {
-        const FRect& r = SideLT->GetRect();
-        if (ScreenCoord.X >= r.X && ScreenCoord.X < r.X + r.W &&
-            ScreenCoord.Y >= r.Y && ScreenCoord.Y < r.Y + r.H)
-        {
-            if (auto* hit = SideLT->HitTest(ScreenCoord)) return hit;
-            return SideLT;
-        }
-    }
-    if (SideRB)
-    {
-        const FRect& r = SideRB->GetRect();
-        if (ScreenCoord.X >= r.X && ScreenCoord.X < r.X + r.W &&
-            ScreenCoord.Y >= r.Y && ScreenCoord.Y < r.Y + r.H)
-        {
-            if (auto* hit = SideRB->HitTest(ScreenCoord)) return hit;
-            return SideRB;
-        }
-    }
-    return SWindow::HitTest(ScreenCoord);
+		// Delegate to children based on rect containment
+		if (SideLT)
+		{
+			const FRect& r = SideLT->GetRect();
+			if (ScreenCoord.X >= r.X && ScreenCoord.X < r.X + r.W &&
+				ScreenCoord.Y >= r.Y && ScreenCoord.Y < r.Y + r.H)
+			{
+				if (auto* hit = SideLT->HitTest(ScreenCoord)) return hit;
+				return SideLT;
+			}
+		}
+		if (SideRB)
+		{
+			const FRect& r = SideRB->GetRect();
+			if (ScreenCoord.X >= r.X && ScreenCoord.X < r.X + r.W &&
+				ScreenCoord.Y >= r.Y && ScreenCoord.Y < r.Y + r.H)
+			{
+				if (auto* hit = SideRB->HitTest(ScreenCoord)) return hit;
+				return SideRB;
+			}
+		}
+		return SWindow::HitTest(ScreenCoord);
+	}
+
+	return this;
 }

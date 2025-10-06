@@ -1,16 +1,17 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/PrimitiveSpawnWidget.h"
 
-IMPLEMENT_CLASS(UPrimitiveSpawnWidget, UWidget)
+#include <shobjidl.h>
 
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Level/Public/LevelManager.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Asset/Public/StaticMesh.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
-#include "Manager/Asset/Public/AssetManager.h"
 
-#include <shobjidl.h>
+IMPLEMENT_CLASS(UPrimitiveSpawnWidget, UWidget)
 
 UPrimitiveSpawnWidget::UPrimitiveSpawnWidget()
 	: UWidget("StaticMesh Spawn Widget")
@@ -64,7 +65,8 @@ void UPrimitiveSpawnWidget::RenderWidget()
 			MeshNamesCStr.push_back(Name.c_str());
 		}
 
-		ImGui::Combo("##StaticMeshType", &SelectedMeshIndex, MeshNamesCStr.data(), static_cast<int>(MeshNamesCStr.size()));
+		ImGui::Combo("##StaticMeshType", &SelectedMeshIndex, MeshNamesCStr.data(),
+		             static_cast<int>(MeshNamesCStr.size()));
 
 		// 인덱스 범위 검사
 		SelectedMeshIndex = max(0, min(SelectedMeshIndex, static_cast<int>(AvailableStaticMeshes.size()) - 1));
@@ -140,8 +142,13 @@ void UPrimitiveSpawnWidget::RefreshStaticMeshList()
  */
 void UPrimitiveSpawnWidget::SpawnActors() const
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
@@ -149,7 +156,8 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 		return;
 	}
 
-	if (AvailableStaticMeshes.empty() || SelectedMeshIndex < 0 || SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.size()))
+	if (AvailableStaticMeshes.empty() || SelectedMeshIndex < 0 || SelectedMeshIndex >= static_cast<int32>(
+		AvailableStaticMeshes.size()))
 	{
 		UE_LOG("ControlPanel: 유효한 StaticMesh가 선택되지 않았습니다");
 		return;
@@ -182,8 +190,9 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 			StaticMeshActor->SetActorScale3D(FVector(RandomScale, RandomScale, RandomScale));
 
 			UE_LOG("ControlPanel: (%.2f, %.2f, %.2f) 지점에 %s Actor를 배치했습니다",
-				StaticMeshActor->GetActorLocation().X, StaticMeshActor->GetActorLocation().Y, StaticMeshActor->GetActorLocation().Z,
-				MeshName.c_str());
+			       StaticMeshActor->GetActorLocation().X, StaticMeshActor->GetActorLocation().Y,
+			       StaticMeshActor->GetActorLocation().Z,
+			       MeshName.c_str());
 		}
 		else
 		{
@@ -205,15 +214,15 @@ void UPrimitiveSpawnWidget::LoadMeshFromFile()
 
 		// FileOpenDialog 생성
 		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
-			IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+		                      IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
 
 		if (SUCCEEDED(hr))
 		{
 			// OBJ 파일 필터 설정
 			COMDLG_FILTERSPEC rgSpec[] =
 			{
-				{ L"OBJ Files", L"*.obj" },
-				{ L"All Files", L"*.*" }
+				{L"OBJ Files", L"*.obj"},
+				{L"All Files", L"*.*"}
 			};
 			pFileOpen->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
 			pFileOpen->SetDefaultExtension(L"obj");
@@ -269,13 +278,17 @@ void UPrimitiveSpawnWidget::LoadMeshFromFile()
 
 						if (!bAlreadyExists)
 						{
-							// AssetManager를 통해 StaticMesh 로드
-							UAssetManager& AssetManager = UAssetManager::GetInstance();
-							UStaticMesh* LoadedMesh = AssetManager.LoadStaticMesh(filePath);
+							// AssetSubsystem을 통해 StaticMesh 로드
+							UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
+							UStaticMesh* LoadedMesh = nullptr;
+							if (AssetSubsystem)
+							{
+								LoadedMesh = AssetSubsystem->LoadStaticMesh(filePath);
+							}
 
 							if (LoadedMesh)
 							{
-								UE_LOG("PrimitiveSpawnWidget: Successfully loaded mesh from: %s", filePath.c_str());
+								UE_LOG("PrimitiveSpawnWidget: Successfully loaded mesh from: %s", filePath.data());
 
 								// 메시 목록 갱신
 								RefreshStaticMeshList();

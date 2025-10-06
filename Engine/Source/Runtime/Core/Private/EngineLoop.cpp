@@ -2,18 +2,13 @@
 #include "Runtime/Core/Public/EngineLoop.h"
 
 #include "Runtime/Core/Public/AppWindow.h"
-
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Engine/Public/EngineEditor.h"
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
-
-#include "Manager/Input/Public/InputManager.h"
-#include "Manager/Level/Public/LevelManager.h"
-#include "Manager/Asset/Public/AssetManager.h"
-#include "Manager/UI/Public/UIManager.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
-
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
+#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
 
@@ -92,37 +87,31 @@ void FEngineLoop::Init() const
 	InitializeClassSystem();
 
 	// Initialize Core Subsystem
-	auto& CoreEngine = UEngine::GetInstance();
-	CoreEngine.Initialize();
+	UEngine::GetInstance();
+	GEngine->SetAppWindow(Window);
 
-#ifdef EDITOR_MODE
-	auto& CoreEditor = UEngineEditor::GetInstance();
-	CoreEditor.Initialize();
-#endif
-
-	auto& CoreGameInstance = UGameInstance::GetInstance();
-	CoreGameInstance.Initialize();
-
-	auto& CoreLocalPlayer = ULocalPlayer::GetInstance();
-	CoreLocalPlayer.Initialize();
-
-	// Initialize By Get Instance
-	UInputManager::GetInstance();
-
+	// CRITICAL: 렌더러는 서브시스템들이 초기화되기 전에 먼저 준비되어야 함
+	// TODO(KHJ): 렌더러 제거
 	auto& Renderer = URenderer::GetInstance();
 	Renderer.Init(Window->GetWindowHandle());
 
-	UAssetManager::GetInstance().Initialize();
+	GEngine->Initialize();
 
-	// UIManager Initialize
-	auto& UIManger = UUIManager::GetInstance();
-	UIManger.Initialize(Window->GetWindowHandle());
-	UUIWindowFactory::CreateDefaultUILayout();
+#ifdef EDITOR_MODE
+	UEngineEditor::GetInstance();
+	GEditor->Initialize();
+#endif
 
-	// Create Default Level
-	// TODO(KHJ): 나중에 Init에서 처리하도록 하는 게 맞을 듯
-	ULevelManager::GetInstance().CreateDefaultLevel();
-	UViewportManager::GetInstance().Initialize(Window);
+	UGameInstance::GetInstance();
+	GameInstance->Initialize();
+
+	ULocalPlayer::GetInstance();
+	LocalPlayer->Initialize();
+
+	// 모든 엔진 서브시스템 초기화가 완료되었으므로, 이제 WndProc에서 서브시스템을 안전하게 사용할 수 있음
+	// CreateWindowEx 호출 시 발생한 지연된 윈도우 이벤트들을 이제 처리
+	Window->SetEngineInitialized(true);
+	Window->ProcessPendingWindowEvents();
 }
 
 /**
@@ -164,30 +153,29 @@ void FEngineLoop::MainLoop()
  */
 void FEngineLoop::Tick()
 {
-	UpdateDeltaTime();
+    UpdateDeltaTime();
 
-	// TODO(KHJ): Subsystem 대신 Slate로 처리할 수 있도록 할 것
-	auto OverlayManager = GEngine->GetEngineSubsystem<UOverlayManagerSubsystem>();
-	OverlayManager->Tick();
+	// Process input task
+    if (auto* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>())
+    {
+        InputSubsystem->PrepareNewFrame();
+    	Window->ProcessPendingInputMessages();
+    }
 
-	// 일단 Editor만 Tick 처리
-	// 나머지는 필요하면 추가할 것
+	// Engine tick
+    GEngine->TickEngineSubsystems();
+
+	// Editor tick
 #ifdef EDITOR_MODE
-	auto& CoreEditor = UEngineEditor::GetInstance();
-	CoreEditor.EditorUpdate();
+    GEditor->EditorUpdate();
 #endif
 
-	auto& InputManager = UInputManager::GetInstance();
-	auto& UIManager = UUIManager::GetInstance();
-	auto& Renderer = URenderer::GetInstance();
-	auto& LevelManager = ULevelManager::GetInstance();
-	auto& ViewportManager = UViewportManager::GetInstance();
+	if (auto* UISubsystem = GEngine->GetEngineSubsystem<UUISubsystem>())
+	{
+		UISubsystem->Render();
+	}
 
-	LevelManager.Update();
-	InputManager.Update(Window);
-	UIManager.Update();
-	ViewportManager.Update();
-	Renderer.Update();
+    URenderer::GetInstance().Update();
 }
 
 /**
@@ -196,21 +184,16 @@ void FEngineLoop::Tick()
  */
 void FEngineLoop::Exit() const
 {
-	auto& CoreEngine = UEngine::GetInstance();
-	auto& CoreEditor = UEngineEditor::GetInstance();
-	auto& CoreGameInstance = UGameInstance::GetInstance();
-	auto& CoreLocalPlayer = ULocalPlayer::GetInstance();
+	LocalPlayer->Shutdown();
+	GameInstance->Shutdown();
 
-	CoreLocalPlayer.Shutdown();
-	CoreGameInstance.Shutdown();
-	CoreEditor.Shutdown();
-	CoreEngine.Shutdown();
+#ifdef EDITOR_MODE
+	GEditor->Shutdown();
+#endif
 
-	UAssetManager::GetInstance().Release();
+	GEngine->Shutdown();
+
 	URenderer::GetInstance().Release();
-	UUIManager::GetInstance().Shutdown();
-	ULevelManager::GetInstance().Shutdown();
-	UViewportManager::GetInstance().Release();
 
 	// Release되지 않은 UObject의 메모리 할당 해제
 	// TODO(KHJ): 추후 GC가 처리할 것

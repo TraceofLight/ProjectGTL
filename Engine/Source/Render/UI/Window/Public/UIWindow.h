@@ -74,7 +74,7 @@ struct FUIWindowConfig
 class UUIWindow :
 	public UObject
 {
-	friend class UUIManager;
+	friend class UUISubsystem;
 
 public:
 	UUIWindow(const FUIWindowConfig& InConfig = FUIWindowConfig());

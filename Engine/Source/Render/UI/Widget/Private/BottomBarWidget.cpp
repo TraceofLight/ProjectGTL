@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/BottomBarWidget.h"
-#include "Manager/UI/Public/UIManager.h"
+
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
 
 IMPLEMENT_CLASS(UBottomBarWidget, UWidget)
@@ -87,13 +88,13 @@ void UBottomBarWidget::ToggleConsole()
 	bShowConsole = !bShowConsole;
 
 	// Console 윈도우 토글
-	auto& UIManager = UUIManager::GetInstance();
-	if (auto ConsoleWindow = UIManager.FindUIWindow(FName("Console")))
+	auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
+	if (auto ConsoleWindow = UISS->FindUIWindow(FName("Console")))
 	{
 		if (bShowConsole)
 		{
 			ConsoleWindow->SetWindowState(EUIWindowState::Visible);
-			UIManager.ArrangeConsolePanel();
+			UISS->ArrangeConsolePanel();
 		}
 		else
 		{

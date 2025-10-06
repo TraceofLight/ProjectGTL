@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/InputInformationWidget.h"
 
-#include "Manager/Input/Public/InputManager.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 
 constexpr uint8 MaxKeyHistory = 10;
 
@@ -18,21 +18,25 @@ void UInputInformationWidget::Initialize()
 
 void UInputInformationWidget::Update()
 {
-	auto& InputManager = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
 
 	// 마우스 위치 업데이트
-	FVector CurrentMousePosition = InputManager.GetMousePosition();
+	FVector CurrentMousePosition = InputSubsystem->GetMousePosition();
 	MouseDelta = CurrentMousePosition - LastMousePosition;
 	LastMousePosition = CurrentMousePosition;
 
 	// 새로운 키 입력 확인 및 히스토리에 추가
-	auto& PressedKeys = InputManager.GetPressedKeys();
+	auto& PressedKeys = InputSubsystem->GetPressedKeys();
 	for (const auto& Key : PressedKeys)
 	{
-		FString KeyName = UInputManager::GetInstance().KeyInputToString(Key);
+		FString KeyName = UInputSubsystem::KeyInputToString(Key);
 
 		// 키 통계 업데이트
-		if (KeyPressCount.find(KeyName) == KeyPressCount.end())
+		if (!KeyPressCount.contains(KeyName))
 		{
 			KeyPressCount[KeyName] = 0;
 		}
@@ -48,8 +52,13 @@ void UInputInformationWidget::Update()
 
 void UInputInformationWidget::RenderWidget()
 {
-	auto& InputManager = UInputManager::GetInstance();
-	auto& PressedKeys = InputManager.GetPressedKeys();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
+
+	auto& PressedKeys = InputSubsystem->GetPressedKeys();
 
 	// 탭으로 구분
 	if (ImGui::BeginTabBar("InputTabs"))
@@ -120,9 +129,15 @@ void UInputInformationWidget::RenderKeyList(const TArray<EKeyInput>& InPressedKe
 	}
 	else
 	{
+		UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+		if (!InputSubsystem)
+		{
+			return;
+		}
+
 		for (const EKeyInput& Key : InPressedKeys)
 		{
-			FString KeyString = UInputManager::GetInstance().KeyInputToString(Key);
+			FString KeyString = UInputSubsystem::KeyInputToString(Key);
 			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "- %s", KeyString.c_str());
 		}
 
@@ -137,7 +152,11 @@ void UInputInformationWidget::RenderMouseInfo() const
 	ImGui::Text("Mouse Delta: (%.2f, %.2f)", MouseDelta.X, MouseDelta.Y);
 	ImGui::Text("Mouse Speed: %.2f", MouseDelta.Length());
 
-	auto& InputManager = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
 
 	// 마우스 위치를 작은 그래프로 표시
 	ImDrawList* DrawList = ImGui::GetWindowDrawList();
@@ -150,7 +169,7 @@ void UInputInformationWidget::RenderMouseInfo() const
 	                        IM_COL32(50, 50, 50, 255));
 
 	// 마우스 위치에 Dot 표시
-	FVector MouseNDC = InputManager.GetMouseNDCPosition();
+	FVector MouseNDC = InputSubsystem->GetMouseNDCPosition();
 
 	// [-1, 1] 범위를 [0, 1] 범위로 변환
 	float NormalizedX = (MouseNDC.X + 1.0f) * 0.5f;
@@ -183,12 +202,12 @@ void UInputInformationWidget::RenderKeyStatistics()
 			SortedStats.push_back(Pair);
 		}
 
-		std::sort(SortedStats.begin(), SortedStats.end(),
-		          [](const auto& A, const auto& B) { return A.second > B.second; });
+		std::ranges::sort(SortedStats,
+		                  [](const auto& A, const auto& B) { return A.second > B.second; });
 
 		for (const auto& [Key, Count] : SortedStats)
 		{
-			ImGui::Text("%s: %d times", Key.c_str(), Count);
+			ImGui::Text("%s: %u times", Key.c_str(), Count);
 		}
 
 		if (ImGui::Button("Clear Statistics"))

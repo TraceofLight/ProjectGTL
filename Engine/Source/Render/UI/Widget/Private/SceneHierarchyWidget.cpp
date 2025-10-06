@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
-#include "Manager/Level/Public/LevelManager.h"
-#include "Manager/Input/Public/InputManager.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Window/Public/ViewportClient.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
-#include "Window/Public/ViewportClient.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 USceneHierarchyWidget::USceneHierarchyWidget()
 	: UWidget("Scene Hierarchy Widget")
@@ -24,9 +25,9 @@ void USceneHierarchyWidget::Initialize()
 void USceneHierarchyWidget::Update()
 {
 	// 카메라 애니메이션 업데이트 (카메라별로 개별 진행)
-	auto& ViewportManager = UViewportManager::GetInstance();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 
-	for (FViewportClient* Client : ViewportManager.GetClients())
+	for (FViewportClient* Client : ViewportSS->GetClients())
 	{
 		// Perspective 카메라 업데이트
 		TObjectPtr<ACameraActor> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
@@ -46,7 +47,13 @@ void USceneHierarchyWidget::Update()
 
 void USceneHierarchyWidget::RenderWidget()
 {
-	ULevel* CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
@@ -140,7 +147,9 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 	ImGui::PushID(InIndex);
 
 	// 현재 선택된 Actor인지 확인
-	ULevel* CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS) return;
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 	bool bIsSelected = (CurrentLevel && CurrentLevel->GetSelectedActor() == InActor);
 
 	// 선택된 Actor는 하이라이트
@@ -264,7 +273,7 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 			LastClickedActor = InActor;
 		}
 
-		auto& InputManager = UInputManager::GetInstance();
+		UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
 
 		// 더블 클릭 감지: 카메라 이동 수행 (hover 필요)
 		if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -276,7 +285,7 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 		}
 
 		// F키 입력 감지: 선택된 Actor에 대해서는 hover 조건 없이 포커싱 가능
-		if (bIsSelected && InputManager.IsKeyDown(EKeyInput::F))
+		if (InputSubsystem && bIsSelected && InputSubsystem->IsKeyDown(EKeyInput::F))
 		{
 			SelectActor(InActor, true);
 
@@ -284,33 +293,6 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 			FinishRenaming(false);
 		}
 	}
-
-	// 트리 노드로 표시 (접을 수 있도록)
-	// ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-	// if (bIsSelected)
-	// {
-	// 	NodeFlags |= ImGuiTreeNodeFlags_Selected;
-	// }
-
-	// bool bNodeOpen = ImGui::TreeNodeEx(ActorDisplayName.c_str(), NodeFlags);
-
-	// 클릭 감지
-	// if (ImGui::IsItemClicked())
-	// {
-	// 	SelectActor(InActor);
-	// }
-
-	// if (bNodeOpen)
-	// {
-	// if (bShowDetails)
-	// {
-	// Component 정보 표시
-	// 	const TArray<UActorComponent*>& Components = InActor->GetOwnedComponents();
-	// 	ImGui::Text("  Components: %zu", Components.size());
-	// }
-	//
-	// 	ImGui::TreePop();
-	// }
 
 	if (bIsSelected)
 	{
@@ -327,20 +309,26 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
  */
 void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocusCamera)
 {
-	TObjectPtr<ULevel> CurrentLevel = ULevelManager::GetInstance().GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 	if (CurrentLevel)
 	{
 		CurrentLevel->SetSelectedActor(InActor);
 
 		// 카메라 포커싱은 더블 클릭에서만 수행
 		// 우클릭 중에는 포커싱하지 않음 (카메라 조작 모드)
-		auto& InputManager = UInputManager::GetInstance();
-		if (InActor && bInFocusCamera && !InputManager.IsKeyDown(EKeyInput::MouseRight))
+		UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+		if (InActor && bInFocusCamera && InputSubsystem && !InputSubsystem->IsKeyDown(EKeyInput::MouseRight))
 		{
-			auto& ViewportManager = UViewportManager::GetInstance();
+			auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 
 			// Start focus on all cameras
-			for (const auto Client : ViewportManager.GetClients())
+			for (const auto Client : ViewportSS->GetClients())
 			{
 				// Perspective 카메라 포커싱
 				if (Client->GetViewType() == EViewType::Perspective)
@@ -492,7 +480,7 @@ void USceneHierarchyWidget::UpdateCameraAnimation(TObjectPtr<ACameraActor> InCam
 			TObjectPtr<AActor> TargetActor = CameraAnimationTargets[CameraName];
 			if (TargetActor)
 			{
-				UViewportManager::GetInstance().SetOrthoGraphicCenter(TargetActor->GetActorLocation());
+				GEngine->GetEngineSubsystem<UViewportSubsystem>()->SetOrthoGraphicCenter(TargetActor->GetActorLocation());
 				UE_LOG_SUCCESS("SceneHierarchy: Ortho 중심점을 %s 위치로 업데이트", TargetActor->GetName().ToString().c_str());
 			}
 		}

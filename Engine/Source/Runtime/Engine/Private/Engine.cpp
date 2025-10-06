@@ -2,6 +2,12 @@
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/Public/PathSubsystem.h"
 #include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
+#include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 
 UEngine* GEngine = nullptr;
 
@@ -52,11 +58,41 @@ void UEngine::Shutdown()
 }
 
 /**
+ * @brief 모든 Tickable 엔진 서브시스템의 Tick 함수를 우선순위 순서대로 호출
+ */
+void UEngine::TickEngineSubsystems(FAppWindow* InWindow)
+{
+	// Tickable 서브시스템만 모아서 정렬
+	// TODO(KHJ): Tickable 서브시스템 목록을 캐싱하고, 서브시스템 추가, 제거 시에만 재정렬하도록 해야 함
+	TArray<UEngineSubsystem*> TickableSubsystems;
+
+	EngineSubsystemCollection.ForEachSubsystem([&TickableSubsystems](UEngineSubsystem* InSubsystem)
+	{
+		if (InSubsystem && InSubsystem->IsTickable())
+		{
+			TickableSubsystems.push_back(InSubsystem);
+		}
+	});
+
+	// 정렬된 순서대로 Tick 호출
+	for (UEngineSubsystem* Subsystem : TickableSubsystems)
+	{
+		Subsystem->Tick();
+	}
+}
+
+/**
  * @brief 기본 엔진 서브시스템을 등록하는 함수
  */
 void UEngine::RegisterDefaultEngineSubsystems()
 {
 	// 기본 엔진 서브시스템 등록
 	RegisterEngineSubsystem<UPathSubsystem>();
+	RegisterEngineSubsystem<UConfigSubsystem>();
+	RegisterEngineSubsystem<UAssetSubsystem>();
+	RegisterEngineSubsystem<UInputSubsystem>();
+	RegisterEngineSubsystem<UViewportSubsystem>();
+	RegisterEngineSubsystem<UUISubsystem>();
+	RegisterEngineSubsystem<UWorldSubsystem>();
 	RegisterEngineSubsystem<UOverlayManagerSubsystem>();
 }

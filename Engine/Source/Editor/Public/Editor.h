@@ -25,6 +25,7 @@ public:
 	UEditor();
 	~UEditor() override;
 
+	void Initialize();
 	void Update();
 	void RenderEditor();
 
@@ -34,18 +35,18 @@ public:
 	FVector GetCameraLocation() { return Camera ? Camera->GetCameraComponent()->GetRelativeLocation() : FVector(); }
 	FViewProjConstants GetViewProjConstData() const { return Camera ? Camera->GetCameraComponent()->GetFViewProjConstants() : FViewProjConstants(); }
 
-	ACameraActor* GetCamera() { return Camera.Get(); }
-	UBatchLines* GetBatchLines() { return &BatchLines; }
-	UGizmo* GetGizmo() { return &Gizmo; }
+	ACameraActor* GetCamera() const { return Camera.Get(); }
+	UBatchLines* GetBatchLines() const { return Grid.Get(); }
+	UGizmo* GetGizmo() const { return Gizmo.Get(); }
 
 private:
 	TObjectPtr<ACameraActor> Camera = nullptr;
 	UObjectPicker ObjectPicker;
 
 	const float MinScale = 0.01f;
-	UGizmo Gizmo;
-	UAxis Axis;
-	UBatchLines BatchLines;
+	TUniquePtr<UGizmo> Gizmo;
+	TUniquePtr<UAxis> Axis;
+	TUniquePtr<UBatchLines> Grid;
 
 	EViewModeIndex CurrentViewMode = EViewModeIndex::VMI_Lit;
 

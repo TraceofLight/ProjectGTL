@@ -3,6 +3,27 @@
 class FEngineLoop;
 
 /**
+ * @brief 입력 메시지 데이터 구조체
+ */
+struct FInputMessage
+{
+	uint32 Message;
+	WPARAM WParam;
+	LPARAM LParam;
+};
+
+/**
+ * @brief 지연 처리할 윈도우 이벤트 구조체
+ */
+struct FQueuedWindowEvent
+{
+	HWND hWnd;
+	uint32 Message;
+	WPARAM WParam;
+	LPARAM LParam;
+};
+
+/**
  * @brief 윈도우 생성 및 메시지 처리를 담당하는 클래스
  */
 class FAppWindow
@@ -13,6 +34,13 @@ public:
 
 	// Viewport Information
 	void GetClientSize(int32& OutWidth, int32& OutHeight) const;
+
+	// Input Message Queue
+	void ProcessPendingInputMessages();
+
+	// Window Event Queue
+	void ProcessPendingWindowEvents();
+	void SetEngineInitialized(bool bInitialized) { bIsEngineInitialized = bInitialized; }
 
 	// Getter & Setter
 	HWND GetWindowHandle() const { return MainWindowHandle; }
@@ -27,6 +55,20 @@ private:
     FEngineLoop* Owner;
     HINSTANCE InstanceHandle;
     HWND MainWindowHandle;
+
+	// Engine State
+	bool bIsEngineInitialized = false;
+
+	// Input Message Queue
+	queue<FInputMessage> InputMessageQueue;
+	mutex InputQueueMutex;
+
+	// Window Event Queue
+	TArray<FQueuedWindowEvent> PendingWindowEvents;
+	mutex WindowEventMutex;
+
+	void EnqueueInputMessage(uint32 InMessage, WPARAM InWParam, LPARAM InLParam);
+	void ProcessWindowMessage(const FQueuedWindowEvent& Event);
 
     // Windows Callback Function
     static LRESULT CALLBACK WndProc(HWND InWindowHandle, uint32 InMessage, WPARAM InWParam, LPARAM InLParam);

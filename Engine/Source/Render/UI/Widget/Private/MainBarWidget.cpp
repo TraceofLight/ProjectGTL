@@ -1,14 +1,14 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
-#include "Manager/UI/Public/UIManager.h"
-#include "Render/UI/Window/Public/UIWindow.h"
 
 #include <shobjidl.h>
 
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
+#include "Render/UI/Window/Public/UIWindow.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Level/Public/LevelManager.h"
 
-class ULevelManager;
 IMPLEMENT_CLASS(UMainBarWidget, UWidget)
 
 UMainBarWidget::UMainBarWidget()
@@ -22,8 +22,8 @@ UMainBarWidget::UMainBarWidget()
  */
 void UMainBarWidget::Initialize()
 {
-	UIManager = &UUIManager::GetInstance();
-	if (!UIManager)
+	auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
+	if (!UISS)
 	{
 		UE_LOG("MainBarWidget: UIManager를 찾을 수 없습니다!");
 		return;
@@ -139,9 +139,10 @@ void UMainBarWidget::RenderFileMenu()
  */
 void UMainBarWidget::RenderWindowsMenu() const
 {
+	auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
 	if (ImGui::BeginMenu("창"))
 	{
-		if (!UIManager)
+		if (!UISS)
 		{
 			ImGui::Text("UIManager를 사용할 수 없습니다");
 			ImGui::EndMenu();
@@ -149,7 +150,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 		}
 
 		// 모든 등록된 UIWindow에 대해 토글 메뉴 항목 생성
-		const auto& AllWindows = UIManager->GetAllUIWindows();
+		const auto& AllWindows = UISS->GetAllUIWindows();
 
 		if (AllWindows.empty())
 		{
@@ -177,7 +178,7 @@ void UMainBarWidget::RenderWindowsMenu() const
 					const FString& Title = Window->GetWindowTitle().ToString();
 					if (Title == "Outliner" || Title == "Details")
 					{
-						UIManager->OnPanelVisibilityChanged();
+						UISS->OnPanelVisibilityChanged();
 					}
 
 					UE_LOG("MainBarWidget: %s 창 토글됨 (현재 상태: %s)",
@@ -191,13 +192,13 @@ void UMainBarWidget::RenderWindowsMenu() const
 			// 전체 창 제어 옵션
 			if (ImGui::MenuItem("모든 창 표시"))
 			{
-				UIManager->ShowAllWindows();
+				UISS->ShowAllWindows();
 				UE_LOG("MainBarWidget: 모든 창 표시됨");
 			}
 
 			if (ImGui::MenuItem("모든 창 숨김"))
 			{
-				for (auto Window : UIManager->GetAllUIWindows())
+				for (auto Window : UISS->GetAllUIWindows())
 				{
 					if (!Window)
 					{
@@ -229,9 +230,13 @@ void UMainBarWidget::RenderViewMenu()
 {
 	if (ImGui::BeginMenu("보기"))
 	{
-		// LevelManager에서 Editor 가져오기
-		ULevelManager& LevelMgr = ULevelManager::GetInstance();
-		UEditor* EditorInstance = LevelMgr.GetEditor();
+		UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+		if (!WorldSS)
+		{
+			return;
+		}
+
+		UEditor* EditorInstance = WorldSS->GetEditor();
 		if (!EditorInstance)
 		{
 			ImGui::Text("에디터를 사용할 수 없습니다");
@@ -276,9 +281,13 @@ void UMainBarWidget::RenderShowFlagsMenu()
 {
 	if (ImGui::BeginMenu("표시 옵션"))
 	{
-		// LevelManager에서 현재 레벨 가져오기
-		ULevelManager& LevelMgr = ULevelManager::GetInstance();
-		ULevel* CurrentLevel = LevelMgr.GetCurrentLevel();
+		UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+		if (!WorldSS)
+		{
+			return;
+		}
+
+		ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 		if (!CurrentLevel)
 		{
 			ImGui::Text("현재 레벨을 찾을 수 없습니다");
@@ -369,11 +378,15 @@ void UMainBarWidget::SaveCurrentLevel()
 	path FilePath = OpenSaveFileDialog();
 	if (!FilePath.empty())
 	{
-		ULevelManager& LevelManager = ULevelManager::GetInstance();
+		UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+		if (!WorldSS)
+		{
+			return;
+		}
 
 		try
 		{
-			bool bSuccess = LevelManager.SaveCurrentLevel(FilePath.string());
+			bool bSuccess = WorldSS->SaveCurrentLevel(FilePath.string());
 
 			if (bSuccess)
 			{
@@ -406,8 +419,13 @@ void UMainBarWidget::LoadLevel()
 			// 파일명에서 확장자를 제외하고 레벨 이름 추출
 			FString LevelName = FilePath.stem().string();
 
-			ULevelManager& LevelManager = ULevelManager::GetInstance();
-			bool bSuccess = LevelManager.LoadLevel(LevelName, FilePath.string());
+			UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+			if (!WorldSS)
+			{
+				return;
+			}
+
+			bool bSuccess = WorldSS->LoadLevel(LevelName, FilePath.string());
 
 			if (bSuccess)
 			{
@@ -431,7 +449,13 @@ void UMainBarWidget::LoadLevel()
  */
 void UMainBarWidget::CreateNewLevel()
 {
-	ULevelManager::GetInstance().CreateNewLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	WorldSS->CreateNewLevel();
 }
 
 /**
@@ -655,4 +679,3 @@ void UMainBarWidget::RenderWindowControls() const
 	}
 	ImGui::PopStyleColor(3);
 }
-

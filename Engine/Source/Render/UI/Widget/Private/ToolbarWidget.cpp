@@ -1,12 +1,14 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ToolbarWidget.h"
-#include "Manager/Level/Public/LevelManager.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
-#include "Manager/UI/Public/UIManager.h"
+
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 IMPLEMENT_CLASS(UToolbarWidget, UWidget)
 
@@ -43,7 +45,7 @@ void UToolbarWidget::RenderWidget()
 
 	// 메인 뷰포트 영역에 툴바를 직접 배치
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	float MenuBarHeight = UUIManager::GetInstance().GetMainMenuBarHeight();
+	float MenuBarHeight = GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight();
 	ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + MenuBarHeight)); // 메뉴바 바로 아래
 	ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, 0)); // 너비는 전체, 높이는 자동
 
@@ -84,8 +86,13 @@ void UToolbarWidget::RenderWidget()
 
 void UToolbarWidget::RenderLevelName()
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (CurrentLevel)
 	{
@@ -100,7 +107,7 @@ void UToolbarWidget::RenderLevelName()
 
 void UToolbarWidget::RenderPlaceActorMenu()
 {
-	if (ImGui::BeginMenu("PlaceActor"))
+	if (ImGui::BeginMenu("Place Actor"))
 	{
 		if (ImGui::MenuItem("Actor"))
 		{
@@ -118,8 +125,13 @@ void UToolbarWidget::RenderPlaceActorMenu()
 
 void UToolbarWidget::SpawnActorAtViewportCenter()
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
@@ -127,9 +139,9 @@ void UToolbarWidget::SpawnActorAtViewportCenter()
 		return;
 	}
 
-	// 뷰포트 매니저에서 마지막으로 사용된 뷰포트 인덱스 가져오기
-	UViewportManager& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	// 뷰포트 서브시스템에서 마지막으로 사용된 뷰포트 인덱스 가져오기
+	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = ViewportSS->GetViewportIndexUnderMouse();
 
 	// 유효하지 않으면 기본값으로 설정
 	ViewportIndex = max(ViewportIndex, 0);
@@ -155,8 +167,13 @@ void UToolbarWidget::SpawnActorAtViewportCenter()
 
 void UToolbarWidget::SpawnStaticMeshActorAtViewportCenter()
 {
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	ULevel* CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
@@ -164,9 +181,9 @@ void UToolbarWidget::SpawnStaticMeshActorAtViewportCenter()
 		return;
 	}
 
-	// 뷰포트 매니저에서 마지막으로 사용된 뷰포트 인덱스 가져오기
-	UViewportManager& ViewportManager = UViewportManager::GetInstance();
-	int32 ViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	// 뷰포트 서브시스템에서 마지막으로 사용된 뷰포트 인덱스 가져오기
+	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	int32 ViewportIndex = ViewportSS->GetViewportIndexUnderMouse();
 
 	// 유효하지 않으면 기본값으로 설정
 	ViewportIndex = max(ViewportIndex, 0);

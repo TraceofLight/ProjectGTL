@@ -5,8 +5,6 @@
 #include "EditorSubsystem.h"
 #include "GameInstanceSubsystem.h"
 #include "LocalPlayerSubsystem.h"
-#include "PathSubsystem.h"
-#include "OverlayManagerSubsystem.h"
 
 /**
  * @brief 특정 타입의 서브시스템들을 담아서 생명주기를 관리하는 컨테이너 클래스
@@ -81,7 +79,6 @@ private:
 	TMap<FName, TObjectPtr<TBaseSubsystem>> SubsystemInstances;
 	TArray<FName> InitializationOrder;
 
-	void CreateAndInitializeSubsystems(TObjectPtr<UObject> InOuter);
 	void CalculateInitializationOrder();
 };
 
@@ -100,7 +97,51 @@ using FLocalPlayerSubsystemCollection = FSubsystemCollection<ULocalPlayerSubsyst
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOuter)
 {
-	CreateAndInitializeSubsystems(InOuter);
+	// 1. 의존성 순서 계산
+	CalculateInitializationOrder();
+
+	// 2. 모든 서브시스템 인스턴스 생성
+	for (const FName& ClassName : InitializationOrder)
+	{
+		auto Iter = SubsystemClasses.find(ClassName);
+		if (Iter != SubsystemClasses.end() && Iter->second)
+		{
+			UClass* SubsystemClass = Iter->second;
+			TObjectPtr<UObject> NewObject = SubsystemClass->CreateDefaultObject();
+
+			if (NewObject)
+			{
+				TObjectPtr<TBaseSubsystem> NewSubsystem = Cast<TBaseSubsystem>(NewObject);
+				if (NewSubsystem)
+				{
+					NewSubsystem->SetOuter(InOuter);
+					SubsystemInstances[ClassName] = NewSubsystem;
+				}
+			}
+		}
+	}
+
+	// 3. 모든 서브시스템 1단계 초기화
+	for (const FName& ClassName : InitializationOrder)
+	{
+		auto Iter = SubsystemInstances.find(ClassName);
+		if (Iter != SubsystemInstances.end() && Iter->second)
+		{
+			Iter->second->Initialize();
+			UE_LOG("SubsystemCollection: %s 1단계 초기화 완료", ClassName.ToString().data());
+		}
+	}
+
+	// 4. 모든 서브시스템 2단계 초기화
+	for (const FName& ClassName : InitializationOrder)
+	{
+		auto Iter = SubsystemInstances.find(ClassName);
+		if (Iter != SubsystemInstances.end() && Iter->second)
+		{
+			Iter->second->PostInitialize();
+			UE_LOG("SubsystemCollection: %s 2단계 초기화 완료", ClassName.ToString().data());
+		}
+	}
 }
 
 /**
@@ -128,48 +169,6 @@ void FSubsystemCollection<TBaseSubsystem>::Deinitialize()
 	InitializationOrder.clear();
 }
 
-/**
- * @brief 서브시스템 생성 및 초기화 함수
- * 의존성 순서를 계산하고, 계산 순서대로 서브시스템 생성 및 초기화를 처리
- * 해야 하지만, 의존성 순서에 대한 계산을 할 정도의 고도화된 시스템이 아니기 때문에 그냥 들어 있는 순서대로 처리할 것
- */
-template <typename TBaseSubsystem>
-void FSubsystemCollection<TBaseSubsystem>::CreateAndInitializeSubsystems(TObjectPtr<UObject> InOuter)
-{
-	CalculateInitializationOrder();
-
-	for (const FName& ClassName : InitializationOrder)
-	{
-		auto Iter = SubsystemClasses.find(ClassName);
-		if (Iter != SubsystemClasses.end())
-		{
-			if (Iter->second)
-			{
-				// 직접 생성자 호출로 새 인스턴스 생성
-				TObjectPtr<TBaseSubsystem> NewSubsystem = nullptr;
-
-				// 클래스 이름을 기반으로 구체적인 타입 생성
-				FString ClassTypeName = Iter->second->GetClassTypeName().ToString();
-				if (ClassTypeName == "UPathSubsystem")
-				{
-					NewSubsystem = TObjectPtr<TBaseSubsystem>(reinterpret_cast<TBaseSubsystem*>(new UPathSubsystem()));
-				}
-				else if (ClassTypeName == "UOverlayManagerSubsystem")
-				{
-					NewSubsystem = TObjectPtr<TBaseSubsystem>(
-						reinterpret_cast<TBaseSubsystem*>(new UOverlayManagerSubsystem()));
-				}
-				// 다른 서브시스템 타입들도 여기에 추가
-
-				if (NewSubsystem)
-				{
-					SubsystemInstances[ClassName] = NewSubsystem;
-					NewSubsystem->Initialize();
-				}
-			}
-		}
-	}
-}
 
 /**
  * @brief 의존성을 고려한 초기화 순서를 계산하는 함수

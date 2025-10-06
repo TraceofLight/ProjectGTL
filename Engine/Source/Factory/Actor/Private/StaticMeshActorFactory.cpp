@@ -2,7 +2,9 @@
 #include "Factory/Actor/Public/StaticMeshActorFactory.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Asset/Public/StaticMesh.h"
-#include "Manager/Asset/Public/AssetManager.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 
 IMPLEMENT_CLASS(UStaticMeshActorFactory, UActorFactory)
 
@@ -64,9 +66,13 @@ TObjectPtr<AStaticMeshActor> UStaticMeshActorFactory::CreateStaticMeshActorFromF
 	const FTransform& InTransform,
 	uint32 InObjectFlags)
 {
-	// AssetManager를 통해 StaticMesh 로드
-	UAssetManager& AssetManager = UAssetManager::GetInstance();
-	UStaticMesh* StaticMesh = AssetManager.LoadStaticMesh(InObjFilePath);
+	// AssetSubsystem을 통해 StaticMesh 로드
+	UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
+	UStaticMesh* StaticMesh = nullptr;
+	if(AssetSubsystem)
+	{
+		StaticMesh = AssetSubsystem->LoadStaticMesh(InObjFilePath);
+	}
 
 	if (!StaticMesh)
 	{

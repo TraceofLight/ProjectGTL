@@ -1,22 +1,24 @@
 #include "pch.h"
 #include "Render/Renderer/Public/Renderer.h"
 
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Level/Public/LevelManager.h"
-#include "Manager/UI/Public/UIManager.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
-#include "Manager/Asset/Public/AssetManager.h"
 #include "Material/Public/Material.h"
 #include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Runtime/Actor/Public/Actor.h"
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/ViewportClient.h"
+#include "Render/RHI/Public/RHIDevice.h"
+#include "Render/Renderer/Public/EditorRenderResources.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -28,6 +30,14 @@ void URenderer::Init(HWND InWindowHandle)
 {
 	DeviceResources = new UDeviceResources(InWindowHandle);
 	Pipeline = new UPipeline(GetDeviceContext());
+
+	// RHIDevice 초기화 (렌더링 리소스 생성 전담)
+	RHIDevice = &URHIDevice::GetInstance();
+	RHIDevice->Initialize(GetDevice(), GetDeviceContext());
+
+	// 에디터 렌더링 리소스 초기화 (기즈모, 그리드 등)
+	EditorResources = new FEditorRenderResources();
+	EditorResources->InitRHI(RHIDevice);
 
 	// 래스터라이저 상태 생성
 	CreateRasterizerState();
@@ -56,6 +66,20 @@ void URenderer::Release()
 
 	// FontRenderer 해제
 	SafeDelete(FontRenderer);
+
+	// 에디터 렌더링 리소스 해제
+	if (EditorResources)
+	{
+		EditorResources->ReleaseRHI(RHIDevice);
+		SafeDelete(EditorResources);
+	}
+
+	// RHIDevice 종료
+	if (RHIDevice)
+	{
+		RHIDevice->Shutdown();
+		RHIDevice = nullptr;
+	}
 
 	SafeDelete(Pipeline);
 	SafeDelete(DeviceResources);
@@ -228,19 +252,22 @@ void URenderer::Update()
 	RenderBegin();
 
     TArray<FRect> ViewRects;
-    UViewportManager::GetInstance().GetLeafRects(ViewRects);
+    GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetLeafRects(ViewRects);
 	if (ViewRects.empty())
 	{
 		RenderLevel();
-		ULevelManager::GetInstance().GetEditor()->RenderEditor();
+		if (UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>())
+		{
+			WorldSS->GetEditor()->RenderEditor();
+		}
 	}
 	//리프창이 있을때
 	else
 	{
 		ID3D11DeviceContext* DevictContext = GetDeviceContext();
 		const D3D11_VIEWPORT& FullVP = GetDeviceResources()->GetViewportInfo();
-		auto& ViewportManager = UViewportManager::GetInstance();
-		const auto& Viewports = ViewportManager.GetViewports();
+		auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+		const auto& Viewports = ViewportSS->GetViewports();
 
 		// 초기 뷰포트 값 0초기화
 		ViewportIdx = 0;
@@ -268,8 +295,8 @@ void URenderer::Update()
             DevictContext->RSSetScissorRects(1, &Screen);
 
             {
-                auto& ViewportManager = UViewportManager::GetInstance();
-                const auto& Viewports = ViewportManager.GetViewports();
+                auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+                const auto& Viewports = ViewportSS->GetViewports();
                 if (ViewportIdx < Viewports.size() && Viewports[ViewportIdx])
                 {
                     FViewport* ViewportObject = Viewports[ViewportIdx];
@@ -294,7 +321,10 @@ void URenderer::Update()
 
             // World + editor overlays for this viewport tile
             RenderLevel();
-            ULevelManager::GetInstance().GetEditor()->RenderEditor();
+            if (UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>())
+            {
+                WorldSS->GetEditor()->RenderEditor();
+            }
 
             ViewportIdx++;
         }
@@ -306,8 +336,9 @@ void URenderer::Update()
 		ScreenFull.bottom = (LONG)(FullVP.TopLeftY + FullVP.Height);
 		DevictContext->RSSetScissorRects(1, &ScreenFull);
 	}
+
 	// ImGui 자체 Render 처리가 진행되어야 하므로 따로 처리
-    UUIManager::GetInstance().Render();
+    GEngine->GetEngineSubsystem<UUISubsystem>()->Render();
 
     // 오버레이 렌더링
     if (auto* OverlayManager = GEngine->GetEngineSubsystem<UOverlayManagerSubsystem>())
@@ -329,7 +360,7 @@ void URenderer::RenderBegin() const
 	ID3D11DepthStencilView* DepthStencilView = DeviceResources->GetDepthStencilView();
 	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	float MainMenuH = UUIManager::GetInstance().GetMainMenuBarHeight();
+	float MainMenuH = GEngine->GetEngineSubsystem<UUISubsystem>()->GetMainMenuBarHeight();
 
 	DeviceResources->UpdateViewport(MainMenuH);
 	GetDeviceContext()->RSSetViewports(1, &DeviceResources->GetViewportInfo());
@@ -344,13 +375,19 @@ void URenderer::RenderBegin() const
  */
 void URenderer::RenderLevel()
 {
-	// Level 없으면 Early Return
-	if (!ULevelManager::GetInstance().GetCurrentLevel())
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
 	{
 		return;
 	}
 
-	const auto& LevelActors = ULevelManager::GetInstance().GetCurrentLevel()->GetLevelActors();
+	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
+	if (!CurrentLevel)
+	{
+		return;
+	}
+
+	const auto& LevelActors = CurrentLevel->GetLevelActors();
 
 	// Actor들을 순회하면서 각 Actor의 PrimitiveComponent들을 렌더링
 	for (const auto& Actor : LevelActors)
@@ -381,19 +418,19 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 		return;
 	}
 
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	auto CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	ULevel* CurrentLevel = WorldSS ? WorldSS->GetCurrentLevel() : nullptr;
 
 	// BillBoard 컴포넌트의 경우 특별 처리
 	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::BillBoard)
 	{
-		if (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_BillboardText)
+		if (CurrentLevel && (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_BillboardText))
 		{
 			UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(InPrimitiveComponent);
 			if (BillBoardComponent)
 			{
-				auto& ViewportManager = UViewportManager::GetInstance();
-				const auto& VPs = ViewportManager.GetViewports();
+				auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+				const auto& VPs = ViewportSS->GetViewports();
 				FViewport* VP = (ViewportIdx < VPs.size()) ? VPs[ViewportIdx] : nullptr;
 				FViewportClient* VC = VP ? VP->GetViewportClient() : nullptr;
 
@@ -461,7 +498,7 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 	// 에디터 뷰 모드에 따른 렌더 상태 조정
 	//const EViewModeIndex ViewMode = ULevelManager::GetInstance().GetEditor()->GetViewMode();
 
-	FViewport* Viewport = UViewportManager::GetInstance().GetViewports()[ViewportIdx];
+	FViewport* Viewport = GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetViewports()[ViewportIdx];
 	FViewportClient* ViewportClient = Viewport->GetViewportClient();
 	const EViewMode ViewMode = Viewport->GetViewportClient()->GetViewMode();
 
@@ -479,10 +516,9 @@ void URenderer::SetupRenderPipeline(UPrimitiveComponent* InPrimitiveComponent)
 
 	if (InPrimitiveComponent->GetPrimitiveType() == EPrimitiveType::StaticMeshComp)
 	{
-		auto& AssetManager = UAssetManager::GetInstance();
-		ID3D11VertexShader* StaticMeshVS = AssetManager.GetVertexShader(EShaderType::StaticMesh);
-		ID3D11PixelShader* StaticMeshPS = AssetManager.GetPixelShader(EShaderType::StaticMesh);
-		ID3D11InputLayout* StaticMeshLayout = AssetManager.GetInputLayout(EShaderType::StaticMesh);
+		ID3D11VertexShader* StaticMeshVS = EditorResources->GetEditorVertexShader(EShaderType::StaticMesh);
+		ID3D11PixelShader* StaticMeshPS = EditorResources->GetEditorPixelShader(EShaderType::StaticMesh);
+		ID3D11InputLayout* StaticMeshLayout = EditorResources->GetEditorInputLayout(EShaderType::StaticMesh);
 
 		if (StaticMeshVS) VertexShader = StaticMeshVS;
 		if (StaticMeshPS) PixelShader = StaticMeshPS;
@@ -786,9 +822,9 @@ void URenderer::RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const 
 	DistanceToCamera = max(DistanceToCamera, 0.1f); // 최소 거리 보장
 
 	// ViewProj 행렬에서 FOV 추출 (현재 렌더링 중인 뷰포트의 카메라 사용)
-	auto& ViewportManager = UViewportManager::GetInstance();
-	const auto& Viewports = ViewportManager.GetViewports();
-	const auto& Clients = ViewportManager.GetClients();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	const auto& Viewports = ViewportSS->GetViewports();
+	const auto& Clients = ViewportSS->GetClients();
 
 	if (ViewportIdx >= 0 && ViewportIdx < static_cast<int32>(Viewports.size()) &&
 		ViewportIdx < static_cast<int32>(Clients.size()) &&
@@ -813,7 +849,7 @@ void URenderer::RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const 
 
 					// 화면 공간에서 1픽셀이 월드 공간에서 차지하는 크기
 					float WorldUnitsPerPixel = (2.0f * DistanceToCamera * TanHalfFov) / InViewportHeight;
-					
+
 					// 화면 가장자리 보정 (원근 투영에서 가장자리로 갈수록 커지는 현상 방지)
 					FVector CameraToGizmo = InPrimitive.Location - InCameraLocation;
 					FVector CameraForward = CameraComp->GetForward();
@@ -826,19 +862,19 @@ void URenderer::RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const 
 
 					// 가장자리 보정 팩터 (가장자리로 갈수록 작아짐)
 					float EdgeCorrectionFactor = CosAngle;
-					
+
 					ScreenSpaceScale = (WorldUnitsPerPixel * InDesiredPixelSize) * EdgeCorrectionFactor;
 				}
 			else
 			{
 				// 직교 투영: 거리에 관계없이 일정한 크기
 				float OrthographicHeight = CameraComp->GetOrthographicHeight();
-				
+
 				if (OrthographicHeight > 0.0f && InViewportHeight > 0.0f)
 				{
 					float WorldUnitsPerPixel = OrthographicHeight / InViewportHeight;
 					ScreenSpaceScale = WorldUnitsPerPixel * InDesiredPixelSize;
-					
+
 					// 최소/최대 스케일 제한 (기즈모가 너무 작거나 커지는 방지)
 					ScreenSpaceScale = max(0.01f, min(100.0f, ScreenSpaceScale));
 				}
@@ -897,15 +933,11 @@ void URenderer::RenderPrimitiveIndexed(const FEditorPrimitive& InPrimitive, cons
 
 	Pipeline->UpdatePipeline(PipelineInfo);
 
-	// 기본 상수 버퍼 사용하는 경우에만 업데이트
-	if (bInUseBaseConstantBuffer)
-	{
-		Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
-		UpdateConstant(InPrimitive.Location, InPrimitive.Rotation, InPrimitive.Scale);
+	Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
+	UpdateConstant(InPrimitive.Location, InPrimitive.Rotation, InPrimitive.Scale);
 
-		Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
-		UpdateConstant(InPrimitive.Color);
-	}
+	Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+	UpdateConstant(InPrimitive.Color);
 
 	// Set buffers and draw indexed
 	Pipeline->SetIndexBuffer(InPrimitive.IndexBuffer, InIndexBufferStride);
@@ -1306,7 +1338,7 @@ void URenderer::UpdateConstant(const FVector4& InColor, float InUseVertexColor, 
 
 			// UV Scroll 값을 ActorDetailWidget에서 가져오기
 			float UseUVScroll = 0.0f;
-			if (TObjectPtr<UWidget> Widget = UUIManager::GetInstance().FindWidget(FName("Actor Detail Widget")))
+			if (TObjectPtr<UWidget> Widget = GEngine->GetEngineSubsystem<UUISubsystem>()->FindWidget(FName("Actor Detail Widget")))
 			{
 				if (UActorDetailWidget* ActorDetailWidget = Cast<UActorDetailWidget>(Widget))
 				{

@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ViewportControlWidget.h"
 
-#include "Manager/Viewport/Public/ViewportManager.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Window/Public/ViewportClient.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/Splitter.h"
-#include "Manager/Level/Public/LevelManager.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/BatchLines.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 // 정적 멤버 정의
 const char* UViewportControlWidget::ViewModeLabels[] = {
@@ -37,8 +38,8 @@ void UViewportControlWidget::Update()
 
 void UViewportControlWidget::RenderWidget()
 {
-	auto& ViewportManager = UViewportManager::GetInstance();
-	if (!ViewportManager.GetRoot())
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	if (!ViewportSS->GetRoot())
 	{
 		return;
 	}
@@ -47,11 +48,11 @@ void UViewportControlWidget::RenderWidget()
 	RenderSplitterLines();
 
 	// 뷰포트 툴바들 렌더링
-	const auto& Viewports = ViewportManager.GetViewports();
+	const auto& Viewports = ViewportSS->GetViewports();
 	int32 N = static_cast<int32>(Viewports.size());
 
 	// 싱글 모드에서는 하나만 렌더링
-	if (ViewportManager.GetViewportChange() == EViewportChange::Single)
+	if (ViewportSS->GetViewportChange() == EViewportChange::Single)
 	{
 		N = 1;
 	}
@@ -64,9 +65,9 @@ void UViewportControlWidget::RenderWidget()
 
 void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 {
-	auto& ViewportManager = UViewportManager::GetInstance();
-	const auto& Viewports = ViewportManager.GetViewports();
-	const auto& Clients = ViewportManager.GetClients();
+	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	const auto& Viewports = ViewportManager->GetViewports();
+	const auto& Clients = ViewportManager->GetClients();
 
 	if (ViewportIndex >= static_cast<int32>(Viewports.size()) || ViewportIndex >= static_cast<int32>(Clients.size()))
 	{
@@ -159,8 +160,8 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 				ImGui::Separator();
 				ImGui::TextDisabled("VIEW");
 
-				auto& ViewportManager = UViewportManager::GetInstance();
-				const auto& PerspectiveCameras = ViewportManager.GetPerspectiveCameras();
+				auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+				const auto& PerspectiveCameras = ViewportSS->GetPerspectiveCameras();
 
 				if (ViewportIndex < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[ViewportIndex])
 				{
@@ -231,30 +232,30 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		}
 
 		// 애니메이션 중이면 버튼 비활성화
-		ImGui::BeginDisabled(ViewportManager.IsAnimating());
+		ImGui::BeginDisabled(ViewportManager->IsAnimating());
 
 		// 레이아웃 전환 버튼들
-		if (ViewportManager.GetViewportChange() == EViewportChange::Single)
+		if (ViewportManager->GetViewportChange() == EViewportChange::Single)
 		{
 			if (FUEImgui::ToolbarIconButton("LayoutQuad", EUEViewportIcon::Quad, CurrentLayout == ELayout::Quad))
 			{
 				CurrentLayout = ELayout::Quad;
-				ViewportManager.SetViewportChange(EViewportChange::Quad);
+				ViewportManager->SetViewportChange(EViewportChange::Quad);
 
 				// 애니메이션 시작: Single → Quad
-				ViewportManager.StartLayoutAnimation(true, ViewportIndex);
+				ViewportManager->StartLayoutAnimation(true, ViewportIndex);
 			}
 		}
-		if (ViewportManager.GetViewportChange() == EViewportChange::Quad)
+		if (ViewportManager->GetViewportChange() == EViewportChange::Quad)
 		{
 			if (FUEImgui::ToolbarIconButton("LayoutSingle", EUEViewportIcon::Single, CurrentLayout == ELayout::Single))
 			{
 				CurrentLayout = ELayout::Single;
-				ViewportManager.SetViewportChange(EViewportChange::Single);
+				ViewportManager->SetViewportChange(EViewportChange::Single);
 
 				// 스플리터 비율을 저장하고 애니메이션 시작: Quad → Single
-				ViewportManager.PersistSplitterRatios();
-				ViewportManager.StartLayoutAnimation(false, ViewportIndex);
+				ViewportManager->PersistSplitterRatios();
+				ViewportManager->StartLayoutAnimation(false, ViewportIndex);
 			}
 		}
 
@@ -267,8 +268,8 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 
 void UViewportControlWidget::RenderSplitterLines()
 {
-	auto& ViewportManager = UViewportManager::GetInstance();
-	SWindow* Root = ViewportManager.GetRoot();
+	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	SWindow* Root = ViewportManager->GetRoot();
 	if (!Root)
 	{
 		return;
@@ -280,8 +281,8 @@ void UViewportControlWidget::RenderSplitterLines()
 
 void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 {
-	auto& ViewportManager = UViewportManager::GetInstance();
-	const auto& Clients = ViewportManager.GetClients();
+	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	const auto& Clients = ViewportManager->GetClients();
 
 	if (ViewportIndex >= static_cast<int32>(Clients.size()))
 	{
@@ -350,7 +351,13 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 void UViewportControlWidget::RenderGridSizeControl()
 {
 	// Editor에서 BatchLines 포인터 가져오기
-	UEditor* Editor = ULevelManager::GetInstance().GetEditor();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	UEditor* Editor = WorldSS->GetEditor();
 	if (!Editor)
 	{
 		return;
@@ -410,8 +417,8 @@ void UViewportControlWidget::RenderGridSizeControl()
 
 void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType NewType, int32 TypeIndex)
 {
-	auto& ViewportManager = UViewportManager::GetInstance();
-	const auto& Clients = ViewportManager.GetClients();
+	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	const auto& Clients = ViewportManager->GetClients();
 
 	if (ViewportIndex >= static_cast<int32>(Clients.size()))
 	{
@@ -427,7 +434,7 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 	if (NewType == EViewType::Perspective)
 	{
 		// Perspective 카메라 바인딩
-		const auto& PerspectiveCameras = ViewportManager.GetPerspectiveCameras();
+		const auto& PerspectiveCameras = ViewportManager->GetPerspectiveCameras();
 		if (ViewportIndex < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[ViewportIndex])
 		{
 			ACameraActor* PerspCamera = PerspectiveCameras[ViewportIndex];
@@ -439,18 +446,24 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 	else
 	{
 		// Orthographic 카메라 바인딩
-		const auto& OrthoCameras = ViewportManager.GetOrthographicCameras();
+		const auto& OrthoCameras = ViewportManager->GetOrthographicCameras();
 
 		// ViewType에 따라 적절한 OrthoCameras 인덱스 매핑
 		int32 OrthoIdx = -1;
 		switch (NewType)
 		{
-		case EViewType::OrthoTop: OrthoIdx = 0; break;
-		case EViewType::OrthoBottom: OrthoIdx = 1; break;
-		case EViewType::OrthoLeft: OrthoIdx = 2; break;
-		case EViewType::OrthoRight: OrthoIdx = 3; break;
-		case EViewType::OrthoFront: OrthoIdx = 4; break;
-		case EViewType::OrthoBack: OrthoIdx = 5; break;
+		case EViewType::OrthoTop: OrthoIdx = 0;
+			break;
+		case EViewType::OrthoBottom: OrthoIdx = 1;
+			break;
+		case EViewType::OrthoLeft: OrthoIdx = 2;
+			break;
+		case EViewType::OrthoRight: OrthoIdx = 3;
+			break;
+		case EViewType::OrthoFront: OrthoIdx = 4;
+			break;
+		case EViewType::OrthoBack: OrthoIdx = 5;
+			break;
 		default: return;
 		}
 

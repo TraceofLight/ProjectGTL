@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 
-#include "Manager/Asset/Public/AssetManager.h"
 #include "Physics/Public/AABB.h"
 
 IMPLEMENT_CLASS(UPrimitiveComponent, USceneComponent)

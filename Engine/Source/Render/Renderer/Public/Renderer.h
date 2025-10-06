@@ -14,6 +14,8 @@ class AActor;
 class AGizmo;
 class UEditor;
 class UFontRenderer;
+class URHIDevice;
+class FEditorRenderResources;
 
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
@@ -104,6 +106,7 @@ public:
 	IDXGISwapChain* GetSwapChain() const { return DeviceResources->GetSwapChain(); }
 	ID3D11RenderTargetView* GetRenderTargetView() const { return DeviceResources->GetRenderTargetView(); }
 	UDeviceResources* GetDeviceResources() const { return DeviceResources; }
+	FEditorRenderResources* GetEditorResources() const { return EditorResources; }
 	bool GetIsResizing() const { return bIsResizing; }
 	uint32 GetViewportIdx() const { return ViewportIdx; }
 
@@ -127,6 +130,8 @@ private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
 	UFontRenderer* FontRenderer = nullptr;
+	URHIDevice* RHIDevice = nullptr;
+	FEditorRenderResources* EditorResources = nullptr;
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
 
 	ID3D11SamplerState* DefaultSamplerState = nullptr;

@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ActorTerminationWidget.h"
 
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Level/Public/Level.h"
-#include "Manager/Input/Public/InputManager.h"
-#include "Manager/Level/Public/LevelManager.h"
-
+#include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 
 UActorTerminationWidget::UActorTerminationWidget()
 	: UWidget("Actor Termination Widget")
@@ -22,8 +22,13 @@ void UActorTerminationWidget::Initialize()
 void UActorTerminationWidget::Update()
 {
 	// 매 프레임 Level의 선택된 Actor를 확인해서 정보 반영
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	TObjectPtr<ULevel> CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (CurrentLevel)
 	{
@@ -45,30 +50,26 @@ void UActorTerminationWidget::Update()
 
 void UActorTerminationWidget::RenderWidget()
 {
-	auto& InputManager = UInputManager::GetInstance();
+	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	if (!InputSubsystem)
+	{
+		return;
+	}
 
 	if (SelectedActor)
 	{
-		// ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.6f, 1.0f), "Selected: %s (%p)",
-		//                    SelectedActor->GetName().c_str(), SelectedActor);
-
-		// ImGui Deprecated (굳이 명시적인 버튼이 없어도 관용적으로 이해할 수 있는 키 매핑)
-		// if (ImGui::Button("Delete Actor") || InputManager.IsKeyDown(EKeyInput::Delete))
-		if (InputManager.IsKeyDown(EKeyInput::Delete))
+		if (InputSubsystem->IsKeyDown(EKeyInput::Delete))
 		{
-			DeleteSelectedActor();
+			TriggerDeleteSelectedActor();
 		}
-	}
-	else
-	{
-		// ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No Actor Selected For Deletion");
 	}
 }
 
 /**
  * @brief Selected Actor 삭제 함수
+ * 직접 삭제하지는 않기 때문에 Trigger 함수로 이름 변경
  */
-void UActorTerminationWidget::DeleteSelectedActor()
+void UActorTerminationWidget::TriggerDeleteSelectedActor()
 {
 	UE_LOG("ActorTerminationWidget: 삭제를 위한 Actor Marking 시작");
 	if (!SelectedActor)
@@ -77,8 +78,13 @@ void UActorTerminationWidget::DeleteSelectedActor()
 		return;
 	}
 
-	ULevelManager& LevelManager = ULevelManager::GetInstance();
-	TObjectPtr<ULevel> CurrentLevel = LevelManager.GetCurrentLevel();
+	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 
 	if (!CurrentLevel)
 	{
@@ -87,7 +93,7 @@ void UActorTerminationWidget::DeleteSelectedActor()
 	}
 
 	UE_LOG_INFO("ActorTerminationWidget: 선택된 Actor를 삭제를 위해 마킹 처리: %s",
-	       SelectedActor->GetName() == FName::FName_None ? "UnNamed" : SelectedActor->GetName().ToString().data());
+	            SelectedActor->GetName() == FName::FName_None ? "UnNamed" : SelectedActor->GetName().ToString().data());
 
 	// 지연 삭제를 사용하여 안전하게 다음 틱에서 삭제
 	CurrentLevel->MarkActorForDeletion(SelectedActor);

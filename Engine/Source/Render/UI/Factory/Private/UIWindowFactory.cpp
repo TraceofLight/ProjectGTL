@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Factory/Public/UIWindowFactory.h"
 
-#include "Manager/UI/Public/UIManager.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
 #include "Render/UI/Window/Public/ControlPanelWindow.h"
 #include "Render/UI/Window/Public/ExperimentalFeatureWindow.h"
@@ -53,18 +53,18 @@ UExperimentalFeatureWindow* UUIWindowFactory::CreateExperimentalFeatureWindow(EU
 
 void UUIWindowFactory::CreateDefaultUILayout()
 {
-	auto& UIManager = UUIManager::GetInstance();
+	auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
 
 	// 메인 메뉴바 우선 생성 및 등록
 	auto* MainMenu = CreateMainMenuWindow();
-	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(MainMenu));
-	UIManager.RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow>(MainMenu));
+	UISS->RegisterUIWindow(TObjectPtr<UUIWindow>(MainMenu));
+	UISS->RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow>(MainMenu));
 
 	// 기본 레이아웃 생성
-	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateOutlinerWindow(EUIDockDirection::Center)));
-	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateDetailWindow(EUIDockDirection::Right)));
-	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateConsoleWindow(EUIDockDirection::Bottom)));
-	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateControlPanelWindow(EUIDockDirection::Left)));
-	UIManager.RegisterUIWindow(TObjectPtr<UUIWindow>(CreateExperimentalFeatureWindow(EUIDockDirection::Right)));
+	UISS->RegisterUIWindow(TObjectPtr<UUIWindow>(CreateOutlinerWindow(EUIDockDirection::Center)));
+	UISS->RegisterUIWindow(TObjectPtr<UUIWindow>(CreateDetailWindow(EUIDockDirection::Right)));
+	UISS->RegisterUIWindow(TObjectPtr<UUIWindow>(CreateConsoleWindow(EUIDockDirection::Bottom)));
+	UISS->RegisterUIWindow(TObjectPtr<UUIWindow>(CreateControlPanelWindow(EUIDockDirection::Left)));
+	UISS->RegisterUIWindow(TObjectPtr<UUIWindow>(CreateExperimentalFeatureWindow(EUIDockDirection::Right)));
 	UE_LOG_SUCCESS("UIWindowFactory: UI 생성이 성공적으로 완료되었습니다");
 }

@@ -3,6 +3,8 @@
 #include "Runtime/Subsystem/Public/SubsystemCollection.h"
 #include "Runtime/Subsystem/Public/EngineSubsystem.h"
 
+class FAppWindow;
+
 /**
  * @brief 게임에서 가장 핵심이 되는 EngineSubsystem 클래스
  * 엔진 서브시스템들을 컬렉션으로 관리할 수 있다
@@ -27,9 +29,16 @@ public:
 	template <typename T>
 	void RegisterEngineSubsystem();
 
+	void SetAppWindow(FAppWindow* InWindow) { AppWindow = InWindow; }
+	FAppWindow* GetAppWindow() const { return AppWindow; }
+
+	// Tick engine subsystem
+	void TickEngineSubsystems(FAppWindow* InWindow = nullptr);
+
 private:
 	bool bIsInitialized = false;
 	FEngineSubsystemCollection EngineSubsystemCollection;
+	FAppWindow* AppWindow = nullptr;
 
 	void RegisterDefaultEngineSubsystems();
 };
