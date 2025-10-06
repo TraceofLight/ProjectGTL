@@ -121,16 +121,16 @@ void UActorDetailWidget::RenderComponentTree(TObjectPtr<AActor> InSelectedActor)
 
 	const TArray<TObjectPtr<UActorComponent>>& Components = InSelectedActor->GetOwnedComponents();
 
-	ImGui::Text("Components (%d)", static_cast<int>(Components.size()));
+	ImGui::Text("Components (%d)", static_cast<int>(Components.Num()));
 	ImGui::Separator();
 
-	if (Components.empty())
+	if (Components.IsEmpty())
 	{
 		ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "No components");
 		return;
 	}
 
-	for (int32 i = 0; i < static_cast<int32>(Components.size()); ++i)
+	for (int32 i = 0; i < Components.Num(); ++i)
 	{
 		if (Components[i])
 		{

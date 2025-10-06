@@ -78,7 +78,7 @@ TObjectPtr<T> AActor::CreateDefaultSubobject(const FName& InName)
 
 		// Component에 Owner 설정
 		NewComponent->SetOwner(this);
-		OwnedComponents.push_back(NewComponent);
+		OwnedComponents.Add(NewComponent);
 	}
 
 	return NewComponent;

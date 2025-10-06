@@ -26,7 +26,7 @@ void UStaticMesh::SetStaticMeshData(const FStaticMesh& InStaticMeshData)
 
 bool UStaticMesh::IsValidMesh() const
 {
-	return !StaticMeshData.Vertices.empty() && !StaticMeshData.Indices.empty();
+	return !StaticMeshData.Vertices.IsEmpty() && !StaticMeshData.Indices.IsEmpty();
 }
 
 void UStaticMesh::CreateRenderBuffers()
@@ -41,16 +41,16 @@ void UStaticMesh::CreateRenderBuffers()
 	const TArray<FVertex>& Vertices = StaticMeshData.Vertices;
 	const TArray<uint32>& Indices = StaticMeshData.Indices;
 
-	if (!Vertices.empty())
+	if (!Vertices.IsEmpty())
 	{
-		const uint32 VertexBufferSize = static_cast<uint32>(Vertices.size()) * sizeof(FVertex);
-		VertexBuffer = Renderer.CreateVertexBuffer(const_cast<FVertex*>(Vertices.data()), VertexBufferSize);
+		const uint32 VertexBufferSize = static_cast<uint32>(Vertices.Num()) * sizeof(FVertex);
+		VertexBuffer = Renderer.CreateVertexBuffer(const_cast<FVertex*>(Vertices.GetData()), VertexBufferSize);
 	}
 
-	if (!Indices.empty())
+	if (!Indices.IsEmpty())
 	{
-		const uint32 IndexBufferSize = static_cast<uint32>(Indices.size()) * sizeof(uint32);
-		IndexBuffer = Renderer.CreateIndexBuffer(Indices.data(), IndexBufferSize);
+		const uint32 IndexBufferSize = static_cast<uint32>(Indices.Num()) * sizeof(uint32);
+		IndexBuffer = Renderer.CreateIndexBuffer(Indices.GetData(), IndexBufferSize);
 	}
 }
 
@@ -71,7 +71,7 @@ void UStaticMesh::ReleaseRenderBuffers()
 
 FAABB UStaticMesh::CalculateAABB() const
 {
-	if (StaticMeshData.Vertices.empty())
+	if (StaticMeshData.Vertices.IsEmpty())
 	{
 		return FAABB();
 	}
@@ -118,7 +118,7 @@ bool UStaticMesh::SaveToBinary(const FString& FilePath) const
 		Writer << PathFileName;
 
 		// StaticMeshData -> Vertices 저장
-		uint32 VertexCount = static_cast<uint32>(StaticMeshData.Vertices.size());
+		uint32 VertexCount = static_cast<uint32>(StaticMeshData.Vertices.Num());
 		Writer << VertexCount;
 		for (FVertex Vertex : StaticMeshData.Vertices)
 		{
@@ -129,7 +129,7 @@ bool UStaticMesh::SaveToBinary(const FString& FilePath) const
 		}
 
 		// StaticMeshData -> Indices 저장
-		uint32 IndexCount = static_cast<uint32>(StaticMeshData.Indices.size());
+		uint32 IndexCount = static_cast<uint32>(StaticMeshData.Indices.Num());
 		Writer << IndexCount;
 		for (uint32 Index : StaticMeshData.Indices)
 		{
@@ -137,7 +137,7 @@ bool UStaticMesh::SaveToBinary(const FString& FilePath) const
 		}
 
 		// StaticMeshData -> Sections 저장
-		uint32 SectionCount = static_cast<uint32>(StaticMeshData.Sections.size());
+		uint32 SectionCount = static_cast<uint32>(StaticMeshData.Sections.Num());
 		Writer << SectionCount;
 		for (const FStaticMeshSection& Section : StaticMeshData.Sections)
 		{
@@ -148,7 +148,7 @@ bool UStaticMesh::SaveToBinary(const FString& FilePath) const
 		}
 
 		// MaterialSlots 저장
-		uint32 MaterialSlotCount = static_cast<uint32>(MaterialSlots.size());
+		uint32 MaterialSlotCount = static_cast<uint32>(MaterialSlots.Num());
 		Writer << MaterialSlotCount;
 		for (UMaterialInterface* MaterialInterface : MaterialSlots)
 		{
@@ -212,7 +212,7 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		// StaticMeshData -> Vertices 로드
 		uint32 VertexCount;
 		Reader << VertexCount;
-		StaticMeshData.Vertices.resize(VertexCount);
+		StaticMeshData.Vertices.SetNum(VertexCount);
 		for (uint32 i = 0; i < VertexCount; ++i)
 		{
 			Reader << StaticMeshData.Vertices[i].Position;
@@ -224,7 +224,7 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		// StaticMeshData -> Indices 로드
 		uint32 IndexCount;
 		Reader << IndexCount;
-		StaticMeshData.Indices.resize(IndexCount);
+		StaticMeshData.Indices.SetNum(IndexCount);
 		for (uint32 i = 0; i < IndexCount; ++i)
 		{
 			Reader << StaticMeshData.Indices[i];
@@ -233,7 +233,7 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		// StaticMeshData -> Sections 로드
 		uint32 SectionCount;
 		Reader << SectionCount;
-		StaticMeshData.Sections.resize(SectionCount);
+		StaticMeshData.Sections.SetNum(SectionCount);
 		for (uint32 i = 0; i < SectionCount; ++i)
 		{
 			FStaticMeshSection& Section = StaticMeshData.Sections[i];
@@ -246,7 +246,7 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		// MaterialSlots 로드
 		uint32 MaterialSlotCount;
 		Reader << MaterialSlotCount;
-		MaterialSlots.resize(MaterialSlotCount);
+		MaterialSlots.SetNum(MaterialSlotCount);
 		for (uint32 i = 0; i < MaterialSlotCount; ++i)
 		{
 			FObjMaterialInfo MaterialInfo;
@@ -296,7 +296,7 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		CreateRenderBuffers();
 
 		UE_LOG("UStaticMesh: Successfully loaded binary mesh: %s (%zu vertices, %zu indices)",
-		       FilePath.c_str(), StaticMeshData.Vertices.size(), StaticMeshData.Indices.size());
+		       FilePath.c_str(), StaticMeshData.Vertices.Num(), StaticMeshData.Indices.Num());
 		return true;
 	}
 	catch (const std::exception& e)

@@ -148,7 +148,7 @@ public:
 	void SetPriority(int NewPriority) { Config.Priority = NewPriority; }
 	void SetConfig(const FUIWindowConfig& InConfig) { Config = InConfig; }
 	void ToggleVisibility() { SetWindowState(IsVisible() ? EUIWindowState::Hidden : EUIWindowState::Visible); }
-	void AddWidget(TObjectPtr<UWidget> Widget) { Widgets.push_back(Widget); }
+	void AddWidget(TObjectPtr<UWidget> Widget) { Widgets.Add(Widget); }
 
 	void OnMainWindowResized() const;
 	void ClampWindow() const;

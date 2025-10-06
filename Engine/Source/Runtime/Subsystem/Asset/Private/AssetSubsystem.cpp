@@ -202,7 +202,7 @@ bool UAssetSubsystem::HasStaticMesh(const FString& InFilePath) const
 
 void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInfos, TArray<FString>& OutMaterialNames) const
 {
-	OutMaterialNames.clear();
+	OutMaterialNames.Empty();
 
 	TMap<FString, bool> RegisteredNames;
 
@@ -226,7 +226,7 @@ void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInf
 			}
 
 			RegisteredNames.emplace(Section.MaterialName, true);
-			OutMaterialNames.push_back(Section.MaterialName);
+			OutMaterialNames.Add(Section.MaterialName);
 		}
 	}
 }
@@ -261,7 +261,7 @@ UMaterialInterface* UAssetSubsystem::CreateMaterial(const FObjMaterialInfo& Mate
 
 void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<UMaterialInterface*>& OutMaterialSlots, TMap<FString, int32>& OutMaterialNameToSlot)
 {
-	OutMaterialSlots.clear();
+	OutMaterialSlots.Empty();
 	OutMaterialNameToSlot.clear();
 
 	// ObjInfos를 이루는 각 FObjInfo 객체에 명시된 머티리얼 전부 모아 저장
@@ -282,8 +282,8 @@ void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArra
 
 		if (UMaterialInterface* MaterialAsset = CreateMaterial(MaterialInfo))
 		{
-			int32 SlotIndex = static_cast<int32>(OutMaterialSlots.size());
-			OutMaterialSlots.push_back(MaterialAsset);
+			int32 SlotIndex = OutMaterialSlots.Num();
+			OutMaterialSlots.Add(MaterialAsset);
 			OutMaterialNameToSlot.emplace(MaterialName, SlotIndex);
 		}
 	}
@@ -327,11 +327,11 @@ bool UAssetSubsystem::CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& 
 
 void UAssetSubsystem::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots)
 {
-	size_t MatNums = InMaterialSlots.size();
+	size_t MatNums = InMaterialSlots.Num();
 	// 머티리얼 아예 없는 경우 -> default material 넣고 섹션에 할당
 	if (MatNums == 0)
 	{
-		InMaterialSlots.push_back(DefaultMaterial);
+		InMaterialSlots.Add(DefaultMaterial);
 		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
 		{
 			if (Section.MaterialSlotIndex == -1)
@@ -344,7 +344,7 @@ void UAssetSubsystem::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArra
 	// 머티리얼에 하나 이상 있는 경우 -> 0번 머티리얼을 끝으로 보내고 0번에 default material 넣기
 	else if (MatNums > 0 && InMaterialSlots[0] != DefaultMaterial)
 	{
-		InMaterialSlots.push_back(InMaterialSlots[0]);
+		InMaterialSlots.Add(InMaterialSlots[0]);
 		InMaterialSlots[0] = DefaultMaterial;
 		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
 		{

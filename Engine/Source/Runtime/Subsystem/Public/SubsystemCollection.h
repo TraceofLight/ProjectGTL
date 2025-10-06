@@ -72,7 +72,7 @@ public:
 	}
 
 	// Getter
-	int32 GetSubsystemCount() const { return static_cast<int32>(SubsystemInstances.size()); }
+	int32 GetSubsystemCount() const { return static_cast<int32>(SubsystemInstances.Num()); }
 
 private:
 	TMap<FName, UClass*> SubsystemClasses;
@@ -151,7 +151,7 @@ void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOute
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::Deinitialize()
 {
-	for (int32 i = static_cast<int32>(InitializationOrder.size()) - 1; i >= 0; --i)
+	for (int32 i = InitializationOrder.Num() - 1; i >= 0; --i)
 	{
 		FName ClassName = InitializationOrder[i];
 		auto it = SubsystemInstances.find(ClassName);
@@ -166,7 +166,7 @@ void FSubsystemCollection<TBaseSubsystem>::Deinitialize()
 	}
 
 	SubsystemInstances.clear();
-	InitializationOrder.clear();
+	InitializationOrder.Empty();
 }
 
 
@@ -177,11 +177,11 @@ void FSubsystemCollection<TBaseSubsystem>::Deinitialize()
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::CalculateInitializationOrder()
 {
-	InitializationOrder.clear();
+	InitializationOrder.Empty();
 
 	for (const auto& Pair : SubsystemClasses)
 	{
-		InitializationOrder.push_back(Pair.first);
+		InitializationOrder.Add(Pair.first);
 	}
 }
 

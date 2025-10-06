@@ -49,10 +49,10 @@ void UPrimitiveSpawnWidget::RenderWidget()
 		LoadMeshFromFile();
 	}
 	ImGui::SameLine();
-	ImGui::Text("Total Meshes: %d", static_cast<int>(AvailableStaticMeshes.size()));
+	ImGui::Text("Total Meshes: %d", static_cast<int>(AvailableStaticMeshes.Num()));
 
 	// StaticMesh 선택 콤보박스
-	if (!AvailableStaticMeshes.empty())
+	if (!AvailableStaticMeshes.IsEmpty())
 	{
 		ImGui::Text("StaticMesh:");
 		ImGui::SameLine();
@@ -62,14 +62,14 @@ void UPrimitiveSpawnWidget::RenderWidget()
 		TArray<const char*> MeshNamesCStr;
 		for (const FString& Name : StaticMeshNames)
 		{
-			MeshNamesCStr.push_back(Name.c_str());
+			MeshNamesCStr.Add(Name.c_str());
 		}
 
-		ImGui::Combo("##StaticMeshType", &SelectedMeshIndex, MeshNamesCStr.data(),
-		             static_cast<int>(MeshNamesCStr.size()));
+		ImGui::Combo("##StaticMeshType", &SelectedMeshIndex, MeshNamesCStr.GetData(),
+		             static_cast<int>(MeshNamesCStr.Num()));
 
 		// 인덱스 범위 검사
-		SelectedMeshIndex = max(0, min(SelectedMeshIndex, static_cast<int>(AvailableStaticMeshes.size()) - 1));
+		SelectedMeshIndex = max(0, min(SelectedMeshIndex, AvailableStaticMeshes.Num() - 1));
 	}
 	else
 	{
@@ -85,7 +85,7 @@ void UPrimitiveSpawnWidget::RenderWidget()
 	NumberOfSpawn = min(100, NumberOfSpawn);
 
 	ImGui::SameLine();
-	if (ImGui::Button("Spawn Actors") && !AvailableStaticMeshes.empty())
+	if (ImGui::Button("Spawn Actors") && !AvailableStaticMeshes.IsEmpty())
 	{
 		SpawnActors();
 	}
@@ -106,15 +106,15 @@ void UPrimitiveSpawnWidget::RenderWidget()
  */
 void UPrimitiveSpawnWidget::RefreshStaticMeshList()
 {
-	AvailableStaticMeshes.clear();
-	StaticMeshNames.clear();
+	AvailableStaticMeshes.Empty();
+	StaticMeshNames.Empty();
 
 	// ObjectIterator를 사용해 모든 UStaticMesh 오브젝트 순회
 	for (UStaticMesh* StaticMesh : MakeObjectRange<UStaticMesh>())
 	{
 		if (StaticMesh && StaticMesh->IsValidMesh())
 		{
-			AvailableStaticMeshes.push_back(StaticMesh);
+			AvailableStaticMeshes.Add(StaticMesh);
 
 			// StaticMesh 이름 생성 (경로나 에셋 이름 사용)
 			FString MeshName = StaticMesh->GetAssetPathFileName();
@@ -126,12 +126,12 @@ void UPrimitiveSpawnWidget::RefreshStaticMeshList()
 				MeshName = MeshName.substr(LastSlash + 1);
 			}
 
-			StaticMeshNames.push_back(MeshName);
+			StaticMeshNames.Add(MeshName);
 		}
 	}
 
 	// 선택된 인덱스 범위 검사
-	if (SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.size()))
+	if (SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.Num()))
 	{
 		SelectedMeshIndex = 0;
 	}
@@ -156,8 +156,8 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 		return;
 	}
 
-	if (AvailableStaticMeshes.empty() || SelectedMeshIndex < 0 || SelectedMeshIndex >= static_cast<int32>(
-		AvailableStaticMeshes.size()))
+	if (AvailableStaticMeshes.IsEmpty() || SelectedMeshIndex < 0 || SelectedMeshIndex >= static_cast<int32>(
+		AvailableStaticMeshes.Num()))
 	{
 		UE_LOG("ControlPanel: 유효한 StaticMesh가 선택되지 않았습니다");
 		return;
@@ -264,7 +264,7 @@ void UPrimitiveSpawnWidget::LoadMeshFromFile()
 								UE_LOG("PrimitiveSpawnWidget: Mesh already loaded: %s", filePath.c_str());
 
 								// 이미 존재하는 메시를 선택하도록 설정
-								for (int32 i = 0; i < AvailableStaticMeshes.size(); ++i)
+								for (int32 i = 0; i < AvailableStaticMeshes.Num(); ++i)
 								{
 									if (AvailableStaticMeshes[i] == ExistingMesh)
 									{
@@ -294,7 +294,7 @@ void UPrimitiveSpawnWidget::LoadMeshFromFile()
 								RefreshStaticMeshList();
 
 								// 새로 로드된 메시를 선택하도록 설정
-								for (int32 i = 0; i < AvailableStaticMeshes.size(); ++i)
+								for (int32 i = 0; i < AvailableStaticMeshes.Num(); ++i)
 								{
 									if (AvailableStaticMeshes[i] == LoadedMesh)
 									{

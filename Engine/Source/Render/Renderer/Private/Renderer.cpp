@@ -253,7 +253,7 @@ void URenderer::Update()
 
     TArray<FRect> ViewRects;
     GEngine->GetEngineSubsystem<UViewportSubsystem>()->GetLeafRects(ViewRects);
-	if (ViewRects.empty())
+	if (ViewRects.IsEmpty())
 	{
 		RenderLevel();
 		if (UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>())
@@ -271,13 +271,13 @@ void URenderer::Update()
 
 		// 초기 뷰포트 값 0초기화
 		ViewportIdx = 0;
-        for (int32 i = 0;i < ViewRects.size();++i)
+        for (int32 i = 0;i < ViewRects.Num() ;++i)
         {
             D3D11_VIEWPORT Viewport{};
             int32 ToolH = 0;
             {
 
-                if (i < (int32)Viewports.size() && Viewports[i])
+                if (i < Viewports.Num() && Viewports[i])
                 {
                     ToolH = Viewports[i]->GetToolbarHeight();
                 }
@@ -297,7 +297,7 @@ void URenderer::Update()
             {
                 auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
                 const auto& Viewports = ViewportSS->GetViewports();
-                if (ViewportIdx < Viewports.size() && Viewports[ViewportIdx])
+                if (ViewportIdx < Viewports.Num() && Viewports[ViewportIdx])
                 {
                     FViewport* ViewportObject = Viewports[ViewportIdx];
                     FViewportClient* ViewportObjectClient = ViewportObject->GetViewportClient();
@@ -431,7 +431,7 @@ void URenderer::RenderPrimitiveComponent(UPrimitiveComponent* InPrimitiveCompone
 			{
 				auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 				const auto& VPs = ViewportSS->GetViewports();
-				FViewport* VP = (ViewportIdx < VPs.size()) ? VPs[ViewportIdx] : nullptr;
+				FViewport* VP = (ViewportIdx < VPs.Num()) ? VPs[ViewportIdx] : nullptr;
 				FViewportClient* VC = VP ? VP->GetViewportClient() : nullptr;
 
 				if (!VC) return;
@@ -679,7 +679,7 @@ void URenderer::RenderStaticMeshSection(const FStaticMeshSection& InSection
 	, const FVector4& InFallbackColor)
 {
 	UMaterialInterface* SectionMaterial = nullptr;
-	if (InSection.MaterialSlotIndex >= 0 && InSection.MaterialSlotIndex < static_cast<int32>(InMaterialSlots.size()))
+	if (InSection.MaterialSlotIndex >= 0 && InSection.MaterialSlotIndex < static_cast<int32>(InMaterialSlots.Num()))
 	{
 		// StaticMeshComponent에 머티리얼 오버라이드가 있으면 우선 적용
 		if (InStaticMeshComp)
@@ -826,8 +826,8 @@ void URenderer::RenderGizmoPrimitive(const FEditorPrimitive& InPrimitive, const 
 	const auto& Viewports = ViewportSS->GetViewports();
 	const auto& Clients = ViewportSS->GetClients();
 
-	if (ViewportIdx >= 0 && ViewportIdx < static_cast<int32>(Viewports.size()) &&
-		ViewportIdx < static_cast<int32>(Clients.size()) &&
+	if (ViewportIdx >= 0 && ViewportIdx < static_cast<int32>(Viewports.Num()) &&
+		ViewportIdx < static_cast<int32>(Clients.Num()) &&
 		Viewports[ViewportIdx] && Clients[ViewportIdx])
 	{
 		FViewportClient* CurrentClient = Clients[ViewportIdx];
@@ -1134,7 +1134,7 @@ void URenderer::CreateVertexShaderAndInputLayout(const wstring& InFilePath,
 		VertexShaderBlob->GetBufferSize(), nullptr, OutVertexShader);
 
 	// Input Layout 생성
-	GetDevice()->CreateInputLayout(InInputLayoutDescs.data(), static_cast<uint32>(InInputLayoutDescs.size()),
+	GetDevice()->CreateInputLayout(InInputLayoutDescs.GetData(), static_cast<uint32>(InInputLayoutDescs.Num()),
 		VertexShaderBlob->GetBufferPointer(),
 		VertexShaderBlob->GetBufferSize(), OutInputLayout);
 
@@ -1365,7 +1365,7 @@ void URenderer::UpdateConstant(const FVector4& InColor, float InUseVertexColor, 
 
 bool URenderer::UpdateVertexBuffer(ID3D11Buffer* InVertexBuffer, const TArray<FVector>& InVertices) const
 {
-	if (!GetDeviceContext() || !InVertexBuffer || InVertices.empty())
+	if (!GetDeviceContext() || !InVertexBuffer || InVertices.IsEmpty())
 	{
 		return false;
 	}
@@ -1386,7 +1386,7 @@ bool URenderer::UpdateVertexBuffer(ID3D11Buffer* InVertexBuffer, const TArray<FV
 
 	// GPU 메모리에 새 데이터 복사
 	// TODO: 어쩔 때 한번 read access violation 걸림
-	memcpy(MappedResource.pData, InVertices.data(), sizeof(FVector) * InVertices.size());
+	memcpy(MappedResource.pData, InVertices.GetData(), sizeof(FVector) * InVertices.Num());
 
 	// GPU 접근 재허용
 	GetDeviceContext()->Unmap(InVertexBuffer, 0);
@@ -1409,7 +1409,7 @@ ID3D11RasterizerState* URenderer::GetRasterizerState(const FRenderState& InRende
 	D3D11_RASTERIZER_DESC RasterizerDesc = {};
 	RasterizerDesc.FillMode = FillMode;
 	RasterizerDesc.CullMode = CullMode;
-	RasterizerDesc.DepthClipEnable = TRUE; // ✅ 근/원거리 평면 클리핑 활성화 (핵심)
+	RasterizerDesc.DepthClipEnable = TRUE;
 	RasterizerDesc.ScissorEnable = TRUE;
 
 	HRESULT ResultHandle = GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
@@ -1450,39 +1450,3 @@ D3D11_FILL_MODE URenderer::ToD3D11(EFillMode InFill)
 		return D3D11_FILL_SOLID;
 	}
 }
-
-/**
- * @brief 폰트 렌더링 함수 - FontRenderer를 사용하여 텍스트 렌더링
- */
- //void URenderer::RenderFont()
- //{
- //	if (!FontRenderer)
- //	{
- //		return;
- //	}
- //
- //	// 단순한 직교 투영을 사용하여 테스트 (-100~100 좌표계)
- //	FMatrix WorldMatrix = FMatrix::Identity();
- //
- //	// 직교 투영 행렬 생성 (2D 화면에 맞게)
- //	float left = -100.0f, right = 100.0f;
- //	float bottom = -100.0f, top = 100.0f;
- //	float nearPlane = -1.0f, farPlane = 1.0f;
- //
- //	FMatrix OrthoMatrix;
- //	OrthoMatrix.Data[0][0] = 2.0f / (right - left);
- //	OrthoMatrix.Data[1][1] = 2.0f / (top - bottom);
- //	OrthoMatrix.Data[2][2] = -2.0f / (farPlane - nearPlane);
- //	OrthoMatrix.Data[3][0] = -(right + left) / (right - left);
- //	OrthoMatrix.Data[3][1] = -(top + bottom) / (top - bottom);
- //	OrthoMatrix.Data[3][2] = -(farPlane + nearPlane) / (farPlane - nearPlane);
- //	OrthoMatrix.Data[0][1] = OrthoMatrix.Data[0][2] = OrthoMatrix.Data[0][3] = 0.0f;
- //	OrthoMatrix.Data[1][0] = OrthoMatrix.Data[1][2] = OrthoMatrix.Data[1][3] = 0.0f;
- //	OrthoMatrix.Data[2][0] = OrthoMatrix.Data[2][1] = OrthoMatrix.Data[2][3] = 0.0f;
- //	OrthoMatrix.Data[3][3] = 1.0f;
- //
- //	FMatrix ViewProjMatrix = OrthoMatrix; // 단순히 직교 투영만 사용
- //
- //	// FontRenderer를 사용하여 "Hello, World!" 텍스트 렌더링
- //	FontRenderer->RenderHelloWorld(WorldMatrix, ViewProjMatrix);
- //}

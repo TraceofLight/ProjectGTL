@@ -26,7 +26,7 @@ USceneComponent::~USceneComponent()
 			delete child;
 		}
 	}
-	Children.clear();
+	Children.Empty();
 }
 
 void USceneComponent::SetParentAttachment(USceneComponent* NewParent)
@@ -64,7 +64,7 @@ void USceneComponent::SetParentAttachment(USceneComponent* NewParent)
 void USceneComponent::RemoveChild(USceneComponent* ChildDeleted)
 {
 	// 버그 수정: this가 아닌 ChildDeleted를 제거해야 함
-	Children.erase(std::remove(Children.begin(), Children.end(), ChildDeleted), Children.end());
+	Children.RemoveSingle(ChildDeleted);
 }
 
 void USceneComponent::MarkAsDirty()

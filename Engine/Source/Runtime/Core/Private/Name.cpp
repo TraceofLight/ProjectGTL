@@ -26,7 +26,7 @@ FName::FName(const FString& InString)
 	{
 		// NameMap에 추가하고 이름 TArray에 각각 추가
 		NameMap.insert({LowerString, NextIndex});
-		DisplayNames.push_back(InString);
+		DisplayNames.Add(InString);
 
 		// 인덱스 제공
 		ComparisonIndex = NextIndex++;

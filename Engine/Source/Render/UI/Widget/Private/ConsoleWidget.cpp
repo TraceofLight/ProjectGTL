@@ -307,12 +307,12 @@ int UConsoleWidget::HandleHistoryCallback(ImGuiInputTextCallbackData* InData)
 	case ImGuiInputTextFlags_CallbackHistory:
 		{
 			// 비어있는 히스토리는 처리하지 않음
-			if (CommandHistory.empty())
+			if (CommandHistory.IsEmpty())
 			{
 				return 0;
 			}
 
-			const int HistorySize = static_cast<int>(CommandHistory.size());
+			const int HistorySize = CommandHistory.Num();
 			int PreviousHistoryPos = HistoryPosition;
 
 			if (InData->EventKey == ImGuiKey_UpArrow)
@@ -377,7 +377,7 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 	}
 
 	// 명령 히스토리에 추가
-	CommandHistory.push_back(FString(InCommand));
+	CommandHistory.Add(FString(InCommand));
 	HistoryPosition = -1;
 
 	FString Input = InCommand;
@@ -535,7 +535,7 @@ void UConsoleWidget::ExecuteTerminalCommand(const char* InCommand)
 		PROCESS_INFORMATION ProcessInformation = {};
 
 		// lpCommandLine Param Setting
-		TArray<char> CommandLine(FullCommand.begin(), FullCommand.end());
+		FString CommandLine(FullCommand.begin(), FullCommand.end());
 		CommandLine.push_back('\0');
 
 		// Create Process

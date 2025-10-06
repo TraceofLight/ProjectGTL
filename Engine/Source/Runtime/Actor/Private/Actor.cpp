@@ -34,7 +34,7 @@ AActor::~AActor()
 		SafeDelete(Component);
 	}
 	SetOuter(nullptr);
-	OwnedComponents.clear();
+	OwnedComponents.Empty();
 }
 
 void AActor::SetActorLocation(const FVector& InLocation) const
@@ -142,7 +142,7 @@ TArray<UPrimitiveComponent*> AActor::GetPrimitiveComponents() const
 			UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>(Component.Get());
 			if (PrimitiveComp)
 			{
-				PrimitiveComponents.push_back(PrimitiveComp);
+				PrimitiveComponents.Add(PrimitiveComp);
 			}
 		}
 	}

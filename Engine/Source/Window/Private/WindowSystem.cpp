@@ -94,7 +94,7 @@ namespace {
         }
         else
         {
-            Out.emplace_back(Node->GetRect());
+            Out.Emplace(Node->GetRect());
         }
     }
 }
@@ -103,7 +103,7 @@ namespace WindowSystem
 {
     void GetLeafRects(TArray<FRect>& OutRects)
     {
-        OutRects.clear();
+        OutRects.Empty();
         if (!GRoot) return;
         CollectLeavesRecursive(GRoot, OutRects);
     }

@@ -49,7 +49,7 @@ void UViewportControlWidget::RenderWidget()
 
 	// 뷰포트 툴바들 렌더링
 	const auto& Viewports = ViewportSS->GetViewports();
-	int32 N = static_cast<int32>(Viewports.size());
+	int32 N = static_cast<int32>(Viewports.Num());
 
 	// 싱글 모드에서는 하나만 렌더링
 	if (ViewportSS->GetViewportChange() == EViewportChange::Single)
@@ -69,7 +69,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 	const auto& Viewports = ViewportManager->GetViewports();
 	const auto& Clients = ViewportManager->GetClients();
 
-	if (ViewportIndex >= static_cast<int32>(Viewports.size()) || ViewportIndex >= static_cast<int32>(Clients.size()))
+	if (ViewportIndex >= Viewports.Num() || ViewportIndex >= Clients.Num())
 	{
 		return;
 	}
@@ -163,7 +163,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 				auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 				const auto& PerspectiveCameras = ViewportSS->GetPerspectiveCameras();
 
-				if (ViewportIndex < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[ViewportIndex])
+				if (ViewportIndex < PerspectiveCameras.Num() && PerspectiveCameras[ViewportIndex])
 				{
 					ACameraActor* Camera = PerspectiveCameras[ViewportIndex];
 					if (Camera && Camera->GetCameraComponent())
@@ -284,7 +284,7 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 	const auto& Clients = ViewportManager->GetClients();
 
-	if (ViewportIndex >= static_cast<int32>(Clients.size()))
+	if (ViewportIndex >= Clients.Num())
 	{
 		return;
 	}
@@ -420,7 +420,7 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 	const auto& Clients = ViewportManager->GetClients();
 
-	if (ViewportIndex >= static_cast<int32>(Clients.size()))
+	if (ViewportIndex >= Clients.Num())
 	{
 		return;
 	}
@@ -435,7 +435,7 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 	{
 		// Perspective 카메라 바인딩
 		const auto& PerspectiveCameras = ViewportManager->GetPerspectiveCameras();
-		if (ViewportIndex < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[ViewportIndex])
+		if (ViewportIndex < PerspectiveCameras.Num() && PerspectiveCameras[ViewportIndex])
 		{
 			ACameraActor* PerspCamera = PerspectiveCameras[ViewportIndex];
 			Client->SetPerspectiveCamera(PerspCamera);
@@ -467,7 +467,7 @@ void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType 
 		default: return;
 		}
 
-		if (OrthoIdx >= 0 && OrthoIdx < static_cast<int32>(OrthoCameras.size()) && OrthoCameras[OrthoIdx])
+		if (OrthoIdx >= 0 && OrthoIdx < OrthoCameras.Num() && OrthoCameras[OrthoIdx])
 		{
 			ACameraActor* OrthoCamera = OrthoCameras[OrthoIdx];
 			Client->SetOrthoCamera(OrthoCamera);

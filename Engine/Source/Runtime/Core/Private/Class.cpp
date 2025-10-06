@@ -96,8 +96,8 @@ void UClass::SignUpClass(TObjectPtr<UClass> InClass)
 {
 	if (InClass)
 	{
-		AllClasses.emplace_back(InClass);
-		UE_LOG("UClass: Class registered: %s (Total: %llu)", InClass->GetClassTypeName().ToString().data(), AllClasses.size());
+		AllClasses.Emplace(InClass);
+		UE_LOG("UClass: Class registered: %s (Total: %d)", InClass->GetClassTypeName().ToString().data(), AllClasses.Num());
 	}
 }
 
@@ -107,9 +107,9 @@ void UClass::SignUpClass(TObjectPtr<UClass> InClass)
  */
 void UClass::PrintAllClasses()
 {
-	UE_LOG("=== Registered Classes (%llu) ===", AllClasses.size());
+	UE_LOG("=== Registered Classes (%d) ===", AllClasses.Num());
 
-	for (size_t i = 0; i < AllClasses.size(); ++i)
+	for (int32 i = 0; i < AllClasses.Num(); ++i)
 	{
 		UClass* Class = AllClasses[i];
 
@@ -152,5 +152,5 @@ bool UClass::Shutdown()
 		}
 	}
 
-	return AllClasses.empty();
+	return AllClasses.Num();
 }

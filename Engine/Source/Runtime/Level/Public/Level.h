@@ -96,7 +96,7 @@ TObjectPtr<T> ULevel::SpawnActor(const FName& InName)
 
 	if (NewActor)
 	{
-		LevelActors.push_back(NewActor);
+		LevelActors.Add(NewActor);
 		NewActor->BeginPlay();
 	}
 

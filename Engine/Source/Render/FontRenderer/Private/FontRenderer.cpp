@@ -169,7 +169,7 @@ void UFontRenderer::RenderText(FString InText, const FMatrix& InWorldMatrix,
 
 	// 정점 데이터 생성
 	TArray<FFontVertex> Vertices;
-	Vertices.reserve(TempVertexCount);
+	Vertices.Reserve(TempVertexCount);
 
 	// 텍스트 전체 너비 계산 (중앙 정렬을 위해)
 	float TotalWidth = 0.0f;
@@ -241,17 +241,17 @@ void UFontRenderer::RenderText(FString InText, const FMatrix& InWorldMatrix,
 		FFontVertex Vertex1 = {TopLeft, uv_topLeft, Unicode};
 		FFontVertex Vertex2 = {TopRight, uv_topRight, Unicode};
 		FFontVertex Vertex3 = {BottomLeft, uv_bottomLeft, Unicode};
-		Vertices.push_back(Vertex1);
-		Vertices.push_back(Vertex2);
-		Vertices.push_back(Vertex3);
+		Vertices.Add(Vertex1);
+		Vertices.Add(Vertex2);
+		Vertices.Add(Vertex3);
 
 		// 두 번째 삼각형 (오른쪽 위, 오른쪽 아래, 왼쪽 아래)
 		FFontVertex Vertex4 = {TopRight, uv_topRight, Unicode};
 		FFontVertex Vertex5 = {BottomRight, uv_bottomRight, Unicode};
 		FFontVertex Vertex6 = {BottomLeft, uv_bottomLeft, Unicode};
-		Vertices.push_back(Vertex4);
-		Vertices.push_back(Vertex5);
-		Vertices.push_back(Vertex6);
+		Vertices.Add(Vertex4);
+		Vertices.Add(Vertex5);
+		Vertices.Add(Vertex6);
 	}
 
 	// 임시 정점 버퍼 생성
@@ -262,7 +262,7 @@ void UFontRenderer::RenderText(FString InText, const FMatrix& InWorldMatrix,
 	BufferDesc.CPUAccessFlags = 0;
 
 	D3D11_SUBRESOURCE_DATA InitData = {};
-	InitData.pSysMem = Vertices.data();
+	InitData.pSysMem = Vertices.GetData();
 
 	HRESULT ResultHandle = Device->CreateBuffer(&BufferDesc, &InitData, &tempVertexBuffer);
 	if (FAILED(ResultHandle))

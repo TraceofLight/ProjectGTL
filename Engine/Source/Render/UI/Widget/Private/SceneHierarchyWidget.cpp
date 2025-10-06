@@ -70,7 +70,7 @@ void USceneHierarchyWidget::RenderWidget()
 
 	const TArray<TObjectPtr<AActor>>& LevelActors = CurrentLevel->GetLevelActors();
 
-	if (LevelActors.empty())
+	if (LevelActors.IsEmpty())
 	{
 		ImGui::TextUnformatted("No Actors in Level");
 		return;
@@ -87,11 +87,11 @@ void USceneHierarchyWidget::RenderWidget()
 	// Actor 개수 표시
 	if (SearchFilter.empty())
 	{
-		ImGui::Text("Total Actors: %zu", LevelActors.size());
+		ImGui::Text("Total Actors: %d", LevelActors.Num());
 	}
 	else
 	{
-		ImGui::Text("%d / %zu actors", static_cast<int32>(FilteredIndices.size()), LevelActors.size());
+		ImGui::Text("%d / %d actors", static_cast<int32>(FilteredIndices.Num()), LevelActors.Num());
 	}
 	ImGui::Spacing();
 
@@ -101,7 +101,7 @@ void USceneHierarchyWidget::RenderWidget()
 		if (SearchFilter.empty())
 		{
 			// 검색어가 없으면 모든 Actor 표시
-			for (int32 i = 0; i < static_cast<int32>(LevelActors.size()); ++i)
+			for (int32 i = 0; i < static_cast<int32>(LevelActors.Num()); ++i)
 			{
 				if (LevelActors[i])
 				{
@@ -114,14 +114,14 @@ void USceneHierarchyWidget::RenderWidget()
 			// 필터링된 Actor들만 표시
 			for (int32 FilteredIndex : FilteredIndices)
 			{
-				if (FilteredIndex < static_cast<int32>(LevelActors.size()) && LevelActors[FilteredIndex])
+				if (FilteredIndex < LevelActors.Num() && LevelActors[FilteredIndex])
 				{
 					RenderActorInfo(LevelActors[FilteredIndex], FilteredIndex);
 				}
 			}
 
 			// 검색 결과가 없으면 메시지 표시
-			if (FilteredIndices.empty())
+			if (FilteredIndices.IsEmpty())
 			{
 				ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "검색 결과가 없습니다.");
 			}
@@ -525,7 +525,7 @@ void USceneHierarchyWidget::RenderSearchBar()
  */
 void USceneHierarchyWidget::UpdateFilteredActors(const TArray<TObjectPtr<AActor>>& InLevelActors)
 {
-	FilteredIndices.clear();
+	FilteredIndices.Empty();
 
 	if (SearchFilter.empty())
 	{
@@ -537,9 +537,9 @@ void USceneHierarchyWidget::UpdateFilteredActors(const TArray<TObjectPtr<AActor>
 	std::transform(SearchLower.begin(), SearchLower.end(), SearchLower.begin(), ::tolower);
 
 	// UE_LOG("SceneHierarchy: 검색어 = '%s', 변환된 검색어 = '%s'", SearchFilter.data(), SearchLower.data());
-	// UE_LOG("SceneHierarchy: Level에 %zu개의 Actor가 있습니다", InLevelActors.size());
+	// UE_LOG("SceneHierarchy: Level에 %zu개의 Actor가 있습니다", InLevelActors.Num());
 
-	for (int32 i = 0; i < InLevelActors.size(); ++i)
+	for (int32 i = 0; i < InLevelActors.Num(); ++i)
 	{
 		if (InLevelActors[i])
 		{
@@ -549,12 +549,12 @@ void USceneHierarchyWidget::UpdateFilteredActors(const TArray<TObjectPtr<AActor>
 
 			if (bMatches)
 			{
-				FilteredIndices.push_back(i);
+				FilteredIndices.Add(i);
 			}
 		}
 	}
 
-	UE_LOG("SceneHierarchy: 필터링 결과: %zu개 찾음", FilteredIndices.size());
+	UE_LOG("SceneHierarchy: 필터링 결과: %d개 찾음", FilteredIndices.Num());
 }
 
 /**

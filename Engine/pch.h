@@ -36,9 +36,14 @@
 #include "Source/Global/CoreTypes.h"
 #include "Source/Global/Macro.h"
 #include "Source/Global/Function.h"
+
+// Pointer
 #include "Source/Runtime/Core/Public/Templates/SharedPtr.h"
 #include "Source/Runtime/Core/Public/Templates/UniquePtr.h"
 #include "Source/Runtime/Core/Public/Templates/WeakPtr.h"
+
+// Container
+#include "Source/Runtime/Core/Public/Containers/TArray.h"
 
 using std::clamp;
 using std::unordered_map;

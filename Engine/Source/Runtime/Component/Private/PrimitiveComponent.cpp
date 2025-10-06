@@ -118,7 +118,7 @@ D3D11_PRIMITIVE_TOPOLOGY UPrimitiveComponent::GetTopology() const
 // 공통 렌더링 인터페이스 기본 구현
 bool UPrimitiveComponent::HasRenderData() const
 {
-	return GetVerticesData() != nullptr && !GetVerticesData()->empty();
+	return GetVerticesData() != nullptr && !GetVerticesData()->IsEmpty();
 }
 
 ID3D11Buffer* UPrimitiveComponent::GetRenderVertexBuffer() const
@@ -135,7 +135,7 @@ ID3D11Buffer* UPrimitiveComponent::GetRenderIndexBuffer() const
 uint32 UPrimitiveComponent::GetRenderVertexCount() const
 {
 	const TArray<FVertex>* VerticesData = GetVerticesData();
-	return VerticesData ? static_cast<uint32>(VerticesData->size()) : 0;
+	return VerticesData ? static_cast<uint32>(VerticesData->Num()) : 0;
 }
 
 uint32 UPrimitiveComponent::GetRenderIndexCount() const

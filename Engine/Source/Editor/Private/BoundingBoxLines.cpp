@@ -3,27 +3,23 @@
 #include "Physics/Public/AABB.h"
 
 UBoundingBoxLines::UBoundingBoxLines()
-	: Vertices(TArray<FVector>())
+	: Vertices{}
 	, NumVertices(8)
 {
-	Vertices.reserve(NumVertices);
+	Vertices.Reserve(NumVertices);
 	UpdateVertices(FAABB({0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}));
 }
 
 void UBoundingBoxLines::MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartIndex)
 {
 	// 인덱스 범위 보정
-	if (insertStartIndex > destVertices.size())
-		insertStartIndex = destVertices.size();
+	insertStartIndex = max(static_cast<int32>(insertStartIndex), destVertices.Num());
 
 	// 미리 메모리 확보
-	destVertices.reserve(destVertices.size() + std::distance(Vertices.begin(), Vertices.end()));
+	destVertices.Reserve(destVertices.Num() + std::distance(Vertices.begin(), Vertices.end()));
 
 	// 덮어쓸 수 있는 개수 계산
-	size_t overwriteCount = std::min(
-		Vertices.size(),
-		destVertices.size() - insertStartIndex
-	);
+	size_t overwriteCount = min(Vertices.Num(),destVertices.Num() - static_cast<int32>(insertStartIndex));
 
 	// 기존 요소 덮어쓰기
 	std::copy(
@@ -51,9 +47,9 @@ void UBoundingBoxLines::UpdateVertices(FAABB boundingBoxInfo)
 	float MinX = boundingBoxInfo.Min.X, MinY = boundingBoxInfo.Min.Y, MinZ = boundingBoxInfo.Min.Z;
 	float MaxX = boundingBoxInfo.Max.X, MaxY = boundingBoxInfo.Max.Y, MaxZ = boundingBoxInfo.Max.Z;
 
-	if (Vertices.size() < NumVertices)
+	if (Vertices.Num() < NumVertices)
 	{
-		Vertices.resize(NumVertices);
+		Vertices.SetNum(NumVertices);
 	}
 
 	// 꼭짓점 정의 (0~3: 앞면, 4~7: 뒷면)

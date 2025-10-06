@@ -79,8 +79,8 @@ void UEditor::RenderEditor()
 	// 렌더러에서 현재 렌더링 중인 뷰포트 인덱스 가져오기
 	int32 CurrentViewportIndex = Renderer.GetViewportIdx();
 
-	if (CurrentViewportIndex >= 0 && CurrentViewportIndex < static_cast<int32>(Viewports.size()) &&
-		CurrentViewportIndex < static_cast<int32>(Clients.size()) &&
+	if (CurrentViewportIndex >= 0 && CurrentViewportIndex < Viewports.Num() &&
+		CurrentViewportIndex < Clients.Num() &&
 		Viewports[CurrentViewportIndex] && Clients[CurrentViewportIndex])
 	{
 		// 현재 렌더링 중인 뷰포트의 카메라와 크기 정보 가져오기
@@ -332,7 +332,7 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 		// 모든 뷰포트의 기즈모 상태 초기화
 		auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 		const auto& Viewports = ViewportSS->GetViewports();
-		for (int32 i = 0; i < static_cast<int32>(Viewports.size()); ++i)
+		for (int32 i = 0; i < Viewports.Num(); ++i)
 		{
 			Gizmo->SetGizmoDirectionForViewport(i, EGizmoDirection::None);
 		}
@@ -360,7 +360,7 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 	int32 ViewportIndex = max(0, static_cast<int32>(ViewportSS->GetViewportIndexUnderMouse()));
 	float ViewportWidth = 0.0f, ViewportHeight = 0.0f;
 
-	if (ViewportIndex >= 0 && ViewportIndex < static_cast<int32>(ViewportSS->GetViewports().size()))
+	if (ViewportIndex >= 0 && ViewportIndex < ViewportSS->GetViewports().Num())
 	{
 		const auto& Viewports = ViewportSS->GetViewports();
 		if (Viewports[ViewportIndex])
@@ -426,7 +426,7 @@ TArray<UPrimitiveComponent*> UEditor::FindCandidateActors(const ULevel* InLevel)
 			TObjectPtr<UPrimitiveComponent> Primitive = Cast<UPrimitiveComponent>(ActorComponent);
 			if (Primitive)
 			{
-				Candidate.push_back(Primitive);
+				Candidate.Add(Primitive);
 			}
 		}
 	}
@@ -535,7 +535,7 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const ACameraActor& InCamer
 		return Gizmo->GetGizmoLocation();
 	}
 	const auto& Clients = ViewportSS->GetClients();
-	if (ViewportIndex >= static_cast<int32>(Clients.size()))
+	if (ViewportIndex >= Clients.Num())
 	{
 		return Gizmo->GetGizmoLocation();
 	}
@@ -552,7 +552,7 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const ACameraActor& InCamer
 
 	// 뷰포트 크기 정보 가져오기
 	const auto& Viewports = ViewportSS->GetViewports();
-	if (ViewportIndex >= static_cast<int32>(Viewports.size()))
+	if (ViewportIndex >= Viewports.Num())
 	{
 		return Gizmo->GetGizmoLocation();
 	}
@@ -885,7 +885,7 @@ ACameraActor* UEditor::GetActivePickingCamera()
 	int32 Index = ViewportManager->GetViewportIndexUnderMouse();
 	Index = max(Index, 0);
 
-	if (Index >= static_cast<int32>(Clients.size()))
+	if (Index >= Clients.Num())
 	{
 		return nullptr;
 	}

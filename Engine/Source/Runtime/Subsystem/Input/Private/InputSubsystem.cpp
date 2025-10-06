@@ -25,7 +25,7 @@ void UInputSubsystem::Deinitialize()
 	CurrentKeyState.clear();
 	PreviousKeyState.clear();
 	VirtualKeyMap.clear();
-	KeysInStatus.clear();
+	KeysInStatus.Empty();
 	LastClickTime.clear();
 	DoubleClickState.clear();
 	ClickCount.clear();
@@ -360,14 +360,14 @@ void UInputSubsystem::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM 
 
 const TArray<EKeyInput>& UInputSubsystem::GetKeysByStatus(EKeyStatus InStatus)
 {
-	KeysInStatus.clear();
+	KeysInStatus.Empty();
 
 	for (int32 i = 0; i < static_cast<int32>(EKeyInput::End); ++i)
 	{
 		EKeyInput Key = static_cast<EKeyInput>(i);
 		if (GetKeyStatus(Key) == InStatus)
 		{
-			KeysInStatus.push_back(Key);
+			KeysInStatus.Add(Key);
 		}
 	}
 

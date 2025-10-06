@@ -159,7 +159,7 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 		UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 		TArray<FViewportClient*>& Clients = ViewportSS->GetClients();
 		UE_LOG("WorldSubsystem: SaveCurrentLevel - Saving camera from Client[0]");
-		if (!Clients.empty() && Clients[0])
+		if (!Clients.IsEmpty() && Clients[0])
 		{
 			ACameraActor* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
 			if (PerspectiveCamera)
@@ -509,32 +509,32 @@ void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraM
 	// 각 Viewport의 실제 크기를 기반으로 Aspect 설정
 	TArray<FViewport*>& Viewports = ViewportSS->GetViewports();
 
-	for (size_t i = 0; i < Clients.size(); ++i)
+	for (int32 i = 0; i < Clients.Num(); ++i)
 	{
-		UE_LOG("WorldSubsystem: Processing Client[%d]", static_cast<int>(i));
+		UE_LOG("WorldSubsystem: Processing Client[%d]", i);
 
 		FViewportClient* Client = Clients[i];
 		if (!Client)
 		{
-			UE_LOG("WorldSubsystem: Client[%d] is NULL", static_cast<int>(i));
+			UE_LOG("WorldSubsystem: Client[%d] is NULL", i);
 			continue;
 		}
 
 		ACameraActor* PerspectiveCamera = Client->GetPerspectiveCamera();
 		if (!PerspectiveCamera)
 		{
-			UE_LOG("WorldSubsystem: Client[%d]는 PerspectiveCamera가 없습니다", static_cast<int>(i));
+			UE_LOG("WorldSubsystem: Client[%d]는 PerspectiveCamera가 없습니다", i);
 			continue;
 		}
 
 		UCameraComponent* CameraComponent = PerspectiveCamera->GetCameraComponent();
 		if (!CameraComponent)
 		{
-			UE_LOG_WARNING("WorldSubsystem: Client[%d]의 PerspectiveCamera가 CameraComponent가 없습니다", static_cast<int>(i));
+			UE_LOG_WARNING("WorldSubsystem: Client[%d]의 PerspectiveCamera가 CameraComponent가 없습니다", i);
 			continue;
 		}
 
-		UE_LOG("WorldSubsystem: Client[%d]: 카메라 속성을 설정합니다", static_cast<int>(i));
+		UE_LOG("WorldSubsystem: Client[%d]: 카메라 속성을 설정합니다", i);
 
 		// 카메라 설정 복원
 		PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
@@ -549,16 +549,16 @@ void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraM
 		}
 		else
 		{
-			UE_LOG("WorldSubsystem: Client[%d]: FOV/Near/Far 기본값을 사용합니다", static_cast<int>(i));
+			UE_LOG("WorldSubsystem: Client[%d]: FOV/Near/Far 기본값을 사용합니다", i);
 		}
 
 		UE_LOG("WorldSubsystem: Client[%d] - Camera set to Location:(%.2f,%.2f,%.2f) Rotation:(%.2f,%.2f,%.2f)",
-		       static_cast<int>(i),
+		       i,
 		       InCameraMetadata.Location.X, InCameraMetadata.Location.Y, InCameraMetadata.Location.Z,
 		       InCameraMetadata.Rotation.X, InCameraMetadata.Rotation.Y, InCameraMetadata.Rotation.Z);
 
 		// 각 Viewport의 실제 크기를 기반으로 Aspect 계산
-		if (i < Viewports.size() && Viewports[i])
+		if (i < Viewports.Num() && Viewports[i])
 		{
 			const FRect& ViewportRect = Viewports[i]->GetRect();
 			const int32 ToolbarHeight = Viewports[i]->GetToolbarHeight();
@@ -566,7 +566,7 @@ void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraM
 			const float ViewportHeight = static_cast<float>(max<LONG>(0, ViewportRect.H - ToolbarHeight));
 
 			UE_LOG("WorldSubsystem: Client[%d] Viewport: Rect:(%ld,%ld,%ld,%ld) Toolbar:%d RenderSize:(%.2fx%.2f)",
-			       static_cast<int>(i),
+			       i,
 			       ViewportRect.X, ViewportRect.Y, ViewportRect.W, ViewportRect.H,
 			       ToolbarHeight, ViewportWidth, ViewportHeight);
 
@@ -574,17 +574,17 @@ void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraM
 			{
 				float Aspect = ViewportWidth / ViewportHeight;
 				CameraComponent->SetAspect(Aspect);
-				UE_LOG("WorldSubsystem: Client[%d]: Aspect 설정: %.4f", static_cast<int>(i), Aspect);
+				UE_LOG("WorldSubsystem: Client[%d]: Aspect 설정: %.4f", i, Aspect);
 			}
 			else
 			{
-				UE_LOG("WorldSubsystem: Client[%d]: 비정상적인 viewport size, aspect를 스킵합니다", static_cast<int>(i));
+				UE_LOG("WorldSubsystem: Client[%d]: 비정상적인 viewport size, aspect를 스킵합니다", i);
 			}
 		}
 		else
 		{
 			UE_LOG("WorldSubsystem: Client[%d]: Viewport[%d]이 NULL이거나 범위 바깥입니다",
-			       static_cast<int>(i), static_cast<int>(i));
+			       i, i);
 		}
 	}
 }

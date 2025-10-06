@@ -31,7 +31,7 @@ uint32 UStaticMeshComponent::GetNumVertices() const
 {
 	if (StaticMesh)
 	{
-		return static_cast<uint32>(StaticMesh->GetVertices().size());
+		return static_cast<uint32>(StaticMesh->GetVertices().Num());
 	}
 	return 0;
 }
@@ -40,7 +40,7 @@ uint32 UStaticMeshComponent::GetNumTriangles() const
 {
 	if (StaticMesh)
 	{
-		return static_cast<uint32>(StaticMesh->GetIndices().size() / 3);
+		return static_cast<uint32>(StaticMesh->GetIndices().Num() / 3);
 	}
 	return 0;
 }
@@ -54,7 +54,7 @@ void UStaticMeshComponent::InitializeMeshRenderData()
 
 	// 정점 데이터 포인터 업데이트
 	Vertices = &StaticMesh->GetVertices();
-	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
+	NumVertices = static_cast<uint32>(StaticMesh->GetVertices().Num());
 }
 
 void UStaticMeshComponent::UpdateRenderData()
@@ -68,7 +68,7 @@ void UStaticMeshComponent::UpdateRenderData()
 
 	// 기본 렌더 데이터 업데이트
 	//Vertices = &StaticMesh->GetVertices();
-	//NumVertices = static_cast<uint32>(StaticMesh->GetVertices().size());
+	//NumVertices = static_cast<uint32>(StaticMesh->GetVertices().Num());
 }
 
 // 공통 렌더링 인터페이스 구현
@@ -96,7 +96,7 @@ uint32 UStaticMeshComponent::GetRenderIndexCount() const
 {
 	if (StaticMesh)
 	{
-		return static_cast<uint32>(StaticMesh->GetIndices().size());
+		return static_cast<uint32>(StaticMesh->GetIndices().Num());
 	}
 	return 0;
 }
@@ -166,7 +166,7 @@ void UStaticMeshComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax) const
 			OutMax.Z = std::max(OutMax.Z, TransformedCorner.Z);
 		}
 	}
-    
+
     else
 	{
 		// 유효한 메시가 없으면 빈 박스 반환

@@ -14,8 +14,8 @@ UGizmo::UGizmo()
 	URenderer& Renderer = URenderer::GetInstance();
 	FEditorRenderResources* EditorResources = Renderer.GetEditorResources();
 
-	Primitives.resize(3);
-	GizmoColor.resize(3);
+	Primitives.SetNum(3);
+	GizmoColor.SetNum(3);
 
 	/* *
 	* @brief 0: Forward(x), 1: Right(y), 2: Up(z)
@@ -262,7 +262,7 @@ float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const A
 	{
 		// 직교 투영에서는 GetOrthographicHeight() 사용
 		float OrthographicHeight = InCamera->GetCameraComponent()->GetOrthographicHeight();
-		
+
 		if (OrthographicHeight <= 0.0f)
 		{
 			return 1.0f;

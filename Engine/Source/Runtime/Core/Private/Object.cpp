@@ -14,8 +14,8 @@ UObject::UObject()
 	UUID = UEngineStatics::GenUUID();
 	Name = FName("Object_" + to_string(UUID));
 
-	GUObjectArray.emplace_back(this);
-	InternalIndex = static_cast<uint32>(GUObjectArray.size()) - 1;
+	GUObjectArray.Add(TObjectPtr(this));
+	InternalIndex = static_cast<uint32>(GUObjectArray.Num()) - 1;
 }
 
 UObject::UObject(const FName& InName)
@@ -24,14 +24,14 @@ UObject::UObject(const FName& InName)
 {
 	UUID = UEngineStatics::GenUUID();
 
-	GUObjectArray.emplace_back(this);
-	InternalIndex = static_cast<uint32>(GUObjectArray.size()) - 1;
+	GUObjectArray.Add(TObjectPtr(this));
+	InternalIndex = GUObjectArray.Num() - 1;
 }
 
 UObject::~UObject()
 {
 	// GUObjectArray에서 이 오브젝트 제거
-	if (InternalIndex < GUObjectArray.size() && GUObjectArray[InternalIndex].Get() == this)
+	if (InternalIndex < GUObjectArray.Num() && GUObjectArray[InternalIndex].Get() == this)
 	{
 		// 현재 위치의 포인터를 nullptr로 설정 (배열 크기는 유지)
 		GUObjectArray[InternalIndex] = nullptr;
@@ -39,7 +39,7 @@ UObject::~UObject()
 	else
 	{
 		// InternalIndex가 유효하지 않은 경우, 전체 배열에서 검색하여 제거
-		for (size_t i = 0; i < GUObjectArray.size(); ++i)
+		for (int32 i = 0; i < GUObjectArray.Num(); ++i)
 		{
 			if (GUObjectArray[i].Get() == this)
 			{
@@ -83,35 +83,30 @@ bool UObject::IsA(TObjectPtr<UClass> InClass) const
  */
 void UObject::CleanupGUObjectArray()
 {
-	size_t OriginalSize = GUObjectArray.size();
+	size_t OriginalSize = GUObjectArray.Num();
 	uint32 NullCount = 0;
 
 	// nullptr이 아닌 요소들만 보존
-	auto NewEnd = std::remove_if(
-		GUObjectArray.begin(), GUObjectArray.end(), [&NullCount](const TObjectPtr<UObject>& Pointer)
+	int32 RemovedCount = GUObjectArray.RemoveAll(
+		[](const TObjectPtr<UObject>& Pointer)
 		{
-			if (!Pointer || Pointer.Get() == nullptr)
-			{
-				++NullCount;
-				return true;
-			}
-
-			return false;
-		});
-
-	GUObjectArray.erase(NewEnd, GUObjectArray.end());
+			// 유효하지 않거나 nullptr인 경우 true를 반환하여 제거 대상임을 알림
+			// TObjectPtr<UObject>는 Get() 없이 바로 포인터 비교가 가능합니다.
+			return !Pointer;
+		}
+	);
 
 	// 모든 유효한 객체들의 InternalIndex 재설정
-	for (size_t i = 0; i < GUObjectArray.size(); ++i)
+	for (int32 i = 0; i < GUObjectArray.Num(); ++i)
 	{
-		if (GUObjectArray[i] && GUObjectArray[i].Get())
+		if (GUObjectArray[i])
 		{
-			GUObjectArray[i]->SetInternalIndex(static_cast<uint32>(i));
+			GUObjectArray[i]->SetInternalIndex(i);
 		}
 	}
 
-	UE_LOG_SYSTEM("GUObjectArray: Compaction 완료 | 기존: %zu, 정리후: %zu, 제거된 nullptr: %u",
-	              OriginalSize, GUObjectArray.size(), NullCount);
+	UE_LOG_SYSTEM("GUObjectArray: Compaction 완료 | 기존: %zu, 정리후: %d, 제거된 nullptr: %u",
+	              OriginalSize, GUObjectArray.Num(), NullCount);
 }
 
 /**
@@ -157,7 +152,7 @@ void UObject::CheckAndCleanupGUObjectArray()
 	static constexpr uint32 CLEANUP_MIN = 20;
 
 	uint32 NullCount = GetNullObjectCount();
-	size_t TotalSize = GUObjectArray.size();
+	size_t TotalSize = GUObjectArray.Num();
 
 	// 임계치 체크: 절대값 또는 비율
 	if (NullCount >= CLEANUP_THRESHOLD ||

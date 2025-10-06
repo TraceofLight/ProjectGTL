@@ -119,10 +119,10 @@ void UViewportSubsystem::BuildSingleLayout(int32 PromoteIdx)
 	Capture = nullptr;
 	DestroyTree(Root);
 
-	if (PromoteIdx < 0 || PromoteIdx >= static_cast<int32>(Viewports.size()))
+	if (PromoteIdx < 0 || PromoteIdx >= static_cast<int32>(Viewports.Num()))
 	{
 		// 우클릭 드래그 중인 뷰가 있으면 그걸 우선, 없으면 0번 유지
-		PromoteIdx = (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < static_cast<int32>(Viewports.size()))
+		PromoteIdx = (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < static_cast<int32>(Viewports.Num()))
 			             ? ActiveRmbViewportIdx
 			             : 0;
 	}
@@ -173,7 +173,7 @@ void UViewportSubsystem::BuildFourSplitLayout()
 		return;
 	}
 
-	if (LastPromotedIdx > 0 && LastPromotedIdx < (int32)Viewports.size())
+	if (LastPromotedIdx > 0 && LastPromotedIdx < (int32)Viewports.Num())
 	{
 		std::swap(Viewports[0], Viewports[LastPromotedIdx]);
 		std::swap(Clients[0], Clients[LastPromotedIdx]);
@@ -238,7 +238,7 @@ void UViewportSubsystem::BuildFourSplitLayout()
 
 void UViewportSubsystem::GetLeafRects(TArray<FRect>& OutRects) const
 {
-	OutRects.clear();
+	OutRects.Empty();
 	if (!Root)
 	{
 		return;
@@ -256,7 +256,7 @@ void UViewportSubsystem::GetLeafRects(TArray<FRect>& OutRects) const
 			}
 			else
 			{
-				Out.emplace_back(Node->GetRect());
+				Out.Emplace(Node->GetRect());
 			}
 		}
 	};
@@ -270,7 +270,7 @@ void UViewportSubsystem::SyncRectsToViewports() const
 	GetLeafRects(Leaves);
 
 	// 싱글 모드: 리프가 1개, 4분할: 리프가 4개
-	const int32 N = min<int32>(static_cast<int32>(Leaves.size()), static_cast<int32>(Viewports.size()));
+	const int32 N = min<int32>(static_cast<int32>(Leaves.Num()), static_cast<int32>(Viewports.Num()));
 	for (int32 i = 0; i < N; ++i)
 	{
 		Viewports[i]->SetRect(Leaves[i]);
@@ -285,7 +285,7 @@ void UViewportSubsystem::PumpAllViewportInput() const
 {
 	// 각 뷰포트가 스스로 InputManager에서 읽어
 	// 로컬 좌표로 변환 → 각자의 Client로 MouseMove/CapturedMouseMove 전달
-	const int32 N = static_cast<int32>(Viewports.size());
+	const int32 N = static_cast<int32>(Viewports.Num());
 	for (int32 i = 0; i < N; ++i)
 	{
 		Viewports[i]->PumpMouseFromInputManager();
@@ -306,7 +306,7 @@ void UViewportSubsystem::UpdateActiveRmbViewportIndex()
 	const LONG MousePositionX = static_cast<LONG>(MousePosition.X);
 	const LONG MousePositioinY = static_cast<LONG>(MousePosition.Y);
 
-	const int32 N = static_cast<int32>(Viewports.size());
+	const int32 N = static_cast<int32>(Viewports.Num());
 	for (int32 i = 0; i < N; ++i)
 	{
 		const FRect& Rect = Viewports[i]->GetRect();
@@ -324,7 +324,7 @@ void UViewportSubsystem::TickCameras() const
 {
 	// 우클릭이 눌린 상태라면 해당 뷰포트의 카메라만 입력 반영(Update)
 	// 그렇지 않다면(비상호작용) 카메라 이동 입력은 생략하여 타 뷰포트에 영향이 가지 않도록 함
-	const int32 N = static_cast<int32>(Clients.size());
+	const int32 N = static_cast<int32>(Clients.Num());
 	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
 	const bool bRmbDown = InputSubsystem && InputSubsystem->IsKeyDown(EKeyInput::MouseRight);
 	if (bRmbDown)
@@ -417,7 +417,7 @@ void UViewportSubsystem::Update()
 		if (WheelDelta != 0.0f && WheelInputSubsystem)
 		{
 			int32 Index = GetViewportIndexUnderMouse();
-			if (Index >= 0 && Index < static_cast<int32>(Clients.size()))
+			if (Index >= 0 && Index < static_cast<int32>(Clients.Num()))
 			{
 				FViewportClient* Client = Clients[Index];
 				if (Client && Client->IsOrtho())
@@ -482,7 +482,7 @@ void UViewportSubsystem::Update()
 
 	// 4) 드로우(3D) — 실제 렌더러 루프에서 Viewport 적용 후 호출해도 됨
 	//    여기서는 뷰/클라 페어 순회만 보여줌. (RS 바인딩은 네 렌더러 Update에서 수행 중)
-	const int32 N = static_cast<int32>(Clients.size());
+	const int32 N = static_cast<int32>(Clients.Num());
 	for (int32 i = 0; i < N; ++i)
 	{
 		Clients[i]->Draw(Viewports[i]);
@@ -544,8 +544,8 @@ void UViewportSubsystem::InitializeViewportAndClient()
 
 		Viewport->SetViewportClient(ViewportClient);
 
-		Clients.push_back(ViewportClient);
-		Viewports.push_back(Viewport);
+		Clients.Add(ViewportClient);
+		Viewports.Add(Viewport);
 	}
 
 	Clients[0]->SetViewType(EViewType::Perspective);
@@ -567,7 +567,7 @@ void UViewportSubsystem::InitializeOrthoGraphicCamera()
 	{
 		ACameraActor* Camera = NewObject<ACameraActor>();
 		Camera->SetDisplayName("Camera_" + to_string(ACameraActor::GetNextGenNumber()));
-		OrthoGraphicCameras.push_back(Camera);
+		OrthoGraphicCameras.Add(Camera);
 	}
 
 	// TODO(KHJ): 좌표축 이슈 처리 시 해결해야 함
@@ -607,12 +607,12 @@ void UViewportSubsystem::InitializeOrthoGraphicCamera()
 	OrthoGraphicCameras[5]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
 	OrthoGraphicCameras[5]->GetCameraComponent()->SetFarZ(150.0f);
 
-	InitialOffsets.emplace_back(0.0f, 0.0f, 100.0f);
-	InitialOffsets.emplace_back(0.0f, 0.0f, -100.0f);
-	InitialOffsets.emplace_back(0.0f, 100.0f, 0.0f);
-	InitialOffsets.emplace_back(0.0f, -100.0f, 0.0f);
-	InitialOffsets.emplace_back(100.0f, 0.0f, 0.0f);
-	InitialOffsets.emplace_back(-100.0f, 0.0f, 0.0f);
+	InitialOffsets.Emplace(0.0f, 0.0f, 100.0f);
+	InitialOffsets.Emplace(0.0f, 0.0f, -100.0f);
+	InitialOffsets.Emplace(0.0f, 100.0f, 0.0f);
+	InitialOffsets.Emplace(0.0f, -100.0f, 0.0f);
+	InitialOffsets.Emplace(100.0f, 0.0f, 0.0f);
+	InitialOffsets.Emplace(-100.0f, 0.0f, 0.0f);
 }
 
 void UViewportSubsystem::InitializePerspectiveCamera()
@@ -626,7 +626,7 @@ void UViewportSubsystem::InitializePerspectiveCamera()
 		Camera->SetActorLocation(FVector(-25.0f, -20.0f, 18.0f));
 		Camera->SetActorRotation(FVector(0, 45.0f, 35.0f));
 
-		PerspectiveCameras.push_back(Camera);
+		PerspectiveCameras.Add(Camera);
 		Clients[i]->SetPerspectiveCamera(Camera);
 	}
 }
@@ -650,7 +650,7 @@ void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 	const int32 Index = ActiveRmbViewportIdx;
 
 	// 인덱스가 범위 밖이라면 리턴합니다
-	if (Index < 0 || Index >= static_cast<int32>(Clients.size()))
+	if (Index < 0 || Index >= static_cast<int32>(Clients.Num()))
 	{
 		return;
 	}
@@ -738,7 +738,7 @@ void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 	// 공유 중심 누적 이동
 	OrthoGraphicCamerapoint += WorldDelta;
 
-	for (int32 i = 0; i < static_cast<int32>(OrthoGraphicCameras.size()); ++i)
+	for (int32 i = 0; i < static_cast<int32>(OrthoGraphicCameras.Num()); ++i)
 	{
 		if (ACameraActor* Cam = OrthoGraphicCameras[i])
 		{
@@ -773,7 +773,7 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 	SyncRectsToViewports();
 
 	// 2) 각 클라이언트에 카메라 재바인딩 + Update + OnResize
-	const int32 N = static_cast<int32>(Clients.size());
+	const int32 N = static_cast<int32>(Clients.Num());
 	for (int32 i = 0; i < N; ++i)
 	{
 		FViewportClient* Client = Clients[i];
@@ -783,7 +783,7 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 		if (Viewport == EViewType::Perspective)
 		{
 			// 퍼스펙티브는 자신 카메라 보장
-			if (i < static_cast<int32>(PerspectiveCameras.size()) && PerspectiveCameras[i])
+			if (i < static_cast<int32>(PerspectiveCameras.Num()) && PerspectiveCameras[i])
 			{
 				Client->SetPerspectiveCamera(PerspectiveCameras[i]);
 				PerspectiveCameras[i]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
@@ -810,7 +810,7 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 			default: break;
 			}
 
-			if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.size()))
+			if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.Num()))
 			{
 				ACameraActor* Camera = OrthoGraphicCameras[OrthoIdx];
 				Client->SetOrthoCamera(Camera);
@@ -826,7 +826,7 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 	// 3) 오쏘 6방향 카메라를 공유 중심점에 맞춰 정렬만 수행(이동 입력 없이)
 	auto Reposition = [&](int InCamIndex, const FVector& InCamFwd)
 	{
-		if (InCamIndex < 0 || InCamIndex >= static_cast<int>(OrthoGraphicCameras.size())) return;
+		if (InCamIndex < 0 || InCamIndex >= static_cast<int>(OrthoGraphicCameras.Num())) return;
 		if (ACameraActor* Camera = OrthoGraphicCameras[InCamIndex])
 		{
 			const FVector Loc = Camera->GetActorLocation();
@@ -964,7 +964,7 @@ int32 UViewportSubsystem::GetViewportIndexUnderMouse() const
 	const LONG MousePositionX = static_cast<LONG>(MousePosition.X);
 	const LONG MousePositionY = static_cast<LONG>(MousePosition.Y);
 
-	for (int32 i = 0; i < static_cast<int8>(Viewports.size()); ++i)
+	for (int32 i = 0; i < static_cast<int8>(Viewports.Num()); ++i)
 	{
 		const FRect& Rect = Viewports[i]->GetRect();
 		const int32 ToolbarHeight = Viewports[i]->GetToolbarHeight();
@@ -983,7 +983,7 @@ int32 UViewportSubsystem::GetViewportIndexUnderMouse() const
 
 bool UViewportSubsystem::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, float& OutNdcY) const
 {
-	if (InIdx < 0 || InIdx >= static_cast<int32>(Viewports.size())) return false;
+	if (InIdx < 0 || InIdx >= static_cast<int32>(Viewports.Num())) return false;
 	const FRect& Rect = Viewports[InIdx]->GetRect();
 	if (Rect.W <= 0 || Rect.H <= 0) return false;
 
@@ -1124,14 +1124,14 @@ void UViewportSubsystem::SyncAnimationRectsToViewports() const
 	TArray<FRect> Leaves;
 	GetLeafRects(Leaves);
 
-	if (Leaves.empty()) return;
+	if (Leaves.IsEmpty()) return;
 
 	// 애니메이션 유형에 따라 올바른 뷰포트 매핑
 	if (!ViewportAnimation.bSingleToQuad) // QuadToSingle
 	{
 		// Quad → Single: 선택된 뷰포트만 첫 번째 위치에 렌더링
 		int32 PromotedIdx = ViewportAnimation.PromotedViewportIndex;
-		if (PromotedIdx >= 0 && PromotedIdx < static_cast<int32>(Viewports.size()) && !Leaves.empty())
+		if (PromotedIdx >= 0 && PromotedIdx < static_cast<int32>(Viewports.Num()) && !Leaves.IsEmpty())
 		{
 			// 선택된 뷰포트의 데이터를 0번 인덱스에 임시 배치
 			// 이렇게 하면 전체 화면에 올바른 뷰포트가 보인다
@@ -1146,7 +1146,7 @@ void UViewportSubsystem::SyncAnimationRectsToViewports() const
 			TargetClient->OnResize({Leaves[0].W, renderH});
 
 			// 다른 뷰포트들은 최소 크기로 숨김 (비가시)
-			for (int32 i = 0; i < static_cast<int32>(Viewports.size()); ++i)
+			for (int32 i = 0; i < static_cast<int32>(Viewports.Num()); ++i)
 			{
 				if (i != PromotedIdx)
 				{
@@ -1160,7 +1160,7 @@ void UViewportSubsystem::SyncAnimationRectsToViewports() const
 	{
 		// Single → Quad: 모든 뷰포트를 올바른 영역에 매핑
 		// 애니메이션 중에는 원래 배치대로 복원
-		const int32 N = min<int32>(static_cast<int32>(Leaves.size()), static_cast<int32>(Viewports.size()));
+		const int32 N = min<int32>(static_cast<int32>(Leaves.Num()), static_cast<int32>(Viewports.Num()));
 
 		// 기본 매핑: 원래 뷰포트 순서대로 (0=Top, 1=Front, 2=Side, 3=Persp)
 		for (int32 i = 0; i < N; ++i)
@@ -1461,7 +1461,7 @@ void UViewportSubsystem::FinalizeSingleLayoutFromAnimation()
 
 	// 선택된 뷰포트를 0번 위치에 임시 오는 대신, 애니메이션 목적에 맞게
 	// PromotedViewportIndex만 기록하고 실제 배열 순서는 그대로 유지
-	if (PromoteIdx >= 0 && PromoteIdx < static_cast<int32>(Viewports.size()))
+	if (PromoteIdx >= 0 && PromoteIdx < static_cast<int32>(Viewports.Num()))
 	{
 		// 단일 레이아웃에서는 선택된 뷰포트만 보이도록 조정
 		// ViewportChange가 Single이므로 RenderOverlay에서 N=1로 처리됨
@@ -1521,7 +1521,7 @@ void UViewportSubsystem::FinalizeFourSplitLayoutFromAnimation()
 	}
 
 	// 뷰포트 배열 원위치 복원: SingleToQuad 애니메이션 후 뷰포트들이 원래 자리로 돌아가도록
-	if (LastPromotedIdx > 0 && LastPromotedIdx < static_cast<int32>(Viewports.size()))
+	if (LastPromotedIdx > 0 && LastPromotedIdx < static_cast<int32>(Viewports.Num()))
 	{
 		std::swap(Viewports[0], Viewports[LastPromotedIdx]);
 		std::swap(Clients[0], Clients[LastPromotedIdx]);

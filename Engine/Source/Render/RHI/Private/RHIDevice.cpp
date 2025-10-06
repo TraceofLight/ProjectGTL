@@ -164,8 +164,8 @@ bool URHIDevice::CreateVertexShaderAndInputLayout(
 
 	// Input Layout 생성
 	hr = Device->CreateInputLayout(
-		InLayoutDesc.data(),
-		static_cast<UINT>(InLayoutDesc.size()),
+		InLayoutDesc.GetData(),
+		static_cast<UINT>(InLayoutDesc.Num()),
 		ShaderBlob->GetBufferPointer(),
 		ShaderBlob->GetBufferSize(),
 		OutInputLayout);

@@ -11,7 +11,7 @@ UGrid::UGrid()
 	, CellSize(0) // 아래 UpdateVerticesBy에 넣어주는 값과 달라야 함
 {
 	NumVertices = NumLines * 4;
-	Vertices.reserve(NumVertices);
+	Vertices.Reserve(NumVertices);
 
 	float InitialCellSize = 1.0f;
 	if (UConfigSubsystem* ConfigSubsystem = GEngine ? GEngine->GetEngineSubsystem<UConfigSubsystem>() : nullptr)
@@ -40,9 +40,9 @@ void UGrid::UpdateVerticesBy(float NewCellSize)
 
 	float LineLength = NewCellSize * static_cast<float>(NumLines) / 2.f;
 
-	if (Vertices.size() < NumVertices)
+	if (Vertices.Num() < NumVertices)
 	{
-		Vertices.resize(NumVertices);
+		Vertices.SetNum(NumVertices);
 	}
 
 	uint32 vertexIndex = 0;
@@ -81,16 +81,16 @@ void UGrid::UpdateVerticesBy(float NewCellSize)
 void UGrid::MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartIndex)
 {
 	// 인덱스 범위 보정
-	if (insertStartIndex > destVertices.size())
-		insertStartIndex = destVertices.size();
+	if (insertStartIndex > destVertices.Num())
+		insertStartIndex = destVertices.Num();
 
 	// 미리 메모리 확보
-	destVertices.reserve(destVertices.size() + std::distance(Vertices.begin(), Vertices.end()));
+	destVertices.Reserve(destVertices.Num() + std::distance(Vertices.begin(), Vertices.end()));
 
 	// 덮어쓸 수 있는 개수 계산
 	size_t overwriteCount = std::min(
-		Vertices.size(),
-		destVertices.size() - insertStartIndex
+		Vertices.Num(),
+		destVertices.Num() - static_cast<int32>(insertStartIndex)
 	);
 
 	// 기존 요소 덮어쓰기
@@ -99,56 +99,4 @@ void UGrid::MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartInd
 		Vertices.begin() + overwriteCount,
 		destVertices.begin() + insertStartIndex
 	);
-
-	// 원하는 위치에 삽입
-	/*destVertices.insert(
-		destVertices.begin() + insertStartIndex,
-		Vertices.begin(),
-		Vertices.end()
-	);*/
 }
-
-//void UGrid::RenderGrid()
-//{
-//	URenderer& Renderer = URenderer::GetInstance();
-//
-//	Renderer.RenderPrimitive(Primitive, Primitive.RenderState);
-//
-//}
-//void UGrid::SetGridProperty(float InCellSize, int32 InNumLines)
-//{
-//	this->CellSize = InCellSize;
-//	this->NumLines = InNumLines;
-//}
-//
-//void UGrid::SetLineVertices()
-//{
-//	float LineLength = CellSize * static_cast<float>(NumLines) / 2.f;
-//
-//	for (int32 LineCount = -NumLines/2; LineCount < NumLines/2; ++LineCount) // z축 라인
-//	{
-//		if (LineCount == 0)
-//		{
-//			LineVertices.push_back({ {static_cast<float>(LineCount) * CellSize,0.f , -LineLength}, Primitive.Color });
-//			LineVertices.push_back({ {static_cast<float>(LineCount) * CellSize,0.f , 0.f}, Primitive.Color });
-//		}
-//		else
-//		{
-//			LineVertices.push_back({ {static_cast<float>(LineCount) * CellSize,0.f , -LineLength}, Primitive.Color });
-//			LineVertices.push_back({ {static_cast<float>(LineCount) * CellSize,0.f , LineLength}, Primitive.Color });
-//		}
-//	}
-//	for (int32 LineCount = -NumLines / 2; LineCount < NumLines / 2; ++LineCount) // x축 라인
-//	{
-//		if (LineCount == 0)
-//		{
-//			LineVertices.push_back({ {-LineLength, 0.f, static_cast<float>(LineCount) * CellSize}, Primitive.Color });
-//			LineVertices.push_back({ {0.f, 0.f, static_cast<float>(LineCount) * CellSize}, Primitive.Color });
-//		}
-//		else
-//		{
-//			LineVertices.push_back({ {-LineLength, 0.f, static_cast<float>(LineCount) * CellSize}, Primitive.Color });
-//			LineVertices.push_back({ {LineLength, 0.f, static_cast<float>(LineCount) * CellSize}, Primitive.Color });
-//		}
-//	}
-//}

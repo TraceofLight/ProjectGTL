@@ -14,8 +14,8 @@ UBatchLines::UBatchLines()
 {
 	StaticMeshAABBVertexOffset = Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices();
 
-	Vertices.reserve(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
-	Vertices.resize(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
+	Vertices.SetNum(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
+	Vertices.SetNum(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
 
 	Grid.MergeVerticesAt(Vertices, 0);
 	BoundingBoxLines.MergeVerticesAt(Vertices, Grid.GetNumVertices());
@@ -24,13 +24,13 @@ UBatchLines::UBatchLines()
 
 	URenderer& Renderer = URenderer::GetInstance();
 
-	Primitive.NumVertices = static_cast<uint32>(Vertices.size());
-	Primitive.NumIndices = static_cast<uint32>(Indices.size());
-	Primitive.IndexBuffer = Renderer.CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));
+	Primitive.NumVertices = static_cast<uint32>(Vertices.Num());
+	Primitive.NumIndices = static_cast<uint32>(Indices.Num());
+	Primitive.IndexBuffer = Renderer.CreateIndexBuffer(Indices.GetData(), Primitive.NumIndices * sizeof(uint32));
 	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 	Primitive.Color = { 0.5f, 0.5f, 0.5f, 1.0f }; // 기본 색상(회색) 설정
 	Primitive.Vertexbuffer = Renderer.CreateVertexBuffer(
-		Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
+		Vertices.GetData(), Primitive.NumVertices * sizeof(FVector), true);
 
 	FEditorRenderResources* EditorResources = Renderer.GetEditorResources();
 	Primitive.VertexShader = EditorResources->GetEditorVertexShader(EShaderType::BatchLine);
@@ -54,9 +54,9 @@ void UBatchLines::UpdateUGridVertices(const float newCellSize)
 	Grid.UpdateVerticesBy(newCellSize);
 
 	const uint32 totalVertices = Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices();
-	if (Vertices.size() != totalVertices)
+	if (Vertices.Num() != totalVertices)
 	{
-		Vertices.resize(totalVertices);
+		Vertices.SetNum(totalVertices);
 	}
 
 	Grid.MergeVerticesAt(Vertices, 0);
@@ -107,7 +107,7 @@ void UBatchLines::SetIndices()
 	// 기존 그리드 라인 인덱스
 	for (uint32 index = 0; index < numGridVertices; ++index)
 	{
-		Indices.push_back(index);
+		Indices.Add(index);
 	}
 
 	// Bounding Box 라인 인덱스 (LineList)
@@ -134,6 +134,6 @@ void UBatchLines::SetIndices()
 	// numGridVertices 이후에 추가된 8개의 꼭짓점에 맞춰 오프셋 적용
 	for (uint32 i = 0; i < std::size(boundingBoxLineIdx); ++i)
 	{
-		Indices.push_back(numGridVertices + boundingBoxLineIdx[i]);
+		Indices.Add(numGridVertices + boundingBoxLineIdx[i]);
 	}
 }

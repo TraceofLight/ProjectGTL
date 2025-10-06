@@ -9,7 +9,7 @@ public:
 
 	TObjectIterator()
 		: Index(0)
-		, EndIndex(GUObjectArray.size())
+		, EndIndex(GUObjectArray.Num())
 	{
 		AdvanceToValid();
 	}

@@ -420,7 +420,7 @@ TArray<FPrimitiveMetadata> FJsonSerializer::FilterPrimitivesByType(const FLevelM
 	{
 		if (Primitive.Type == InType)
 		{
-			FilteredPrimitives.push_back(Primitive);
+			FilteredPrimitives.Add(Primitive);
 		}
 	}
 

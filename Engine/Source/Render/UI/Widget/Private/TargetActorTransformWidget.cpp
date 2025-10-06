@@ -108,7 +108,7 @@ void UTargetActorTransformWidget::RenderWidget()
 			ImGui::Text("StaticMesh:");
 			ImGui::SameLine();
 
-			if (!AvailableStaticMeshes.empty())
+			if (!AvailableStaticMeshes.IsEmpty())
 			{
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(200);
@@ -117,29 +117,29 @@ void UTargetActorTransformWidget::RenderWidget()
 				TArray<const char*> MeshNamesCStr;
 				for (const FString& Name : StaticMeshNames)
 				{
-					MeshNamesCStr.push_back(Name.c_str());
+					MeshNamesCStr.Add(Name.c_str());
 				}
 
-				if (ImGui::Combo("##StaticMeshSelect", &SelectedMeshIndex, MeshNamesCStr.data(),
-				                 static_cast<int>(MeshNamesCStr.size())))
+				if (ImGui::Combo("##StaticMeshSelect", &SelectedMeshIndex, MeshNamesCStr.GetData(),
+				                 static_cast<int>(MeshNamesCStr.Num())))
 				{
 					bMeshChanged = true;
 				}
 
 				// 인덱스 범위 검사
-				SelectedMeshIndex = max(0, min(SelectedMeshIndex, static_cast<int>(AvailableStaticMeshes.size()) - 1));
+				SelectedMeshIndex = max(0, min(SelectedMeshIndex, AvailableStaticMeshes.Num() - 1));
 
 				ImGui::Separator();
 				ImGui::Text("Materials");
 
-				if (!AvailableMaterials.empty())
+				if (!AvailableMaterials.IsEmpty())
 				{
 					// 머티리얼 이름들을 const char* 배열로 변환 ("None" 옵션 추가)
 					TArray<const char*> MaterialNamesCStr;
-					MaterialNamesCStr.push_back("None"); // 기본 옵션
+					MaterialNamesCStr.Add("None"); // 기본 옵션
 					for (const FString& Name : AvailableMaterialNames)
 					{
-						MaterialNamesCStr.push_back(Name.c_str());
+						MaterialNamesCStr.Add(Name.c_str());
 					}
 
 					// 각 머티리얼 슬롯에 대해 콤보박스 생성
@@ -154,8 +154,8 @@ void UTargetActorTransformWidget::RenderWidget()
 
 						// 콤보박스 ID를 고유하게 만들기 위해 SlotIndex 사용
 						FString ComboID = "##MaterialSlot" + std::to_string(SlotIndex);
-						if (ImGui::Combo(ComboID.c_str(), &CurrentSelection, MaterialNamesCStr.data(),
-						                 static_cast<int>(MaterialNamesCStr.size())))
+						if (ImGui::Combo(ComboID.c_str(), &CurrentSelection, MaterialNamesCStr.GetData(),
+						                 MaterialNamesCStr.Num()))
 						{
 							// 선택이 변경되면 MaterialOverrideMap 업데이트
 							UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
@@ -171,8 +171,7 @@ void UTargetActorTransformWidget::RenderWidget()
 								{
 									// 새로운 머티리얼로 오버라이드
 									int32 MaterialIndex = CurrentSelection - 1;
-									if (MaterialIndex >= 0 && MaterialIndex <
-										static_cast<int32>(AvailableMaterials.size()))
+									if (MaterialIndex >= 0 && MaterialIndex < AvailableMaterials.Num())
 									{
 										UMaterialInterface* SelectedMaterial = AvailableMaterials[MaterialIndex];
 										StaticMeshComponent->SetMaterialOverride(SlotIndex, SelectedMaterial);
@@ -236,15 +235,15 @@ void UTargetActorTransformWidget::ApplyTransformToActor() const
  */
 void UTargetActorTransformWidget::RefreshStaticMeshList()
 {
-	AvailableStaticMeshes.clear();
-	StaticMeshNames.clear();
+	AvailableStaticMeshes.Empty();
+	StaticMeshNames.Empty();
 
 	// ObjectIterator를 사용해 모든 UStaticMesh 오브젝트 순회
 	for (UStaticMesh* StaticMesh : MakeObjectRange<UStaticMesh>())
 	{
 		if (StaticMesh && StaticMesh->IsValidMesh())
 		{
-			AvailableStaticMeshes.push_back(StaticMesh);
+			AvailableStaticMeshes.Add(StaticMesh);
 
 			// StaticMesh 이름 생성 (경로나 에셋 이름 사용)
 			FString MeshName = StaticMesh->GetAssetPathFileName();
@@ -256,7 +255,7 @@ void UTargetActorTransformWidget::RefreshStaticMeshList()
 				MeshName = MeshName.substr(LastSlash + 1);
 			}
 
-			StaticMeshNames.push_back(MeshName);
+			StaticMeshNames.Add(MeshName);
 		}
 	}
 
@@ -274,7 +273,7 @@ void UTargetActorTransformWidget::RefreshStaticMeshList()
 				if (CurrentMesh)
 				{
 					// 현재 메시와 일치하는 인덱스 찾기
-					for (int32 i = 0; i < static_cast<int32>(AvailableStaticMeshes.size()); ++i)
+					for (int32 i = 0; i < static_cast<int32>(AvailableStaticMeshes.Num()); ++i)
 					{
 						if (AvailableStaticMeshes[i] == CurrentMesh)
 						{
@@ -288,7 +287,7 @@ void UTargetActorTransformWidget::RefreshStaticMeshList()
 	}
 
 	// 선택된 인덱스 범위 검사
-	if (SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.size()))
+	if (SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.Num()))
 	{
 		SelectedMeshIndex = 0;
 	}
@@ -299,8 +298,8 @@ void UTargetActorTransformWidget::RefreshStaticMeshList()
  */
 void UTargetActorTransformWidget::ApplyStaticMeshToActor()
 {
-	if (!SelectedActor || AvailableStaticMeshes.empty() || SelectedMeshIndex < 0 ||
-		SelectedMeshIndex >= static_cast<int32>(AvailableStaticMeshes.size()))
+	if (!SelectedActor || AvailableStaticMeshes.IsEmpty() || SelectedMeshIndex < 0 ||
+		SelectedMeshIndex >= AvailableStaticMeshes.Num())
 	{
 		return;
 	}
@@ -321,27 +320,27 @@ void UTargetActorTransformWidget::ApplyStaticMeshToActor()
 
 void UTargetActorTransformWidget::RefreshMaterialList()
 {
-	AvailableMaterials.clear();
-	AvailableMaterialNames.clear();
+	AvailableMaterials.Empty();
+	AvailableMaterialNames.Empty();
 	// ObjectIterator를 사용해 모든 UMaterial 및 Material Name 수집
 	for (UMaterial* Material : MakeObjectRange<UMaterial>())
 	{
 		if (Material)
 		{
-			AvailableMaterials.push_back(Material);
+			AvailableMaterials.Add(Material);
 			FString MaterialName = Material->GetMaterialName();
-			AvailableMaterialNames.push_back(MaterialName);
+			AvailableMaterialNames.Add(MaterialName);
 		}
 	}
 
 	// 선택된 액터의 머티리얼 슬롯 개수 및 인덱스 초기화
 	SelectedActorMaterialSlotCount = 0;
-	SelectedMaterialIndices.clear();
+	SelectedMaterialIndices.Empty();
 	if (UStaticMesh* CurrentMesh = ExtractUStaticMeshFromActor(SelectedActor))
 	{
 		const TArray<UMaterialInterface*>& MaterialSlots = CurrentMesh->GetMaterialSlots();
-		SelectedActorMaterialSlotCount = static_cast<int32>(MaterialSlots.size());
-		SelectedMaterialIndices.resize(SelectedActorMaterialSlotCount, -1); // -1로 초기화 (None 선택)
+		SelectedActorMaterialSlotCount = static_cast<int32>(MaterialSlots.Num());
+		SelectedMaterialIndices.SetNum(SelectedActorMaterialSlotCount, -1); // -1로 초기화 (None 선택)
 
 		// 각 머티리얼 슬롯에 대해 현재 적용된 머티리얼의 인덱스 찾기
 		AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor);
@@ -368,7 +367,7 @@ void UTargetActorTransformWidget::RefreshMaterialList()
 			if (CurrentMaterial)
 			{
 				bool bFoundMaterial = false;
-				for (int32 MatIndex = 0; MatIndex < static_cast<int32>(AvailableMaterials.size()); ++MatIndex)
+				for (int32 MatIndex = 0; MatIndex < static_cast<int32>(AvailableMaterials.Num()); ++MatIndex)
 				{
 					if (AvailableMaterials[MatIndex] == CurrentMaterial)
 					{

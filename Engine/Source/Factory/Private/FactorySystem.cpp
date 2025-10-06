@@ -55,9 +55,9 @@ void FFactorySystem::PrintAllFactories()
 {
 	TArray<TObjectPtr<UFactory>>& FactoryList = UFactory::GetFactoryList();
 
-	UE_LOG("=== Factory System: Registered Factories (%llu) ===", FactoryList.size());
+	UE_LOG("=== Factory System: Registered Factories (%d) ===", FactoryList.Num());
 
-	for (size_t i = 0; i < FactoryList.size(); ++i)
+	for (size_t i = 0; i < FactoryList.Num(); ++i)
 	{
 		const UFactory* Factory = FactoryList[i];
 		if (Factory)

@@ -70,34 +70,34 @@ void FEditorRenderResources::InitializeGizmoBuffers(URHIDevice* InRHIDevice)
 {
 	// Arrow 기즈모 버퍼 생성
 	ID3D11Buffer* ArrowBuffer = InRHIDevice->CreateVertexBuffer(
-		VerticesArrow.data(),
-		static_cast<uint32>(VerticesArrow.size() * sizeof(FVertex)));
+		VerticesArrow.GetData(),
+		static_cast<uint32>(VerticesArrow.Num() * sizeof(FVertex)));
 	if (ArrowBuffer)
 	{
 		GizmoVertexBuffers.emplace(EPrimitiveType::Arrow, ArrowBuffer);
-		GizmoVertexCounts.emplace(EPrimitiveType::Arrow, static_cast<uint32>(VerticesArrow.size()));
+		GizmoVertexCounts.emplace(EPrimitiveType::Arrow, static_cast<uint32>(VerticesArrow.Num()));
 		UE_LOG("EditorRenderResources: Arrow 버퍼 생성 완료");
 	}
 
 	// CubeArrow 기즈모 버퍼 생성
 	ID3D11Buffer* CubeArrowBuffer = InRHIDevice->CreateVertexBuffer(
-		VerticesCubeArrow.data(),
-		static_cast<uint32>(VerticesCubeArrow.size() * sizeof(FVertex)));
+		VerticesCubeArrow.GetData(),
+		static_cast<uint32>(VerticesCubeArrow.Num() * sizeof(FVertex)));
 	if (CubeArrowBuffer)
 	{
 		GizmoVertexBuffers.emplace(EPrimitiveType::CubeArrow, CubeArrowBuffer);
-		GizmoVertexCounts.emplace(EPrimitiveType::CubeArrow, static_cast<uint32>(VerticesCubeArrow.size()));
+		GizmoVertexCounts.emplace(EPrimitiveType::CubeArrow, static_cast<uint32>(VerticesCubeArrow.Num()));
 		UE_LOG("EditorRenderResources: CubeArrow 버퍼 생성 완료");
 	}
 
 	// Ring 기즈모 버퍼 생성
 	ID3D11Buffer* RingBuffer = InRHIDevice->CreateVertexBuffer(
-		VerticesRing.data(),
-		static_cast<uint32>(VerticesRing.size() * sizeof(FVertex)));
+		VerticesRing.GetData(),
+		static_cast<uint32>(VerticesRing.Num() * sizeof(FVertex)));
 	if (RingBuffer)
 	{
 		GizmoVertexBuffers.emplace(EPrimitiveType::Ring, RingBuffer);
-		GizmoVertexCounts.emplace(EPrimitiveType::Ring, static_cast<uint32>(VerticesRing.size()));
+		GizmoVertexCounts.emplace(EPrimitiveType::Ring, static_cast<uint32>(VerticesRing.Num()));
 		UE_LOG("EditorRenderResources: Ring 버퍼 생성 완료");
 	}
 

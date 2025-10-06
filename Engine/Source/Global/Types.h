@@ -9,8 +9,6 @@
 #include <stack>
 
 template<typename T, typename Alloc = std::allocator<T>>
-using TArray = std::vector<T, Alloc>;
-template<typename T, typename Alloc = std::allocator<T>>
 using TLinkedList = std::list<T, Alloc>;
 template<typename T, typename Alloc = std::allocator<T>>
 using TDoubleLinkedList = std::list<T, Alloc>;

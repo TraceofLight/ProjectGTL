@@ -168,7 +168,7 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 		{
 			// 엔진 초기화 미완료: 큐에 보관
 			lock_guard Lock(WindowInstance->WindowEventMutex);
-			WindowInstance->PendingWindowEvents.push_back({InWindowHandle, InMessage, InWParam, InLParam});
+			WindowInstance->PendingWindowEvents.Add({InWindowHandle, InMessage, InWParam, InLParam});
 		}
 		return 0;
 	}
@@ -365,5 +365,5 @@ void FAppWindow::ProcessPendingWindowEvents()
 		ProcessWindowMessage(Event);
 	}
 
-	PendingWindowEvents.clear();
+	PendingWindowEvents.Empty();
 }

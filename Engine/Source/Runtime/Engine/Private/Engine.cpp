@@ -70,7 +70,7 @@ void UEngine::TickEngineSubsystems(FAppWindow* InWindow)
 	{
 		if (InSubsystem && InSubsystem->IsTickable())
 		{
-			TickableSubsystems.push_back(InSubsystem);
+			TickableSubsystems.Add(InSubsystem);
 		}
 	});
 
