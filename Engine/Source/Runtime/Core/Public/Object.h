@@ -3,6 +3,8 @@
 #include "Name.h"
 #include "ObjectPtr.h"
 
+class UWorld;
+
 UCLASS()
 class UObject
 {
@@ -27,6 +29,7 @@ public:
 	// Getter & Setter
 	const FName& GetName() const { return Name; }
 	TObjectPtr<UObject> GetOuter() const { return Outer; }
+	virtual TObjectPtr<UWorld> GetWorld() const { return nullptr; }
 
 	void SetName(const FName& InName) { Name = InName; }
 	void SetOuter(UObject* InObject);
@@ -217,6 +220,30 @@ template <typename T, typename U>
 bool IsValid(const TObjectPtr<U>& InObjectPtr)
 {
 	return InObjectPtr && IsA<T>(InObjectPtr);
+}
+
+
+template<typename T>
+T* GetTypedOuter(const UObject* InObject)
+{
+	if (!InObject)
+	{
+		return nullptr;
+	}
+
+	// Outer 체인을 따라 올라가는 루프
+	const UObject* CurrentOuter = InObject->GetOuter();
+	while (CurrentOuter != nullptr)
+	{
+		if (CurrentOuter->IsA(T::StaticClass))
+		{
+			return static_cast<T*>(const_cast<UObject*>(CurrentOuter));
+		}
+
+		CurrentOuter = CurrentOuter->GetOuter();
+	}
+
+	return nullptr;
 }
 
 extern TArray<TObjectPtr<UObject>> GUObjectArray;

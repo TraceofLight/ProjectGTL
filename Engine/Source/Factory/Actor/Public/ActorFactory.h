@@ -15,7 +15,7 @@ class UActorFactory :
 	DECLARE_CLASS(UActorFactory, UFactory)
 
 public:
-	virtual TObjectPtr<AActor> CreateActor(TObjectPtr<UObject> InWorld, TObjectPtr<ULevel> InLevel,
+	virtual TObjectPtr<AActor> CreateActor(TObjectPtr<UWorld> InWorld, TObjectPtr<ULevel> InLevel,
 	                            const FTransform& InTransform = FTransform(), uint32 InObjectFlags = 0);
 
 	bool IsActorFactory() const override { return true; }

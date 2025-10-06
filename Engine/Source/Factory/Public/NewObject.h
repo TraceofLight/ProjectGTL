@@ -64,7 +64,7 @@ TObjectPtr<T> NewObject(TObjectPtr<UObject> InOuter = nullptr, TObjectPtr<UClass
  * @return 생성된 Actor
  */
 template <typename T>
-TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransform = FTransform(),
+TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransform = {},
                          const FName& InName = FName::FName_None)
 {
 	static_assert(is_base_of_v<AActor, T>, "생성할 클래스는 AActor를 반드시 상속 받아야 합니다");
@@ -77,7 +77,7 @@ TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransfo
 		TObjectPtr<AActor> NewActor = ActorFactory->CreateActor(nullptr, InLevel, InTransform);
 		if (NewActor)
 		{
-			return Cast<T>(NewActor);
+			return NewActor;
 		}
 	}
 
@@ -85,7 +85,7 @@ TObjectPtr<T> SpawnActor(TObjectPtr<ULevel> InLevel, const FTransform& InTransfo
 	UE_LOG_WARNING("NewObject: %s를 생성할 Factory를 찾지 못해, new를 통한 폴백 생성으로 처리합니다",
 	               T::StaticClass()->GetClassTypeName().ToString().data());
 
-	TObjectPtr<T> NewActor = NewObject<T>(InLevel, nullptr, InName);
+	TObjectPtr<T> NewActor = NewObject<T>(InLevel, T::StaticClass, InName);
 
 	// 폴백 경로에서도 RootComponent 확인 필요
 	if (NewActor)

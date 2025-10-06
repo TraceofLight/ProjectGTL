@@ -148,9 +148,19 @@ void USceneHierarchyWidget::RenderActorInfo(TObjectPtr<AActor> InActor, int32 In
 
 	// 현재 선택된 Actor인지 확인
 	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
-	if (!WorldSS) return;
+	if (!WorldSS)
+	{
+		return;
+	}
+
+	UEditor* Editor = WorldSS->GetEditor();
+	if (!Editor)
+	{
+		return;
+	}
+
 	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();
-	bool bIsSelected = (CurrentLevel && CurrentLevel->GetSelectedActor() == InActor);
+	bool bIsSelected = CurrentLevel && Editor->GetGizmo()->GetSelectedActor() == InActor;
 
 	// 선택된 Actor는 하이라이트
 	if (bIsSelected)
@@ -318,7 +328,13 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 	TObjectPtr<ULevel> CurrentLevel = WorldSS->GetCurrentLevel();
 	if (CurrentLevel)
 	{
-		CurrentLevel->SetSelectedActor(InActor);
+		UEditor* Editor = WorldSS->GetEditor();
+		if (!Editor)
+		{
+			return;
+		}
+
+		Editor->GetGizmo()->SetSelectedActor(InActor);
 
 		// 카메라 포커싱은 더블 클릭에서만 수행
 		// 우클릭 중에는 포커싱하지 않음 (카메라 조작 모드)

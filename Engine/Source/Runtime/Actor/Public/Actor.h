@@ -49,7 +49,9 @@ public:
 	const FVector& GetActorScale3D() const;
 
 	// PrimitiveComponent 관련 함수들
-	TArray<class UPrimitiveComponent*> GetPrimitiveComponents() const;
+	TArray<UPrimitiveComponent*> GetPrimitiveComponents() const;
+	TObjectPtr<UWorld> GetWorld() const override;
+	TObjectPtr<ULevel> GetLevel() const;
 
 	bool IsActorTickEnabled() const { return bTickInEditor; }
 

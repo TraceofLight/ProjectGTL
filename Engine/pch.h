@@ -82,8 +82,6 @@ using filesystem::create_directories;
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
 
-#include "Factory/Public/NewObject.h"
-
 // DT Include - 전역 DeltaTime 접근을 위한 extern 선언
 extern float GDeltaTime;
 

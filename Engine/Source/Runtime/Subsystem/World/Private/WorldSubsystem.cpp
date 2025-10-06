@@ -425,7 +425,7 @@ bool UWorldSubsystem::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FL
 		switch (PrimitiveMeta.Type)
 		{
 		case EPrimitiveType::StaticMeshComp:
-			NewActor = InLevel->SpawnActor<AStaticMeshActor>("StaticMeshActor");
+			NewActor = InLevel->SpawnActor<AStaticMeshActor>();
 			break;
 		default:
 			UE_LOG("WorldSubsystem: Unknown Primitive Type: %d", static_cast<int32>(PrimitiveMeta.Type));

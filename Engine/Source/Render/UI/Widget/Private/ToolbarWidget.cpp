@@ -151,7 +151,7 @@ void UToolbarWidget::SpawnActorAtViewportCenter()
 	FVector SpawnLocation(0.0f, 0.0f, 0.0f);
 
 	// Actor 생성 (기본 SceneComponent만 가진 빈 액터)
-	AActor* NewActor = CurrentLevel->SpawnActor<AActor>("Actor");
+	AActor* NewActor = CurrentLevel->SpawnActor<AActor>();
 	if (NewActor)
 	{
 		NewActor->SetActorLocation(SpawnLocation);
@@ -192,7 +192,7 @@ void UToolbarWidget::SpawnStaticMeshActorAtViewportCenter()
 	FVector SpawnLocation(0.0f, 0.0f, 0.0f);
 
 	// StaticMeshActor 생성
-	AStaticMeshActor* NewActor = CurrentLevel->SpawnActor<AStaticMeshActor>("StaticMeshActor");
+	AStaticMeshActor* NewActor = CurrentLevel->SpawnActor<AStaticMeshActor>();
 	if (NewActor)
 	{
 		NewActor->SetActorLocation(SpawnLocation);

@@ -5,6 +5,7 @@
 #include "Runtime/Component/Public/SceneComponent.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
+#include "Runtime/Level/Public/Level.h"
 
 IMPLEMENT_CLASS(AActor, UObject)
 
@@ -148,4 +149,20 @@ TArray<UPrimitiveComponent*> AActor::GetPrimitiveComponents() const
 	}
 
 	return PrimitiveComponents;
+}
+
+TObjectPtr<UWorld> AActor::GetWorld() const
+{
+	const TObjectPtr<ULevel> Level = GetLevel();
+	if (Level)
+	{
+		return Level->GetWorld();
+	}
+
+	return nullptr;
+}
+
+TObjectPtr<ULevel> AActor::GetLevel() const
+{
+	return TObjectPtr(GetTypedOuter<ULevel>(this));
 }

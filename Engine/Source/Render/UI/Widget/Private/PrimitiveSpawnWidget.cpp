@@ -171,7 +171,7 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 	// 지정된 개수만큼 액터 생성
 	for (int32 i = 0; i < NumberOfSpawn; i++)
 	{
-		AStaticMeshActor* StaticMeshActor = CurrentLevel->SpawnActor<AStaticMeshActor>("StaticMeshActor");
+		AStaticMeshActor* StaticMeshActor = CurrentLevel->SpawnActor<AStaticMeshActor>();
 
 		if (StaticMeshActor)
 		{
