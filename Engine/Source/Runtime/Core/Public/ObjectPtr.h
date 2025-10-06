@@ -11,6 +11,7 @@ struct TObjectPtr;
 /**
  * @brief 기본적인 스마트 포인터 클래스
  * 언리얼 엔진 코드의 ObjectPtr을 프로젝트 상황에 맞게 로컬라이징한 버전
+ * 해당 포인터는 UObject를 위해서만 관리되기 때문에 다른 클래스에 사용하면 안된다
  */
 class ObjectPtr
 {

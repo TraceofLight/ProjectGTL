@@ -2,7 +2,6 @@
 #include "Render/UI/Window/Public/DetailWindow.h"
 
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
-#include "Render/UI/Widget/Public/ActorTerminationWidget.h"
 #include "Render/UI/Widget/Public/TargetActorTransformWidget.h"
 
 /**

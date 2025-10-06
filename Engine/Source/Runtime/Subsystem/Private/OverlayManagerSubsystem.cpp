@@ -54,9 +54,9 @@ void UOverlayManagerSubsystem::Deinitialize()
 /**
  * @brief 매 프레임 업데이트 함수
  */
-void UOverlayManagerSubsystem::Tick()
+void UOverlayManagerSubsystem::Tick(float DeltaSeconds)
 {
-	Super::Tick();
+	Super::Tick(DeltaSeconds);
 
 	UpdateFPS();
 	UpdateMemoryInfo();

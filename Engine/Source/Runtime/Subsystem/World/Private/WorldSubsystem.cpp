@@ -54,12 +54,8 @@ bool UWorldSubsystem::IsTickable() const
 	return true; // 매 프레임 업데이트가 필요하므로 true
 }
 
-void UWorldSubsystem::Tick()
+void UWorldSubsystem::Tick(float DeltaSeconds)
 {
-	if (CurrentLevel)
-	{
-		CurrentLevel->Update();
-	}
 	if (Editor)
 	{
 		Editor->Update();

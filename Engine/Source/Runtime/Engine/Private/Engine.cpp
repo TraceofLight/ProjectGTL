@@ -77,7 +77,7 @@ void UEngine::TickEngineSubsystems(FAppWindow* InWindow)
 	// 정렬된 순서대로 Tick 호출
 	for (UEngineSubsystem* Subsystem : TickableSubsystems)
 	{
-		Subsystem->Tick();
+		Subsystem->Tick(DT);
 	}
 }
 

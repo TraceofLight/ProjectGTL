@@ -49,12 +49,6 @@ UObject::~UObject()
 		}
 	}
 
-	// Outer에서 메모리 사용량 제거
-	if (Outer)
-	{
-		Outer->PropagateMemoryChange(-static_cast<int64>(AllocatedBytes), -static_cast<int32>(AllocatedCounts));
-	}
-
 	CheckAndCleanupGUObjectArray();
 }
 
@@ -65,50 +59,7 @@ void UObject::SetOuter(UObject* InObject)
 		return;
 	}
 
-	// 기존 Outer가 있었다면, 나의 전체 메모리 사용량을 빼달라고 전파
-	// 새로운 Outer가 있다면, 나의 전체 메모리 사용량을 더해달라고 전파
-	if (Outer)
-	{
-		Outer->PropagateMemoryChange(-static_cast<int64>(AllocatedBytes), -static_cast<int32>(AllocatedCounts));
-	}
-
 	Outer = InObject;
-
-	if (Outer)
-	{
-		Outer->PropagateMemoryChange(AllocatedBytes, AllocatedCounts);
-	}
-}
-
-void UObject::AddMemoryUsage(uint64 InBytes, uint32 InCount)
-{
-	uint64 BytesToAdd = InBytes;
-
-	if (!BytesToAdd)
-	{
-		BytesToAdd = GetClass()->GetClassSize();
-	}
-
-	// 메모리 변경 전파
-	PropagateMemoryChange(BytesToAdd, InCount);
-}
-
-void UObject::RemoveMemoryUsage(uint64 InBytes, uint32 InCount)
-{
-	PropagateMemoryChange(-static_cast<int64>(InBytes), -static_cast<int32>(InCount));
-}
-
-void UObject::PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta)
-{
-	// 자신의 값에 변화량을 더함
-	AllocatedBytes += InBytesDelta;
-	AllocatedCounts += InCountDelta;
-
-	// Outer가 있다면, 동일한 변화량을 그대로 전파
-	if (Outer)
-	{
-		Outer->PropagateMemoryChange(InBytesDelta, InCountDelta);
-	}
 }
 
 /**
@@ -179,6 +130,19 @@ uint32 UObject::GetNullObjectCount()
 	}
 
 	return NullCount;
+}
+
+/**
+ * @brief 현재 UObject를 복제하여 새로운 인스턴스를 생성하는 함수
+ * 얕은 복사를 통해 NewObject를 생성, 이후 깊은 복사가 필요한 서브오브젝트들은 재귀적으로 처리
+ * @return 복제된 새로운 UObject 인스턴스에 대한 포인터
+ */
+UObject* UObject::Duplicate()
+{
+	UObject* NewObject = new UObject(*this);
+	NewObject->DuplicateSubObjects();
+
+	return NewObject;
 }
 
 /**

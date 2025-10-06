@@ -88,9 +88,9 @@ void UUISubsystem::Deinitialize()
 /**
  * @brief 모든 UI 윈도우 업데이트 (매 프레임 호출)
  */
-void UUISubsystem::Tick()
+void UUISubsystem::Tick(float DeltaSeconds)
 {
-	TotalTime += DT;
+	TotalTime += DeltaSeconds;
 
 	// 모든 UI 윈도우 업데이트
 	for (auto Window : UIWindows)

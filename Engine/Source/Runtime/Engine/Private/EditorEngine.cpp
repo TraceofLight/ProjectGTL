@@ -1,18 +1,18 @@
 #include "pch.h"
-#include "Runtime/Engine/Public/EngineEditor.h"
+#include "Runtime/Engine/Public/EditorEngine.h"
 
-UEngineEditor* GEditor = nullptr;
+UEditorEngine* GEditor = nullptr;
 
-IMPLEMENT_SINGLETON_CLASS(UEngineEditor, UObject)
+IMPLEMENT_SINGLETON_CLASS(UEditorEngine, UObject)
 
-UEngineEditor::UEngineEditor()
+UEditorEngine::UEditorEngine()
 {
 	// 생성자에서 에디터 모드 기본 활성화
 	bIsEditorMode = true;
 	GEditor = this;
 }
 
-UEngineEditor::~UEngineEditor()
+UEditorEngine::~UEditorEngine()
 {
 	// 소멸자에서 정리 작업
 	if (bIsInitialized)
@@ -27,7 +27,7 @@ UEngineEditor::~UEngineEditor()
  * @brief 엔진 에디터 초기화 함수
  * 전역 에디터 인스턴스 설정 및 에디터 서브시스템 컬렉션 초기화
  */
-void UEngineEditor::Initialize()
+void UEditorEngine::Initialize()
 {
 	if (!bIsInitialized && bIsEditorMode)
 	{
@@ -49,7 +49,7 @@ void UEngineEditor::Initialize()
  * @brief 엔진 에디터 종료 함수
  * 여기서 엔진 에디터 서브시스템 컬렉션 정리
  */
-void UEngineEditor::Shutdown()
+void UEditorEngine::Shutdown()
 {
 	if (bIsInitialized)
 	{
@@ -62,7 +62,7 @@ void UEngineEditor::Shutdown()
  * @brief Editor의 Tick 함수
  * 모든 에디터 서브시스템에 업데이트 이벤트를 전달한다
  */
-void UEngineEditor::EditorUpdate()
+void UEditorEngine::EditorUpdate()
 {
 	if (bIsInitialized && bIsEditorMode)
 	{
@@ -79,7 +79,7 @@ void UEngineEditor::EditorUpdate()
 /**
  * @brief 기본 에디터 서브시스템들을 등록하는 함수
  */
-void UEngineEditor::RegisterDefaultEditorSubsystems()
+void UEditorEngine::RegisterDefaultEditorSubsystems()
 {
 	// TODO(KHJ): 필요하면 기본 서브시스템 등록
 }

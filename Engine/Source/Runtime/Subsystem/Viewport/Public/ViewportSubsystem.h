@@ -32,7 +32,7 @@ public:
 	void PostInitialize() override;
 	void Deinitialize() override;
 	bool IsTickable() const override { return true; }
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 
 	/**
 	 * @brief 뷰포트 서브시스템 초기화

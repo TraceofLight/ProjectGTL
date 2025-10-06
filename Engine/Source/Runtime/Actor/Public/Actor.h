@@ -36,7 +36,7 @@ public:
 
 	virtual void BeginPlay();
 	virtual void EndPlay();
-	virtual void Tick();
+	virtual void Tick(float DeltaSeconds);
 
 	// Getter & Setter
 	USceneComponent* GetRootComponent() const { return RootComponent.Get(); }
@@ -51,10 +51,12 @@ public:
 	// PrimitiveComponent 관련 함수들
 	TArray<class UPrimitiveComponent*> GetPrimitiveComponents() const;
 
+	bool IsActorTickEnabled() const { return bTickInEditor; }
+
 private:
 	TObjectPtr<USceneComponent> RootComponent = nullptr;
-	TObjectPtr<UBillBoardComponent> BillBoardComponent = nullptr;
 	TArray<TObjectPtr<UActorComponent>> OwnedComponents;
+	bool bTickInEditor = false;
 };
 
 template <typename T>

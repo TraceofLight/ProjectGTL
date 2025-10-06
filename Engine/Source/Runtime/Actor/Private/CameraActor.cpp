@@ -38,9 +38,9 @@ void ACameraActor::BeginPlay()
 	AActor::BeginPlay();
 }
 
-void ACameraActor::Tick()
+void ACameraActor::Tick(float DeltaSeconds)
 {
-	AActor::Tick();
+	AActor::Tick(DeltaSeconds);
 
 	if (!CameraComponent)
 		return;

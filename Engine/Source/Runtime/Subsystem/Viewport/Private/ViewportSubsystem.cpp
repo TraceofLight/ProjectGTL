@@ -58,7 +58,7 @@ void UViewportSubsystem::Deinitialize()
 	Release();
 }
 
-void UViewportSubsystem::Tick()
+void UViewportSubsystem::Tick(float DeltaSeconds)
 {
 	Update();
 }
@@ -331,7 +331,7 @@ void UViewportSubsystem::TickCameras() const
 	{
 		if (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < N)
 		{
-			Clients[ActiveRmbViewportIdx]->Tick();
+			Clients[ActiveRmbViewportIdx]->Tick(DT);
 		}
 	}
 }

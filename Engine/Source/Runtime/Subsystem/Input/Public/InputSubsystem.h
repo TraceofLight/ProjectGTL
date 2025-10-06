@@ -20,7 +20,7 @@ public:
 
 	void PrepareNewFrame();
 	bool IsTickable() const override { return true; }
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 
 	void UpdateMousePosition(const FAppWindow* InWindow);
 	void ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LParam);

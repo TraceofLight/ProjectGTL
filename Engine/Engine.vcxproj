@@ -238,9 +238,11 @@
     <ClInclude Include="Source\Runtime\Core\Public\Templates\UniquePtr.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\WeakPtr.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\Engine.h" />
-    <ClInclude Include="Source\Runtime\Engine\Public\EngineEditor.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\EditorEngine.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\GameInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\LocalPlayer.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\World.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\WorldTypes.h" />
     <ClInclude Include="Source\Runtime\Level\Public\Level.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Asset\Public\AssetSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Config\Public\ConfigSubsystem.h" />
@@ -256,7 +258,6 @@
     <ClInclude Include="Source\Render\UI\ImGui\Public\ImGuiHelper.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ActorDetailWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\BottomBarWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\ActorTerminationWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ConsoleWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\FPSWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
@@ -353,6 +354,8 @@
     <ClCompile Include="Source\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\World.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\WorldTypes.cpp" />
     <ClCompile Include="Source\Runtime\Level\Private\Level.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Asset\Private\AssetSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Config\Private\ConfigSubsystem.cpp" />
@@ -369,7 +372,6 @@
     <ClCompile Include="Source\Render\UI\ImGui\Private\ImGuiHelper.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ActorDetailWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\BottomBarWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\ActorTerminationWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ConsoleWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\FPSWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />
@@ -393,7 +395,7 @@
     <ClCompile Include="Source\Runtime\Subsystem\Private\SubsystemCollection.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\GameInstanceSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\Engine.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\Private\EngineEditor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\EditorEngine.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\GameInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\LocalPlayer.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\UI\Private\UISubsystem.cpp" />

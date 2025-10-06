@@ -21,7 +21,7 @@ public:
 
 	void BeginPlay() override;
 	void EndPlay() override;
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 
 	// StaticMesh 관련 함수들
 	void SetStaticMesh(class UStaticMesh* InStaticMesh);

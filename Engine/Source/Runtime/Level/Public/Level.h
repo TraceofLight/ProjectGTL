@@ -44,7 +44,6 @@ public:
 	void Release();
 
 	virtual void Init();
-	virtual void Update();
 	virtual void Render();
 	virtual void Cleanup();
 
@@ -78,9 +77,6 @@ private:
 	// 빌보드는 처음에 표시 안하는 게 좋다는 의견이 있어 빌보드만 꺼놓고 출력
 	uint64 ShowFlags = static_cast<uint64>(EEngineShowFlags::SF_Primitives) |
 		static_cast<uint64>(EEngineShowFlags::SF_Bounds);
-
-	// 지연 삭제 처리 함수
-	void ProcessPendingDeletions();
 };
 
 template <typename T, typename... Args>

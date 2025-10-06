@@ -28,7 +28,7 @@ public:
 	void Initialize() override;
 	void Deinitialize() override;
 	bool IsTickable() const override { return true; }
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 
 	void Render();
 	bool RegisterUIWindow(TObjectPtr<UUIWindow> InWindow);

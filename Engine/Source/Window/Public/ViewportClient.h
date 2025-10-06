@@ -33,7 +33,7 @@ public:
 
 
 public:
-	void Tick() const;
+	void Tick(float DeltaSeconds) const;
 	void Draw(const FViewport* InViewport) const;
 
 

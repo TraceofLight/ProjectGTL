@@ -82,23 +82,6 @@ void ULevel::Init()
 	// TEST CODE
 }
 
-void ULevel::Update()
-{
-	// Process Delayed Task
-	ProcessPendingDeletions();
-
-	uint64 AllocatedByte = GetAllocatedBytes();
-	uint32 AllocatedCount = GetAllocatedCount();
-
-	for (auto& Actor : LevelActors)
-	{
-		if (Actor)
-		{
-			Actor->Tick();
-		}
-	}
-}
-
 void ULevel::Render()
 {
 }
@@ -205,51 +188,4 @@ void ULevel::MarkActorForDeletion(TObjectPtr<AActor> InActor)
 	{
 		SelectedActor = nullptr;
 	}
-}
-
-/**
- * @brief Level에서 Actor를 실질적으로 제거하는 함수
- * 이전 Tick에서 마킹된 Actor를 제거한다
- */
-void ULevel::ProcessPendingDeletions()
-{
-	if (ActorsToDelete.empty())
-	{
-		return;
-	}
-
-	UE_LOG("Level: %zu개의 객체 지연 삭제 프로세스 처리 시작", ActorsToDelete.size());
-
-	// 대기 중인 액터들의 Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
-	for (auto& ActorToDelete : ActorsToDelete)
-	{
-		if (!ActorToDelete)
-			continue;
-
-		// 혹시 남아있을 수 있는 참조 정리
-		if (SelectedActor == ActorToDelete)
-		{
-			SelectedActor = nullptr;
-		}
-
-		// LevelActors 리스트에서 제거
-		for (auto Iterator = LevelActors.begin(); Iterator != LevelActors.end(); ++Iterator)
-		{
-			if (*Iterator == ActorToDelete)
-			{
-				LevelActors.erase(Iterator);
-				break;
-			}
-		}
-
-		FName DeletedActorName = ActorToDelete->GetName();
-
-		// Outer 관계를 끊어서 GC에서 자연스럽게 정리되도록 함
-		ActorToDelete->SetOuter(nullptr);
-		UE_LOG("Level: Actor 제거 마킹: %s", DeletedActorName.ToString().data());
-	}
-
-	// Clear TArray
-	ActorsToDelete.clear();
-	UE_LOG("Level: 모든 지연 삭제 프로세스 완료");
 }

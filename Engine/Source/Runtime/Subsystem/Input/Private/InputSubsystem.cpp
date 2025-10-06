@@ -113,7 +113,7 @@ void UInputSubsystem::InitializeMouseClickStatus()
 	ClickCount[EKeyInput::MouseMiddle] = 0;
 }
 
-void UInputSubsystem::Tick()
+void UInputSubsystem::Tick(float DeltaSeconds)
 {
 	if (FAppWindow* Window = GEngine->GetAppWindow())
 	{

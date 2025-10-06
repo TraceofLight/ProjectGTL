@@ -33,7 +33,7 @@ public:
 	// USubsystem interface
 	void Initialize() override;
 	void Deinitialize() override;
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 	bool IsTickable() const override { return true; }
 
 	// Overlay control

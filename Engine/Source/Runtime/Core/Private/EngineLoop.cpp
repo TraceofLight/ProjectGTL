@@ -3,7 +3,7 @@
 
 #include "Runtime/Core/Public/AppWindow.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Engine/Public/EngineEditor.h"
+#include "Runtime/Engine/Public/EditorEngine.h"
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
 #include "Runtime/Subsystem/UI/Public/UISubsystem.h"
@@ -98,7 +98,7 @@ void FEngineLoop::Init() const
 	GEngine->Initialize();
 
 #ifdef EDITOR_MODE
-	UEngineEditor::GetInstance();
+	UEditorEngine::GetInstance();
 	GEditor->Initialize();
 #endif
 

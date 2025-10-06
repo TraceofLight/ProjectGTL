@@ -73,7 +73,7 @@ using filesystem::create_directories;
 #include "Source/Render/UI/Window/Public/ConsoleWindow.h"
 
 #include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Engine/Public/EngineEditor.h"
+#include "Runtime/Engine/Public/EditorEngine.h"
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
 
