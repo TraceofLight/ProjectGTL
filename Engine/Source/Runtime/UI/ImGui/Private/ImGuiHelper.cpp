@@ -6,9 +6,6 @@
 #include "imGui/imgui_impl_win32.h"
 #include "Runtime/RHI/Public/RHIDevice.h"
 
-#include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Subsystem/Public/PathSubsystem.h"
-
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
 
 UImGuiHelper::UImGuiHelper() = default;
@@ -34,8 +31,7 @@ void UImGuiHelper::Initialize(HWND InWindowHandle)
 	// imgui.ini 파일 생성 비활성화
 	IO.IniFilename = nullptr;
 
-	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
-	path FontFilePath = PathSubsystem->GetFontPath() / "Pretendard-Regular.otf";
+	path FontFilePath = FPaths::GetContentPath() / "Font" / "Pretendard-Regular.otf";
 	IO.Fonts->AddFontFromFileTTF(
 		reinterpret_cast<char*>(FontFilePath.u8string().data()), 16.0f, nullptr, IO.Fonts->GetGlyphRangesKorean());
 

@@ -26,16 +26,17 @@
 #include <mutex>
 
 // Global Included
-#include "Source/Global/Types.h"
-#include "Source/Global/Memory.h"
-#include "Source/Global/Constant.h"
-#include "Source/Global/Enum.h"
-#include "Source/Global/Matrix.h"
-#include "Source/Global/Quaternion.h"
-#include "Source/Global/Vector.h"
-#include "Source/Global/CoreTypes.h"
-#include "Source/Global/Macro.h"
-#include "Source/Global/Function.h"
+#include "Global/Types.h"
+#include "Global/Memory.h"
+#include "Global/Constant.h"
+#include "Global/Enum.h"
+#include "Global/Matrix.h"
+#include "Global/Quaternion.h"
+#include "Global/Vector.h"
+#include "Global/CoreTypes.h"
+#include "Global/Macro.h"
+#include "Global/Function.h"
+#include "Global/Paths.h"
 
 // Pointer
 #include "Source/Runtime/Core/Public/Templates/SharedPtr.h"

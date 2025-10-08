@@ -3,7 +3,6 @@
 
 #include "Runtime/Core/Public/ModuleManager.h"
 #include "Runtime/RHI/Public/RHIDevice.h"
-#include "Runtime/Subsystem/Public/PathSubsystem.h"
 #include "Runtime/Subsystem/Public/DebugRenderingSubsystem.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
@@ -123,7 +122,6 @@ void UEngine::TickEngineSubsystems(FAppWindow* InWindow)
 void UEngine::RegisterDefaultEngineSubsystems()
 {
 	// 기본 엔진 서브시스템 등록
-	RegisterEngineSubsystem<UPathSubsystem>();
 	RegisterEngineSubsystem<UConfigSubsystem>();
 	RegisterEngineSubsystem<UAssetSubsystem>();
 	RegisterEngineSubsystem<UInputSubsystem>();

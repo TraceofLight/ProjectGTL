@@ -9,11 +9,9 @@
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Asset/Public/StaticMesh.h"
-#include "Window/Public/Viewport.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Engine/Public/World.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
-#include "Runtime/Subsystem/Public/PathSubsystem.h"
 
 IMPLEMENT_CLASS(UWorldSubsystem, UEngineSubsystem)
 
@@ -376,8 +374,7 @@ bool UWorldSubsystem::CreateNewLevel()
  */
 path UWorldSubsystem::GetLevelDirectory()
 {
-	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
-	return PathSubsystem->GetWorldPath();
+	return FPaths::GetContentPath() / "Scene" / "";
 }
 
 /**

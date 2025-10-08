@@ -6,7 +6,6 @@
 
 #include "Asset/Public/StaticMeshData.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
-#include "Runtime/Subsystem/Public/PathSubsystem.h"
 
 // 전역 RHI 인스턴스
 FRHIDevice* GDynamicRHI = nullptr;
@@ -255,11 +254,10 @@ bool FRHIDevice::CreateVertexShaderAndInputLayout(
 	ID3D11VertexShader** OutVertexShader,
 	ID3D11InputLayout** OutInputLayout)
 {
-	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
-	path FullPath = PathSubsystem->GetShaderPath() / InFilePath;
+	path FullPath = FPaths::GetShaderPath() / InFilePath;
 
 	ID3DBlob* VertexShaderBlob = nullptr;
-	if (!CompileShaderFromFile(FullPath.c_str(), "VSMain", "vs_5_0", &VertexShaderBlob))
+	if (!CompileShaderFromFile(FullPath.wstring(), "VSMain", "vs_5_0", &VertexShaderBlob))
 	{
 		return false;
 	}
@@ -279,11 +277,10 @@ bool FRHIDevice::CreateVertexShaderAndInputLayout(
 
 bool FRHIDevice::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** OutPixelShader)
 {
-	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
-	path FullPath = PathSubsystem->GetShaderPath() / InFilePath;
+	std::filesystem::path FullPath = FPaths::GetShaderPath() / InFilePath;
 
 	ID3DBlob* PixelShaderBlob = nullptr;
-	if (!CompileShaderFromFile(FullPath.c_str(), "PSMain", "ps_5_0", &PixelShaderBlob))
+	if (!CompileShaderFromFile(FullPath.wstring(), "PSMain", "ps_5_0", &PixelShaderBlob))
 	{
 		return false;
 	}
