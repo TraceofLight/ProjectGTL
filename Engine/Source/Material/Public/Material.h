@@ -56,8 +56,8 @@ public:
 	ID3D11ShaderResourceView* GetSpecularTexture() const;
 
 	// 셰이더 핸들/경로 + 파라미터(스칼라/벡터/텍스처)
-	FMaterialRenderProxy* RenderProxy = nullptr;
-	FMaterialRenderProxy* GetRenderProxy() override { return RenderProxy; }
+	// FMaterialRenderProxy* RenderProxy = nullptr;
+	// FMaterialRenderProxy* GetRenderProxy() override { return RenderProxy; }
 
 private:
 	FObjMaterialInfo MaterialInfo;

@@ -162,8 +162,6 @@ void FEngineLoop::Tick()
 #ifdef EDITOR_MODE
 	GEditor->EditorUpdate();
 #endif
-
-	// UI 렌더링은 ViewportClient::Draw()에서 처리 (언리얼 패턴)
 }
 
 /**

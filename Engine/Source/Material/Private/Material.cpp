@@ -8,7 +8,7 @@ IMPLEMENT_CLASS(UMaterialInstance, UMaterialInterface)
 
 UMaterial::~UMaterial()
 {
-	SafeDelete(RenderProxy);
+	// SafeDelete(RenderProxy);
 	if (DiffuseTexture)
 	{
 		URHIDevice::GetInstance().ReleaseTexture(DiffuseTexture);

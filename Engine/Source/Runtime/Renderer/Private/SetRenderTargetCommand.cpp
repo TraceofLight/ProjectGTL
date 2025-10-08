@@ -15,8 +15,6 @@ void FRHISetRenderTargetCommand::Execute()
     FViewport* Viewport = View->GetViewport();
     if (Viewport)
     {
-        URHIDevice* RHI = FSceneRenderer::GetGlobalRHI();
-
         // D3D11 뷰포트 설정
         const FRect& viewportRect = Viewport->GetRect();
         D3D11_VIEWPORT D3DViewport = {};
@@ -27,7 +25,7 @@ void FRHISetRenderTargetCommand::Execute()
         D3DViewport.TopLeftX = static_cast<float>(viewportRect.X);
         D3DViewport.TopLeftY = static_cast<float>(viewportRect.Y);
 
-        RHI->GetDeviceContext()->RSSetViewports(1, &D3DViewport);
+        GDynamicRHI->GetDeviceContext()->RSSetViewports(1, &D3DViewport);
 
         // TODO: 렌더 타겟과 깊이 버퍼 설정 - DeviceResources에서 가져와야 함
         // ID3D11RenderTargetView* RenderTargetView = DeviceResources->GetRenderTargetView();

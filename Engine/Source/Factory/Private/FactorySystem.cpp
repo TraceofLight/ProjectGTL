@@ -57,12 +57,12 @@ void FFactorySystem::PrintAllFactories()
 
 	UE_LOG("=== Factory System: Registered Factories (%d) ===", FactoryList.Num());
 
-	for (size_t i = 0; i < FactoryList.Num(); ++i)
+	for (int32 i = 0; i < FactoryList.Num(); ++i)
 	{
 		const UFactory* Factory = FactoryList[i];
 		if (Factory)
 		{
-			UE_LOG("[%llu] %s -> %s",
+			UE_LOG("[%d] %s -> %s",
 			       i,
 			       Factory->GetDescription().data(),
 			       Factory->GetSupportedClass() ?

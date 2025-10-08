@@ -480,14 +480,6 @@ void UViewportSubsystem::Update()
 
 	// 3) 카메라 업데이트 (공유 오쏘 1회, 퍼스펙티브는 각자)
 	TickCameras();
-
-	// 4) 드로우(3D) — 실제 렌더러 루프에서 Viewport 적용 후 호출해도 됨
-	//    여기서는 뷰/클라 페어 순회만 보여줌. (RS 바인딩은 네 렌더러 Update에서 수행 중)
-	const int32 N = static_cast<int32>(Clients.Num());
-	for (int32 i = 0; i < N; ++i)
-	{
-		Clients[i]->Draw(Viewports[i]);
-	}
 }
 
 void UViewportSubsystem::RenderOverlay()

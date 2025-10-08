@@ -31,10 +31,11 @@ UObject::UObject(const FName& InName)
 UObject::~UObject()
 {
 	// GUObjectArray에서 이 오브젝트 제거
-	if (InternalIndex < GUObjectArray.Num() && GUObjectArray[InternalIndex].Get() == this)
+	if (static_cast<int32>(InternalIndex) < GUObjectArray.Num() &&
+		GUObjectArray[static_cast<int32>(InternalIndex)].Get() == this)
 	{
 		// 현재 위치의 포인터를 nullptr로 설정 (배열 크기는 유지)
-		GUObjectArray[InternalIndex] = nullptr;
+		GUObjectArray[static_cast<int32>(InternalIndex)] = nullptr;
 	}
 	else
 	{

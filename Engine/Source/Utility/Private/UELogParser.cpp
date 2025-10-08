@@ -541,7 +541,7 @@ private:
         try
         {
             string Result = FormatString;
-            size_t ArgIndex = 0;
+            int32 ArgIndex = 0;
             size_t Pos = 0;
 
             while ((Pos = Result.find('%', Pos)) != string::npos)

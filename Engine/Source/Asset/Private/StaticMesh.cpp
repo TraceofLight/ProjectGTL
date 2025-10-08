@@ -299,7 +299,7 @@ bool UStaticMesh::LoadFromBinary(const FString& FilePath)
 		// 새 렌더 버퍼 생성
 		CreateRenderBuffers();
 
-		UE_LOG("UStaticMesh: Successfully loaded binary mesh: %s (%zu vertices, %zu indices)",
+		UE_LOG("UStaticMesh: Successfully loaded binary mesh: %s (%d vertices, %d indices)",
 		       FilePath.c_str(), StaticMeshData.Vertices.Num(), StaticMeshData.Indices.Num());
 		return true;
 	}

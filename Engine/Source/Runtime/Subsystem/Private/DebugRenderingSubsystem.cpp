@@ -407,7 +407,7 @@ void UDebugRenderingSubsystem::RenderMemoryOverlay() const
     FString PeakMemStr = GetMemorySizeString(PeakMemoryUsage);
 
     wchar_t MemoryText[512];
-    (void)swprintf_s(MemoryText, L"Memory: %ls (Peak: %ls)",
+    (void)swprintf_s(MemoryText, L"Memory: %hs (Peak: %hs)",
                ProcessMemStr.data(), PeakMemStr.data());
 
     DrawText(MemoryText, OVERLAY_MARGIN_X, YOffset, 0xFFFFFFFF);
@@ -417,8 +417,8 @@ void UDebugRenderingSubsystem::RenderMemoryOverlay() const
     FString AllocBytesStr = GetMemorySizeString(CurrentAllocationBytes);
 
     wchar_t AllocText[512];
-    (void)swprintf_s(AllocText, L"Allocations: %u (%ls)",
-               CurrentAllocationCount, AllocBytesStr.c_str());
+    (void)swprintf_s(AllocText, L"Allocations: %u (%hs)",
+               CurrentAllocationCount, AllocBytesStr.data());
 
     DrawText(AllocText, OVERLAY_MARGIN_X, YOffset, 0xFFAAAAAA);
 }

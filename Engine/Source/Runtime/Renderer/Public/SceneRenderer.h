@@ -25,10 +25,6 @@ public:
     void Render();
     void Cleanup();
 
-    // RHI 접근자
-    static URHIDevice* GetGlobalRHI() { return GlobalRHI; }
-    static void SetGlobalRHI(URHIDevice* InRHI) { GlobalRHI = InRHI; }
-
     // RenderCommandList 접근자
     FRHICommandList* GetCommandList() const { return CommandList; }
 

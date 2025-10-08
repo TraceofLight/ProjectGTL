@@ -10,10 +10,10 @@
 
 void FDepthPrePass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 {
-    if (!View || !SceneRenderer) return;
-
-    URHIDevice* RHI = FSceneRenderer::GetGlobalRHI();
-    if (!RHI) return;
+    if (!View || !SceneRenderer)
+    {
+	    return;
+    }
 
     UWorld* World = View->GetWorld();
     if (!World) return;
@@ -24,8 +24,8 @@ void FDepthPrePass::Execute(const FSceneView* View, FSceneRenderer* SceneRendere
 
     // Depth Pre-Pass 설정
     // TODO: Depth Write/Color Write 설정 구현 필요
-    RHI->OMSetDepthWriteEnabled(true);
-    RHI->OMSetColorWriteEnabled(false);
+    GDynamicRHI->OMSetDepthWriteEnabled(true);
+    GDynamicRHI->OMSetColorWriteEnabled(false);
 
     // 모든 액터들의 깊이 정보만 렌더링
     const TArray<TObjectPtr<AActor>>& Actors = World->GetLevel()->GetLevelActors();
@@ -40,19 +40,25 @@ void FDepthPrePass::Execute(const FSceneView* View, FSceneRenderer* SceneRendere
 
 void FDepthPrePass::RenderActorDepth(AActor* Actor, const FSceneView* View, FSceneRenderer* SceneRenderer)
 {
-    if (!Actor || !View || !SceneRenderer) return;
-
-    URHIDevice* RHI = FSceneRenderer::GetGlobalRHI();
-    if (!RHI) return;
+    if (!Actor || !View || !SceneRenderer)
+    {
+	    return;
+    }
 
     // 액터의 프리미티브 컴포넌트들을 깊이만 렌더링
     for (USceneComponent* Component : Actor->GetComponents<USceneComponent>())
     {
-        if (!Component) continue;
+        if (!Component)
+        {
+	        continue;
+        }
 
         if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
         {
-            if (!ActorComp->IsActive()) continue;
+            if (!ActorComp->IsActive())
+            {
+	            continue;
+            }
         }
 
         if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))

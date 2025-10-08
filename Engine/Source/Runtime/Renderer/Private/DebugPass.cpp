@@ -125,12 +125,6 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 		return;
 	}
 
-	URHIDevice* RHI = FSceneRenderer::GetGlobalRHI();
-	if (!RHI)
-	{
-		return;
-	}
-
 	// FEditorRenderResources를 통한 그리드 렌더링
 	FRendererModule& RendererModule = FRendererModule::Get();
 	FEditorRenderResources* EditorResources = RendererModule.GetEditorResources();

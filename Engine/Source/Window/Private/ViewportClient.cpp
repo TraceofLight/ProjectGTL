@@ -20,34 +20,44 @@ void FViewportClient::Tick(float DeltaSeconds) const
 {
 	// 필요 시 뷰 모드/기즈모 상태 업데이트 등
 	// 카메라 입력은 ACameraActor::Tick()에서 처리
-    if (IsOrtho())
-    {
-        if (OrthoGraphicCameras)
-        {
-            OrthoGraphicCameras->Tick(DeltaSeconds);                     // 내부에서 입력 처리 + View/Proj 갱신
-        }
-    }
-    else if (PerspectiveCamera)
-    {
-        if (PerspectiveCamera->GetCameraComponent())
-        {
-            PerspectiveCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
-        }
-        PerspectiveCamera->Tick(DeltaSeconds);
-    }
+	if (IsOrtho())
+	{
+		if (OrthoGraphicCameras)
+		{
+			// 내부에서 입력 처리 + View/Proj 갱신
+			OrthoGraphicCameras->Tick(DeltaSeconds);
+		}
+	}
+	else if (PerspectiveCamera)
+	{
+		if (PerspectiveCamera->GetCameraComponent())
+		{
+			PerspectiveCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
+		}
+		PerspectiveCamera->Tick(DeltaSeconds);
+	}
 }
 
 void FViewportClient::Draw(const FViewport* InViewport) const
 {
-	if (!InViewport) { return; }
+	if (!InViewport)
+	{
+		return;
+	}
 
 	// Get World
 	UWorld* World = GEngine->GetWorld();
-	if (!World) { return; }
+	if (!World)
+	{
+		return;
+	}
 
 	// Get Camera
 	ACameraActor* CurrentCamera = IsOrtho() ? OrthoGraphicCameras : PerspectiveCamera;
-	if (!CurrentCamera) { return; }
+	if (!CurrentCamera)
+	{
+		return;
+	}
 
 	// SceneViewFamily
 	FSceneViewFamily ViewFamily;
@@ -56,9 +66,9 @@ void FViewportClient::Draw(const FViewport* InViewport) const
 	ViewFamily.SetDeltaWorldTime(GEngine->GetWorld()->GetDeltaSeconds());
 
 	// SceneView
-	FSceneView* View = new FSceneView();
-	View->Initialize(CurrentCamera, const_cast<FViewport*>(InViewport), World);
-	ViewFamily.AddView(View);
+	FSceneView View;
+	View.Initialize(CurrentCamera, const_cast<FViewport*>(InViewport), World);
+	ViewFamily.AddView(&View);
 
 	// SceneRenderer
 	if (FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily))
@@ -67,11 +77,9 @@ void FViewportClient::Draw(const FViewport* InViewport) const
 		delete SceneRenderer;
 	}
 
-	// UI 렌더링 (언리얼 패턴: 3D 장면 렌더링 후 UI 렌더링)
+	// UI 렌더링
 	if (auto* UISubsystem = GEngine->GetEngineSubsystem<UUISubsystem>())
 	{
 		UISubsystem->Render();
 	}
-
-	delete View;
 }

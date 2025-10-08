@@ -124,7 +124,7 @@ void UUISubsystem::Render()
 	// 뷰포트 자동 조정을 위해 메인 메뉴바를 가장 먼저 렌더링
 	if (MainMenuWindow && MainMenuWindow->IsVisible())
 	{
-		MainMenuWindow->RenderWidget();
+		MainMenuWindow->RenderWindow();
 	}
 
 	// 우선순위에 따라 정렬
@@ -333,12 +333,12 @@ void UUISubsystem::PrintDebugInfo() const
 
 	UE_LOG("UISubsystem: All ImGui windows hidden due to minimization.");
 	UE_LOG("--- Window List ---");
-	for (uint32 i = 0; i < UIWindows.Num(); ++i)
+	for (int32 i = 0; i < UIWindows.Num(); ++i)
 	{
 		auto Window = UIWindows[i];
 		if (Window)
 		{
-			UE_LOG("[%u] %u (%s)", i, Window->GetWindowID(), Window->GetWindowTitle().ToString().data());
+			UE_LOG("[%d] %u (%s)", i, Window->GetWindowID(), Window->GetWindowTitle().ToString().data());
 			UE_LOG("    State: %s", (Window->IsVisible() ? "Visible" : "Hidden"));
 			UE_LOG("    Priority: %d", Window->GetPriority());
 			UE_LOG("    Focused: %s", (Window->IsFocused() ? "Yes" : "No"));

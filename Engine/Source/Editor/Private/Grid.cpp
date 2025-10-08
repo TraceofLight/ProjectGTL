@@ -39,12 +39,12 @@ void UGrid::UpdateVerticesBy(float NewCellSize)
 
 	float LineLength = NewCellSize * static_cast<float>(NumLines) / 2.f;
 
-	if (Vertices.Num() < NumVertices)
+	if (Vertices.Num() < static_cast<int32>(NumVertices))
 	{
-		Vertices.SetNum(NumVertices);
+		Vertices.SetNum(static_cast<int32>(NumVertices));
 	}
 
-	uint32 vertexIndex = 0;
+	int32 vertexIndex = 0;
 	// z축 라인 업데이트
 	for (int32 LineCount = -NumLines / 2; LineCount < NumLines / 2; ++LineCount)
 	{

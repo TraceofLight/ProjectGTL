@@ -309,7 +309,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	else if (Tokens[0] == "f" && Tokens.Num() >= 4)
 	{
 		FString FaceData;
-		for (size_t i = 1; i < Tokens.Num(); ++i)
+		for (int32 i = 1; i < Tokens.Num(); ++i)
 		{
 			if (i > 1)
 			{
@@ -386,7 +386,7 @@ int32 FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObje
 	size_t VertexCountBefore = CurrentObject.VertexIndexList.Num();
 
 	// 면을 삼각형으로 변환 (면이 최소 삼각형이라고 가정)
-	for (size_t i = 1; i < FaceVertices.Num() - 1; ++i)
+	for (int32 i = 1; i < FaceVertices.Num() - 1; ++i)
 	{
 		// 삼각형의 각 정점을 파싱
 		TArray<FString> VertexComponents[3];
@@ -474,19 +474,19 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 	// 고유 정점을 추적하기 위한 맵 (정점 데이터 → 인덱스)
 	std::unordered_map<std::tuple<FVector, FVector2, FVector>, uint32, VertexHash, VertexEqual> VertexMap;
 
-	size_t NumTriangles = ObjectInfo.VertexIndexList.Num() / 3;
+	int32 NumTriangles = ObjectInfo.VertexIndexList.Num() / 3;
 
-	for (size_t i = 0; i < NumTriangles; ++i)
+	for (int32 i = 0; i < NumTriangles; ++i)
 	{
 		for (int j = 0; j < 3; ++j)
 		{
-			size_t Index = i * 3 + j;
+			int32 Index = i * 3 + j;
 			FVertex Vertex;
 
 			// 위치
 			if (Index < ObjectInfo.VertexIndexList.Num())
 			{
-				uint32 VertexIndex = ObjectInfo.VertexIndexList[Index];
+				int32 VertexIndex = static_cast<int32>(ObjectInfo.VertexIndexList[Index]);
 				if (VertexIndex < ObjectInfo.VertexList.Num())
 				{
 					Vertex.Position = ObjectInfo.VertexList[VertexIndex];
@@ -496,7 +496,7 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 			// UV
 			if (Index < ObjectInfo.UVIndexList.Num())
 			{
-				uint32 UVIndex = ObjectInfo.UVIndexList[Index];
+				int32 UVIndex = static_cast<int32>(ObjectInfo.UVIndexList[Index]);
 				if (UVIndex < ObjectInfo.UVList.Num())
 				{
 					Vertex.TextureCoord = ObjectInfo.UVList[UVIndex];
@@ -506,7 +506,7 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 			// 노멀
 			if (Index < ObjectInfo.NormalIndexList.Num())
 			{
-				uint32 NormalIndex = ObjectInfo.NormalIndexList[Index];
+				int32 NormalIndex = static_cast<int32>(ObjectInfo.NormalIndexList[Index]);
 				if (NormalIndex < ObjectInfo.NormalList.Num())
 				{
 					Vertex.Normal = ObjectInfo.NormalList[NormalIndex];

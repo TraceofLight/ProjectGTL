@@ -6,6 +6,9 @@
 
 #include "Asset/Public/StaticMeshData.h"
 
+// 전역 RHI 인스턴스
+URHIDevice* GDynamicRHI = nullptr;
+
 // 참고 파일에서 가져온 구조체들
 struct HighLightBufferType
 {

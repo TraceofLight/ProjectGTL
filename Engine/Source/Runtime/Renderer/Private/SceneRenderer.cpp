@@ -8,9 +8,7 @@
 #include "Runtime/Renderer/Public/SceneView.h"
 #include "Runtime/Renderer/Public/SceneViewFamily.h"
 #include "Runtime/Renderer/Public/RHICommandList.h"
-
-// 전역 RHI 인스턴스
-URHIDevice* FSceneRenderer::GlobalRHI = nullptr;
+#include "Runtime/RHI/Public/RHIDevice.h"
 
 FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily& InViewFamily)
 {
@@ -22,9 +20,9 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily& InViewFamily)
     , CommandList(nullptr)
 {
     // RenderCommandList 생성
-    if (GlobalRHI)
+    if (GDynamicRHI)
     {
-        CommandList = new FRHICommandList(GlobalRHI);
+        CommandList = new FRHICommandList(GDynamicRHI);
     }
 
     CreateDefaultRenderPasses();
@@ -37,7 +35,7 @@ FSceneRenderer::~FSceneRenderer()
 
 void FSceneRenderer::Render()
 {
-    if (!ViewFamily || !ViewFamily->IsValid() || !GlobalRHI)
+    if (!ViewFamily || !ViewFamily->IsValid() || !GDynamicRHI)
     {
         return;
     }

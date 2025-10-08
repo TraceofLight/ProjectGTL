@@ -108,3 +108,5 @@ private:
 	void CreateConstantBuffer();
 	void CreateSamplerState();
 };
+
+extern URHIDevice* GDynamicRHI;

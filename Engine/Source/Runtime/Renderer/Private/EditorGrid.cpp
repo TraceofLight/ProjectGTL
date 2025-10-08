@@ -29,9 +29,9 @@ void FEditorGrid::UpdateVerticesBy(float NewCellSize)
 
     float LineLength = NewCellSize * static_cast<float>(NumLines) / 2.f;
 
-    if (Vertices.Num() < NumVertices)
+    if (Vertices.Num() < static_cast<int32>(NumVertices))
     {
-        Vertices.SetNum(NumVertices);
+        Vertices.SetNum(static_cast<int32>(NumVertices));
     }
 
     uint32 vertexIndex = 0;
@@ -69,11 +69,11 @@ void FEditorGrid::UpdateVerticesBy(float NewCellSize)
 void FEditorGrid::MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartIndex)
 {
     // 인덱스 범위 보정
-    if (insertStartIndex > destVertices.Num())
-        insertStartIndex = destVertices.Num();
+	insertStartIndex = min(static_cast<int32>(insertStartIndex), destVertices.Num());
 
     // 미리 메모리 확보
-    destVertices.Reserve(destVertices.Num() + std::distance(Vertices.begin(), Vertices.end()));
+    destVertices.Reserve(
+    	static_cast<int32>(destVertices.Num() + std::distance(Vertices.begin(), Vertices.end())));
 
     // 덮어쓸 수 있는 개수 계산
     size_t overwriteCount = std::min(

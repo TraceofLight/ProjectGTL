@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "Runtime/Renderer/Public/RendererModule.h"
 #include "Runtime/RHI/Public/RHIDevice.h"
-#include "Runtime/Renderer/Public/SceneRenderer.h"
 #include "Runtime/Core/Public/ModuleManager.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
 
@@ -20,8 +19,6 @@ void FRendererModule::ShutdownModule()
 
     CleanupRenderingResources();
 
-    // GlobalRHI 정리
-    FSceneRenderer::SetGlobalRHI(nullptr);
     RHIDevice = nullptr;
 
     UE_LOG("FRendererModule: ShutdownModule 완료");
@@ -31,13 +28,10 @@ void FRendererModule::SetRHIDevice(URHIDevice* InRHIDevice)
 {
     RHIDevice = InRHIDevice;
 
-    // GlobalRHI로 설정하여 기존 코드와의 호환성 유지
-    FSceneRenderer::SetGlobalRHI(RHIDevice);
-
     // EditorRenderResources 초기화
     if (RHIDevice)
     {
-        EditorResources = std::make_unique<FEditorRenderResources>();
+        EditorResources = MakeUnique<FEditorRenderResources>();
         EditorResources->Initialize(RHIDevice);
     }
 
@@ -104,7 +98,7 @@ void FRendererModule::CleanupRenderingResources()
     if (EditorResources)
     {
         EditorResources->Shutdown();
-        EditorResources.reset();
+        EditorResources.Reset();
     }
 
     // 렌더링 리소스 정리 로직
