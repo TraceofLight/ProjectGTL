@@ -98,10 +98,10 @@ using FLocalPlayerSubsystemCollection = FSubsystemCollection<ULocalPlayerSubsyst
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOuter)
 {
-	// 1. 의존성 순서 계산
+	// 의존성 순서 계산
 	CalculateInitializationOrder();
 
-	// 2. 모든 서브시스템 인스턴스 생성
+	// 모든 서브시스템 인스턴스 생성
 	for (const FName& ClassName : InitializationOrder)
 	{
 		UClass** Found = SubsystemClasses.Find(ClassName);
@@ -122,7 +122,7 @@ void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOute
 		}
 	}
 
-	// 3. 모든 서브시스템 1단계 초기화
+	// 모든 서브시스템 1단계 초기화
 	for (const FName& ClassName : InitializationOrder)
 	{
 		TObjectPtr<TBaseSubsystem>* Found = SubsystemInstances.Find(ClassName);
@@ -133,7 +133,7 @@ void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOute
 		}
 	}
 
-	// 4. 모든 서브시스템 2단계 초기화
+	// 모든 서브시스템 2단계 초기화
 	for (const FName& ClassName : InitializationOrder)
 	{
 		TObjectPtr<TBaseSubsystem>* Found = SubsystemInstances.Find(ClassName);

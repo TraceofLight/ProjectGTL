@@ -59,6 +59,7 @@ using std::setw;
 using std::sort;
 using std::mutex;
 using std::lock_guard;
+using std::atomic;
 using std::queue;
 using std::shared_ptr;
 using std::unique_ptr;
@@ -97,3 +98,5 @@ extern float GDeltaTime;
 #pragma comment(lib, "dwrite")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, DIRECTX_TOOL_KIT)
+
+#define EDITOR_MODE 1

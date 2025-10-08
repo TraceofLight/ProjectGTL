@@ -49,6 +49,10 @@ public:
 	// - 화면 좌표를 로컬로 변환하여 MouseMove/CapturedMouseMove, Down/Up을 전달
 	void PumpMouseFromInputManager();
 
+	// 렌더링 여부 및 렌더링 수행
+	bool ShouldRender() const;
+	void Draw();
+
     // ----- D3D11 RS 바인딩 (옵션) -----
     void ApplyRasterizer(ID3D11DeviceContext* InDeviceContext) const
     {

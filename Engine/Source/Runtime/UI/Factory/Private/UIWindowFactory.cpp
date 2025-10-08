@@ -58,7 +58,7 @@ void UUIWindowFactory::CreateDefaultUILayout()
 	// 메인 메뉴바 우선 생성 및 등록
 	auto* MainMenu = CreateMainMenuWindow();
 	UISS->RegisterUIWindow(TObjectPtr<UUIWindow>(MainMenu));
-	UISS->RegisterMainMenuWindow(TObjectPtr<UMainMenuWindow>(MainMenu));
+	UISS->RegisterMainMenuWindow(TObjectPtr(MainMenu));
 
 	// 기본 레이아웃 생성
 	UISS->RegisterUIWindow(TObjectPtr<UUIWindow>(CreateOutlinerWindow(EUIDockDirection::Center)));

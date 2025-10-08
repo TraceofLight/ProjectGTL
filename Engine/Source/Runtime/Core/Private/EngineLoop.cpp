@@ -9,8 +9,7 @@
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/UI/Window/Public/ConsoleWindow.h"
 #include "Runtime/RHI/Public/D3D11RHIModule.h"
-
-#define EDITOR_MODE 1
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 // 전역 DeltaTime 변수 정의
 float GDeltaTime = 0.0f;
@@ -165,6 +164,9 @@ void FEngineLoop::Tick()
 #ifdef EDITOR_MODE
 	GEditor->EditorUpdate();
 #endif
+
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	ViewportSS->RenderViewports();
 }
 
 /**

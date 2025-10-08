@@ -31,6 +31,7 @@ public:
 	void Tick(float DeltaSeconds) override;
 
 	void Render();
+	void RenderWithCommandList(class FRHICommandList* CommandList);
 	bool RegisterUIWindow(TObjectPtr<UUIWindow> InWindow);
 	bool UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow);
 	void PrintDebugInfo() const;

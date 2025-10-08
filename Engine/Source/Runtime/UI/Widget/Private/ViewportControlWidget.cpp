@@ -281,23 +281,9 @@ void UViewportControlWidget::RenderSplitterLines()
 void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 {
 	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	const auto& Clients = ViewportManager->GetClients();
 
-	if (ViewportIndex >= Clients.Num())
-	{
-		return;
-	}
-
-	// 현재 선택된 카메라 스피드 가져오기
-	ACameraActor* CurrentCamera;
-	if (Clients[ViewportIndex]->GetViewType() == EViewType::Perspective)
-	{
-		CurrentCamera = Clients[ViewportIndex]->GetPerspectiveCamera();
-	}
-	else
-	{
-		CurrentCamera = Clients[ViewportIndex]->GetOrthoCamera();
-	}
+	// Get the active camera for the current viewport from the subsystem
+	ACameraActor* CurrentCamera = ViewportManager->GetActiveCameraForViewport(ViewportIndex);
 
 	if (!CurrentCamera)
 	{
@@ -408,61 +394,8 @@ void UViewportControlWidget::RenderGridSizeControl()
 void UViewportControlWidget::HandleCameraBinding(int32 ViewportIndex, EViewType NewType, int32 TypeIndex)
 {
 	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	const auto& Clients = ViewportManager->GetClients();
 
-	if (ViewportIndex >= Clients.Num())
-	{
-		return;
-	}
-
-	FViewportClient* Client = Clients[ViewportIndex];
-	if (!Client)
-	{
-		return;
-	}
-
-	if (NewType == EViewType::Perspective)
-	{
-		// Perspective 카메라 바인딩
-		const auto& PerspectiveCameras = ViewportManager->GetPerspectiveCameras();
-		if (ViewportIndex < PerspectiveCameras.Num() && PerspectiveCameras[ViewportIndex])
-		{
-			ACameraActor* PerspCamera = PerspectiveCameras[ViewportIndex];
-			Client->SetPerspectiveCamera(PerspCamera);
-			PerspCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
-			UE_LOG("ViewportControl: Perspective 카메라로 변경됨 (ViewportIndex: %d)", ViewportIndex);
-		}
-	}
-	else
-	{
-		// Orthographic 카메라 바인딩
-		const auto& OrthoCameras = ViewportManager->GetOrthographicCameras();
-
-		// ViewType에 따라 적절한 OrthoCameras 인덱스 매핑
-		int32 OrthoIdx = -1;
-		switch (NewType)
-		{
-		case EViewType::OrthoTop: OrthoIdx = 0;
-			break;
-		case EViewType::OrthoBottom: OrthoIdx = 1;
-			break;
-		case EViewType::OrthoLeft: OrthoIdx = 2;
-			break;
-		case EViewType::OrthoRight: OrthoIdx = 3;
-			break;
-		case EViewType::OrthoFront: OrthoIdx = 4;
-			break;
-		case EViewType::OrthoBack: OrthoIdx = 5;
-			break;
-		default: return;
-		}
-
-		if (OrthoIdx >= 0 && OrthoIdx < OrthoCameras.Num() && OrthoCameras[OrthoIdx])
-		{
-			ACameraActor* OrthoCamera = OrthoCameras[OrthoIdx];
-			Client->SetOrthoCamera(OrthoCamera);
-			OrthoCamera->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
-			UE_LOG("ViewportControl: Orthographic 카메라로 변경됨 (ViewportIndex: %d, OrthoIdx: %d)", ViewportIndex, OrthoIdx);
-		}
-	}
+	// The ViewportSubsystem is now responsible for handling camera bindings when the view type changes.
+	// We just need to notify it of the change.
+	ViewportManager->SetViewportViewType(ViewportIndex, NewType);
 }

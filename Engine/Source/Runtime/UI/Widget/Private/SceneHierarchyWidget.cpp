@@ -27,20 +27,12 @@ void USceneHierarchyWidget::Update()
 	// 카메라 애니메이션 업데이트 (카메라별로 개별 진행)
 	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 
-	for (FViewportClient* Client : ViewportSS->GetClients())
+	// Update all cameras managed by the subsystem
+	for (ACameraActor* Camera : ViewportSS->GetAllCameras())
 	{
-		// Perspective 카메라 업데이트
-		TObjectPtr<ACameraActor> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
-		if (PerspectiveCamera && CameraAnimatingStates[PerspectiveCamera->GetName()])
+		if (Camera && CameraAnimatingStates[Camera->GetName()])
 		{
-			UpdateCameraAnimation(PerspectiveCamera);
-		}
-
-		// Orthographic 카메라 업데이트
-		TObjectPtr<ACameraActor> OrthoCamera = TObjectPtr(Client->GetOrthoCamera());
-		if (OrthoCamera && CameraAnimatingStates[OrthoCamera->GetName()])
-		{
-			UpdateCameraAnimation(OrthoCamera);
+			UpdateCameraAnimation(TObjectPtr(Camera));
 		}
 	}
 }
@@ -329,7 +321,7 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 	if (CurrentLevel)
 	{
 		UEditor* Editor = WorldSS->GetEditor();
-		if (!Editor)
+	if (!Editor)
 		{
 			return;
 		}
@@ -344,20 +336,9 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 			auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 
 			// Start focus on all cameras
-			for (const auto Client : ViewportSS->GetClients())
+			for (ACameraActor* Camera : ViewportSS->GetAllCameras())
 			{
-				// Perspective 카메라 포커싱
-				if (Client->GetViewType() == EViewType::Perspective)
-				{
-					TObjectPtr<ACameraActor> PerspectiveCamera = TObjectPtr(Client->GetPerspectiveCamera());
-					FocusOnActor(PerspectiveCamera, InActor);
-				}
-				// Orthographic 카메라 포커싱
-				else
-				{
-					TObjectPtr<ACameraActor> OrthoCamera = TObjectPtr(Client->GetOrthoCamera());
-					FocusOnActor(OrthoCamera, InActor);
-				}
+				FocusOnActor(TObjectPtr(Camera), InActor);
 			}
 		}
 		else
@@ -366,7 +347,6 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 		}
 	}
 }
-
 /**
  * @brief 단일 카메라를 특정 Actor에 포커스하는 함수
  * @param InCamera 포커싱 처리할 카메라

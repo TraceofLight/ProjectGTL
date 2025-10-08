@@ -128,13 +128,13 @@ TObjectPtr<UStaticMesh> UAssetSubsystem::LoadStaticMesh(const FString& InFilePat
 		BuildMaterialSlots(ObjInfos, MaterialSlots, MaterialNameToSlot);
 		AssignSectionMaterialSlots(StaticMeshData, MaterialNameToSlot);
 
-		if(CheckEmptyMaterialSlots(StaticMeshData.Sections))
-		{
-			InsertDefaultMaterial(StaticMeshData, MaterialSlots);
-		}
-
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
 		NewStaticMesh->SetMaterialSlots(MaterialSlots);
+
+		if (CheckEmptyMaterialSlots(NewStaticMesh->GetMeshGroupInfo()))
+		{
+			InsertDefaultMaterial(*NewStaticMesh, MaterialSlots);
+		}
 
 		// OBJ 파싱 성공 시 바이너리 캐시로 저장
 		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
@@ -200,7 +200,8 @@ bool UAssetSubsystem::HasStaticMesh(const FString& InFilePath) const
 	return false;
 }
 
-void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInfos, TArray<FString>& OutMaterialNames) const
+void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInfos,
+                                                  TArray<FString>& OutMaterialNames) const
 {
 	OutMaterialNames.Empty();
 
@@ -232,7 +233,8 @@ void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInf
 	}
 }
 
-const FObjMaterialInfo* UAssetSubsystem::FindMaterialInfoByName(const TArray<FObjInfo>& ObjInfos, const FString& MaterialName) const
+const FObjMaterialInfo* UAssetSubsystem::FindMaterialInfoByName(const TArray<FObjInfo>& ObjInfos,
+                                                                const FString& MaterialName) const
 {
 	for (const FObjInfo& Info : ObjInfos)
 	{
@@ -262,7 +264,9 @@ UMaterialInterface* UAssetSubsystem::CreateMaterial(const FObjMaterialInfo& Mate
 	return MaterialAsset;
 }
 
-void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<UMaterialInterface*>& OutMaterialSlots, TMap<FString, int32>& OutMaterialNameToSlot)
+void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos,
+                                         TArray<UMaterialInterface*>& OutMaterialSlots,
+                                         TMap<FString, int32>& OutMaterialNameToSlot)
 {
 	OutMaterialSlots.Empty();
 	OutMaterialNameToSlot.Empty();
@@ -293,7 +297,9 @@ void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArra
 		}
 	}
 }
-void UAssetSubsystem::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const
+
+void UAssetSubsystem::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData,
+                                                 const TMap<FString, int32>& MaterialNameToSlot) const
 {
 	TArray<FStaticMeshSection>& Sections = StaticMeshData.Sections;
 
@@ -327,7 +333,7 @@ void UAssetSubsystem::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, co
 
 bool UAssetSubsystem::CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& Sections) const
 {
-	for(const FStaticMeshSection& Section : Sections)
+	for (const FStaticMeshSection& Section : Sections)
 	{
 		if (Section.MaterialSlotIndex == -1)
 		{
@@ -337,36 +343,39 @@ bool UAssetSubsystem::CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& 
 	return false;
 }
 
-void UAssetSubsystem::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots)
+void UAssetSubsystem::InsertDefaultMaterial(UStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots)
 {
-	size_t MatNums = InMaterialSlots.Num();
-	// 머티리얼 아예 없는 경우 -> default material 넣고 섹션에 할당
-	if (MatNums == 0)
+	// 기본 머티리얼을 슬롯에 추가하고, 해당 슬롯 인덱스를 아직 머티리얼이 없는 섹션에 할당
+	int32 DefaultMaterialSlot = InMaterialSlots.Num();
+	InMaterialSlots.Add(GetDefaultMaterial());
+
+	for (FStaticMeshSection& Section : InStaticMeshData.GetMeshGroupInfo())
 	{
-		InMaterialSlots.Add(DefaultMaterial);
-		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
+		if (Section.MaterialSlotIndex == -1)
 		{
-			if (Section.MaterialSlotIndex == -1)
-			{
-				Section.MaterialSlotIndex = 0;
-			}
+			Section.MaterialSlotIndex = DefaultMaterialSlot;
 		}
 	}
-	// 머티리얼에 하나 이상 있는 경우 -> 0번 머티리얼을 끝으로 보내고 0번에 default material 넣기
-	else if (MatNums > 0 && InMaterialSlots[0] != DefaultMaterial)
+}
+
+TObjectPtr<UShader> UAssetSubsystem::LoadShader(const FString& InFilePath, const TArray<D3D11_INPUT_ELEMENT_DESC>& InLayoutDesc)
+{
+	// 캐시 확인
+	if (ShaderCache.Contains(InFilePath))
 	{
-		InMaterialSlots.Add(InMaterialSlots[0]);
-		InMaterialSlots[0] = DefaultMaterial;
-		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
-		{
-			if (Section.MaterialSlotIndex == 0)
-			{
-				Section.MaterialSlotIndex = (int32)MatNums;
-			}
-			else if (Section.MaterialSlotIndex == -1)
-			{
-				Section.MaterialSlotIndex = 0;
-			}
-		}
+		return ShaderCache[InFilePath];
 	}
+
+	// 캐시에 없으면 새로 생성
+	TObjectPtr<UShader> NewShader = NewObject<UShader>();
+	// EVertexLayoutType을 LayoutDesc로부터 추론하거나, 인자로 받아야 함. 임시로 PositionColorTextureNormal 사용.
+	if (NewShader->Initialize(InFilePath, EVertexLayoutType::PositionColorTextureNormal))
+	{
+		ShaderCache.Add(InFilePath, NewShader);
+		return NewShader;
+	}
+
+	// 3. 실패 시 null 반환
+	NewShader->Release(); // Release if creation failed
+	return nullptr;
 }

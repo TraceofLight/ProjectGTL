@@ -55,18 +55,24 @@ void FDebugPass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 	if (!WorldSS || !WorldSS->GetEditor()) return;
 
 	UEditor* Editor = WorldSS->GetEditor();
-	ACameraActor* Camera = Editor->GetCamera();
 	FViewport* Viewport = View->GetViewport();
+	ACameraActor* Camera = Editor->GetCamera();
 
-	if (!Camera || !Viewport) return;
+	if (!Camera || !Viewport)
+	{
+		return;
+	}
 
 	// UCameraComponent에서 ViewProj 데이터 가져오기
-	UCameraComponent* CameraComp = Camera->GetCameraComponent();
-	if (!CameraComp) return;
+	UCameraComponent* CameraComponent = Camera->GetCameraComponent();
+	if (!CameraComponent)
+	{
+		return;
+	}
 
-	FViewProjConstants ViewProjData = CameraComp->GetFViewProjConstants();
-	FMatrix ViewMatrix = ViewProjData.View;
-	FMatrix ProjectionMatrix = ViewProjData.Projection;
+	// FViewProjConstants ViewProjData = CameraComp->GetFViewProjConstants();
+	// FMatrix ViewMatrix = ViewProjData.View;
+	// FMatrix ProjectionMatrix = ViewProjData.Projection;
 
 	// Editor의 ShowFlag 사용 및 Selection 체크
 	bool bHasSelection = Editor->HasSelectedActor();
@@ -82,34 +88,24 @@ void FDebugPass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 		return; // 디버그 렌더링이 필요없으면 전체 스킵
 	}
 
-	// === 라인 배치 시작 ===
 	if (bNeedsLineRendering)
 	{
-		// BeginLineBatch는 RenderGrid에서 FEditorRenderResources로 처리
-
-		// === 그리드 렌더링 ===
 		if (Editor->IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
 		{
 			RenderGrid(View, SceneRenderer);
 		}
 	}
 
-	// === 기즈모 렌더링 ===
 	if (bHasSelection)
 	{
 		RenderGizmos(View, SceneRenderer, Editor);
 	}
 
-	// === Debug 컴포넌트들 렌더링 ===
 	if (bNeedsDebugComponents)
 	{
 		RenderDebugComponents(View, SceneRenderer);
 	}
-
-	// CommandList는 SceneRenderer에서 Execute할 예정이므로 여기서는 호출하지 않음
 }
-
-// BeginLineBatch와 EndLineBatch는 FEditorRenderResources에서 처리되므로 제거됨
 
 void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRenderer)
 {

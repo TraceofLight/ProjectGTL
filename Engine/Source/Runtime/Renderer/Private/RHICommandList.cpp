@@ -145,7 +145,6 @@ void FRHICommandList::ExecuteWithMaterialSorting()
     ExecutedCommandCount = 0;
     TotalDrawCalls = 0;
 
-    // Command들을 vector로 이동 (정렬을 위해)
     TArray<IRHICommand*> AllCommands;
     TArray<FRHIDrawIndexedPrimitivesCommand*> DrawCommands;
     TArray<IRHICommand*> OtherCommands;
@@ -162,7 +161,7 @@ void FRHICommandList::ExecuteWithMaterialSorting()
             // DrawIndexedPrimitives Command만 별도로 분리
             if (Command->GetCommandType() == ERHICommandType::DrawIndexedPrimitives)
             {
-                DrawCommands.Add(static_cast<FRHIDrawIndexedPrimitivesCommand*>(Command));
+                DrawCommands.Add(reinterpret_cast<FRHIDrawIndexedPrimitivesCommand*>(Command));
             }
             else
             {
@@ -177,7 +176,7 @@ void FRHICommandList::ExecuteWithMaterialSorting()
         RadixSortDrawCommands(DrawCommands.GetData(), DrawCommands.Num());
     }
 
-    // 3. 정렬된 순서로 실행 (Context Switching 최소화)
+    // 정렬된 순서로 실행 (Context Switching 최소화)
     // 먼저 기타 Command들 실행
     for (IRHICommand* Command : OtherCommands)
     {
@@ -188,22 +187,22 @@ void FRHICommandList::ExecuteWithMaterialSorting()
         }
     }
 
-    // 4. Material별로 정렬된 Draw Command 실행
+    // Material별로 정렬된 Draw Command 실행
     UMaterial* CurrentMaterial = reinterpret_cast<UMaterial*>(-1);
     // 처음 설정도 카운트하기 위해 유효하지 않은 값으로 초기화
-    for (FRHIDrawIndexedPrimitivesCommand* DrawCmd : DrawCommands)
+    for (FRHIDrawIndexedPrimitivesCommand* DrawCommand : DrawCommands)
     {
-        if (DrawCmd)
+        if (DrawCommand)
         {
-            // Material이 변경된 경우 (처음 설정 포함)
-            UMaterial* NewMaterial = DrawCmd->GetMaterial();
+            // Material이 변경된 경우
+            UMaterial* NewMaterial = DrawCommand->GetMaterial();
             if (NewMaterial != CurrentMaterial)
             {
                 CurrentMaterial = NewMaterial;
             }
 
-            InternalExecuteCommand(DrawCmd);
-            delete DrawCmd;
+            InternalExecuteCommand(DrawCommand);
+            delete DrawCommand;
         }
     }
 
@@ -226,16 +225,18 @@ void FRHICommandList::Clear()
 void FRHICommandList::InternalExecuteCommand(IRHICommand* Command)
 {
     if (!Command)
+    {
         return;
+    }
 
     Command->Execute();
-    ExecutedCommandCount++;
+    ++ExecutedCommandCount;
 
     // Draw Call 통계 업데이트
     ERHICommandType CommandType = Command->GetCommandType();
     if (CommandType == ERHICommandType::DrawIndexedPrimitives)
     {
-        TotalDrawCalls++;
+        ++TotalDrawCalls;
     }
 }
 
@@ -285,10 +286,10 @@ void FRHICommandList::DrawIndexedPrimitiveWithColorAndHovering(
 void FRHICommandList::SetViewport(float X, float Y, float Width, float Height, float MinDepth,
                                   float MaxDepth)
 {
-    // 직접 RHI 호출 (단순한 작업이므로 Command로 감쌀 필요 없음)
+    // 직접 RHI 호출
     if (RHIDevice)
     {
-        D3D11_VIEWPORT Viewport = {};
+        D3D11_VIEWPORT Viewport;
         Viewport.TopLeftX = X;
         Viewport.TopLeftY = Y;
         Viewport.Width = Width;
@@ -327,24 +328,28 @@ void FRHICommandList::ShutdownWorkerThreads()
 
 void FRHICommandList::ExecuteWithMultithreadedSorting()
 {
-    if (!RHIDevice || bIsExecuting) return;
+    if (!RHIDevice || bIsExecuting)
+    {
+	    return;
+    }
 
     // 빈 큐에 대한 안전 체크
-    if (PendingCommands.empty()) return;
+    if (PendingCommands.empty())
+    {
+	    return;
+    }
 
     bIsExecuting = true;
     ExecutedCommandCount = 0;
     TotalDrawCalls = 0;
 
-    // 50K+ Commands를 위한 멀티스레드 처리!
-
-    // 1. Command 스냅샷 생성 (안전한 복사)
-    std::vector<IRHICommand*> CommandSnapshot;
-    CommandSnapshot.reserve(PendingCommands.size());
+    // Command 스냅샷 생성
+    TArray<IRHICommand*> CommandSnapshot;
+    CommandSnapshot.Reserve(PendingCommands.size());
 
     while (!PendingCommands.empty())
     {
-        CommandSnapshot.push_back(PendingCommands.front());
+        CommandSnapshot.Add(PendingCommands.front());
         PendingCommands.pop();
     }
 
@@ -385,37 +390,37 @@ bool FRHICommandList::IsSortingComplete() const
     return bSortingComplete.load();
 }
 
-void FRHICommandList::BackgroundSortingTask(std::vector<IRHICommand*> CommandSnapshot) const
+void FRHICommandList::BackgroundSortingTask(TArray<IRHICommand*> CommandSnapshot) const
 {
     try
     {
-        // Command 분류 (대용량 처리 최적화)
-        SortedDrawCommands.clear();
-        SortedOtherCommands.clear();
+        // Command 분류
+        SortedDrawCommands.Empty();
+        SortedOtherCommands.Empty();
 
-        size_t commandCount = CommandSnapshot.size();
-        SortedDrawCommands.reserve(commandCount);
-        SortedOtherCommands.reserve(commandCount / 8); // DrawCommand가 대부분
+        int32 commandCount = CommandSnapshot.Num();
+        SortedDrawCommands.Reserve(commandCount);
+        SortedOtherCommands.Reserve(commandCount / 8);
 
-        // 고속 분류 (쪐시 친화적)
+        // 고속 분류
         for (IRHICommand* Command : CommandSnapshot)
         {
             if (!Command) continue;
 
             if (Command->GetCommandType() == ERHICommandType::DrawIndexedPrimitives)
             {
-                SortedDrawCommands.push_back(static_cast<FRHIDrawIndexedPrimitivesCommand*>(Command));
+                SortedDrawCommands.Add(static_cast<FRHIDrawIndexedPrimitivesCommand*>(Command));
             }
             else
             {
-                SortedOtherCommands.push_back(Command);
+                SortedOtherCommands.Add(Command);
             }
         }
 
-        // 초고속 Radix Sort (50K+ Commands 지원!)
-        if (!SortedDrawCommands.empty())
+        // Radix Sort
+        if (!SortedDrawCommands.IsEmpty())
         {
-            RadixSortDrawCommands(SortedDrawCommands.data(), SortedDrawCommands.size());
+            RadixSortDrawCommands(SortedDrawCommands.GetData(), SortedDrawCommands.Num());
         }
 
         bSortingComplete.store(true);
@@ -434,7 +439,7 @@ void FRHICommandList::BackgroundSortingTask(std::vector<IRHICommand*> CommandSna
 
 void FRHICommandList::ExecuteSortedCommandsMultithreaded()
 {
-    // 기타 Command 실행 (빠른 순회)
+    // 기타 Command 실행
     for (IRHICommand* Command : SortedOtherCommands)
     {
         if (Command)
@@ -444,30 +449,33 @@ void FRHICommandList::ExecuteSortedCommandsMultithreaded()
         }
     }
 
-    // Draw Command 실행 (Material 배치 최적화!)
-    if (!SortedDrawCommands.empty())
+    // Draw Command 실행
+    if (!SortedDrawCommands.IsEmpty())
     {
         UMaterial* CurrentMaterial = nullptr;
 
-        for (FRHIDrawIndexedPrimitivesCommand* DrawCmd : SortedDrawCommands)
+        for (FRHIDrawIndexedPrimitivesCommand* DrawCommand : SortedDrawCommands)
         {
-            if (!DrawCmd) continue;
+            if (!DrawCommand)
+            {
+	            continue;
+            }
 
             // Material 변경 추적
-            UMaterial* NewMaterial = DrawCmd->GetMaterial();
+            UMaterial* NewMaterial = DrawCommand->GetMaterial();
             if (NewMaterial != CurrentMaterial)
             {
                 CurrentMaterial = NewMaterial;
             }
 
-            InternalExecuteCommand(DrawCmd);
-            delete DrawCmd;
+            InternalExecuteCommand(DrawCommand);
+            delete DrawCommand;
         }
     }
 
     // 버퍼 정리
-    SortedDrawCommands.clear();
-    SortedOtherCommands.clear();
+    SortedDrawCommands.Empty();
+    SortedOtherCommands.Empty();
 }
 
 // Present 및 BackBuffer 접근 메서드들
@@ -481,7 +489,7 @@ IDXGISurface* FRHICommandList::GetBackBufferSurface()
 {
     IDXGISurface* Surface = nullptr;
 
-    // 즉시 실행 (BackBuffer에 대한 접근이므로)
+    // 즉시 실행
     FRHIGetBackBufferSurfaceCommand Command(RHIDevice, &Surface);
     Command.Execute();
 
@@ -492,7 +500,7 @@ ID3D11RenderTargetView* FRHICommandList::GetBackBufferRTV()
 {
     ID3D11RenderTargetView* RTV = nullptr;
 
-    // 즉시 실행 (BackBuffer에 대한 접근이므로)
+    // 즉시 실행
     FRHIGetBackBufferRTVCommand Command(RHIDevice, &RTV);
     Command.Execute();
 

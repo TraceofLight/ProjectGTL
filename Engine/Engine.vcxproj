@@ -441,6 +441,7 @@
     <ClCompile Include="Source\Runtime\Subsystem\UI\Private\UISubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Viewport\Private\ViewportSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\World\Private\WorldSubsystem.cpp" />
+    <ClCompile Include="Source\Shader\Private\Shader.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\Archive.cpp" />
     <ClCompile Include="Source\Utility\Private\JsonSerializer.cpp" />

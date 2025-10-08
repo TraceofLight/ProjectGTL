@@ -5,6 +5,8 @@
 #include "DirectXTK/DDSTextureLoader.h"
 
 #include "Asset/Public/StaticMeshData.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
+#include "Runtime/Subsystem/Public/PathSubsystem.h"
 
 // 전역 RHI 인스턴스
 FRHIDevice* GDynamicRHI = nullptr;
@@ -253,84 +255,43 @@ bool FRHIDevice::CreateVertexShaderAndInputLayout(
 	ID3D11VertexShader** OutVertexShader,
 	ID3D11InputLayout** OutInputLayout)
 {
-	if (!bIsInitialized || !Device)
+	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
+	path FullPath = PathSubsystem->GetShaderPath() / InFilePath;
+
+	ID3DBlob* VertexShaderBlob = nullptr;
+	if (!CompileShaderFromFile(FullPath.c_str(), "VSMain", "vs_5_0", &VertexShaderBlob))
 	{
-		UE_LOG_ERROR("RHIDevice: Shader 생성 실패 - Device가 초기화되지 않았습니다");
 		return false;
 	}
 
-	ID3DBlob* ShaderBlob = nullptr;
-	if (!CompileShaderFromFile(InFilePath, "main", "vs_5_0", &ShaderBlob))
-	{
-		UE_LOG_ERROR("RHIDevice: VertexShader 컴파일 실패 - %ls", InFilePath.c_str());
-		return false;
-	}
-
-	// Vertex Shader 생성
-	HRESULT hr = Device->CreateVertexShader(
-		ShaderBlob->GetBufferPointer(),
-		ShaderBlob->GetBufferSize(),
-		nullptr,
-		OutVertexShader);
-
+	HRESULT hr = Device->CreateVertexShader(VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), nullptr, OutVertexShader);
 	if (FAILED(hr))
 	{
-		UE_LOG_ERROR("RHIDevice: VertexShader 생성 실패 (HRESULT: 0x%08lX)", hr);
-		ShaderBlob->Release();
+		VertexShaderBlob->Release();
 		return false;
 	}
 
-	// Input Layout 생성
-	hr = Device->CreateInputLayout(
-		InLayoutDesc.GetData(),
-		static_cast<UINT>(InLayoutDesc.Num()),
-		ShaderBlob->GetBufferPointer(),
-		ShaderBlob->GetBufferSize(),
-		OutInputLayout);
+	hr = Device->CreateInputLayout(InLayoutDesc.GetData(), InLayoutDesc.Num(), VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), OutInputLayout);
+	VertexShaderBlob->Release();
 
-	ShaderBlob->Release();
-
-	if (FAILED(hr))
-	{
-		UE_LOG_ERROR("RHIDevice: InputLayout 생성 실패 (HRESULT: 0x%08lX)", hr);
-		(*OutVertexShader)->Release();
-		*OutVertexShader = nullptr;
-		return false;
-	}
-
-	return true;
+	return SUCCEEDED(hr);
 }
 
 bool FRHIDevice::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** OutPixelShader)
 {
-	if (!bIsInitialized || !Device)
+	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
+	path FullPath = PathSubsystem->GetShaderPath() / InFilePath;
+
+	ID3DBlob* PixelShaderBlob = nullptr;
+	if (!CompileShaderFromFile(FullPath.c_str(), "PSMain", "ps_5_0", &PixelShaderBlob))
 	{
-		UE_LOG_ERROR("RHIDevice: Shader 생성 실패 - Device가 초기화되지 않았습니다");
 		return false;
 	}
 
-	ID3DBlob* ShaderBlob = nullptr;
-	if (!CompileShaderFromFile(InFilePath, "main", "ps_5_0", &ShaderBlob))
-	{
-		UE_LOG_ERROR("RHIDevice: PixelShader 컴파일 실패 - %ls", InFilePath.c_str());
-		return false;
-	}
+	HRESULT hr = Device->CreatePixelShader(PixelShaderBlob->GetBufferPointer(), PixelShaderBlob->GetBufferSize(), nullptr, OutPixelShader);
+	PixelShaderBlob->Release();
 
-	HRESULT hr = Device->CreatePixelShader(
-		ShaderBlob->GetBufferPointer(),
-		ShaderBlob->GetBufferSize(),
-		nullptr,
-		OutPixelShader);
-
-	ShaderBlob->Release();
-
-	if (FAILED(hr))
-	{
-		UE_LOG_ERROR("RHIDevice: PixelShader 생성 실패 (HRESULT: 0x%08lX)", hr);
-		return false;
-	}
-
-	return true;
+	return SUCCEEDED(hr);
 }
 
 void FRHIDevice::ReleaseShader(IUnknown* InShader)
@@ -1044,6 +1005,23 @@ void FRHIDevice::PSSetDefaultSampler(UINT StartSlot)
 	DeviceContext->PSSetSamplers(StartSlot, 1, &DefaultSamplerState);
 }
 
+void FRHIDevice::SetShader(TObjectPtr<UShader> InShader)
+{
+	if (InShader)
+	{
+		DeviceContext->VSSetShader(InShader->GetVertexShader(), nullptr, 0);
+		DeviceContext->PSSetShader(InShader->GetPixelShader(), nullptr, 0);
+		DeviceContext->IASetInputLayout(InShader->GetInputLayout());
+	}
+	else
+	{
+		// Unbind shaders
+		DeviceContext->VSSetShader(nullptr, nullptr, 0);
+		DeviceContext->PSSetShader(nullptr, nullptr, 0);
+		DeviceContext->IASetInputLayout(nullptr);
+	}
+}
+
 void FRHIDevice::OMSetDepthWriteEnabled(bool bEnabled)
 {
 	if (!bIsInitialized || !DeviceContext)
@@ -1096,5 +1074,98 @@ void FRHIDevice::OMSetColorWriteEnabled(bool bEnabled)
 	else
 	{
 		UE_LOG_ERROR("RHIDevice: BlendState 생성 실패 (HRESULT: 0x%08lX)", hr);
+	}
+}
+
+// 렌더 타겟 관리 메서드들
+bool FRHIDevice::BeginFrame()
+{
+	if (!bIsInitialized || !DeviceContext || !SwapChain)
+	{
+		UE_LOG_ERROR("RHIDevice: BeginFrame 실패 - 초기화되지 않았습니다");
+		return false;
+	}
+
+	// 백버퍼에서 생성
+	ID3D11Texture2D* BackBuffer = nullptr;
+	HRESULT ResultHandle = SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&BackBuffer));
+	if (FAILED(ResultHandle))
+	{
+		UE_LOG_ERROR("RHIDevice: SwapChain BackBuffer 가져오기 실패 (HRESULT: 0x%08lX)", ResultHandle);
+		return false;
+	}
+
+	// 렌더 타겟 뷰 생성
+	ResultHandle = Device->CreateRenderTargetView(BackBuffer, nullptr, &MainRenderTargetView);
+	BackBuffer->Release();
+	if (FAILED(ResultHandle))
+	{
+		UE_LOG_ERROR("RHIDevice: RenderTargetView 생성 실패 (HRESULT: 0x%08lX)", ResultHandle);
+		return false;
+	}
+
+	// Depth Stencil Buffer 생성 (필요하다면)
+	// 일단은 렌더 타겟만 설정
+
+	return true;
+}
+
+void FRHIDevice::EndFrame()
+{
+	if (!bIsInitialized || !SwapChain)
+	{
+		return;
+	}
+
+	// Present
+	SwapChain->Present(1, 0);
+
+	// 렌더 타겟 뷰 해제
+	if (MainRenderTargetView)
+	{
+		MainRenderTargetView->Release();
+		MainRenderTargetView = nullptr;
+	}
+
+	if (MainDepthStencilView)
+	{
+		MainDepthStencilView->Release();
+		MainDepthStencilView = nullptr;
+	}
+}
+
+void FRHIDevice::ClearRenderTarget(const float ClearColor[4])
+{
+	if (!bIsInitialized || !DeviceContext || !MainRenderTargetView)
+	{
+		UE_LOG_ERROR("RHIDevice: ClearRenderTarget 실패 - RenderTargetView가 없습니다");
+		return;
+	}
+
+	DeviceContext->ClearRenderTargetView(MainRenderTargetView, ClearColor);
+
+	// Depth Stencil도 클리어 (있다면)
+	if (MainDepthStencilView)
+	{
+		DeviceContext->ClearDepthStencilView(MainDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	}
+}
+
+void FRHIDevice::SetMainRenderTarget()
+{
+	if (!bIsInitialized || !DeviceContext || !MainRenderTargetView)
+	{
+		UE_LOG_ERROR("RHIDevice: SetMainRenderTarget 실패 - RenderTargetView가 없습니다");
+		return;
+	}
+
+	DeviceContext->OMSetRenderTargets(1, &MainRenderTargetView, MainDepthStencilView);
+}
+
+void FRHIDevice::ClearDepthStencilView(float Depth, uint8 Stencil)
+{
+	if (MainDepthStencilView)
+	{
+		DeviceContext->ClearDepthStencilView(MainDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, Depth, Stencil);
 	}
 }

@@ -40,7 +40,7 @@ public:
 	float GetDeltaSeconds() const { return DeltaTimeSeconds; }
 	void SetTimeSeconds(float InTime) { CurrentTimeSeconds = InTime; }
 	void SetDeltaSeconds(float InDelta) { DeltaTimeSeconds = InDelta; }
-	
+
 	// ShowFlag 래퍼 함수들 - Level의 ShowFlag를 사용
 	bool IsShowFlagEnabled(EEngineShowFlags ShowFlag) const;
 	void SetShowFlag(EEngineShowFlags ShowFlag, bool bEnabled);
@@ -50,8 +50,13 @@ public:
 private:
 	TObjectPtr<ULevel> Level = nullptr;
 	EWorldType WorldType = EWorldType::None;
-	
+
 	// 시간 관리 변수들
 	float CurrentTimeSeconds = 0.0f;
 	float DeltaTimeSeconds = 0.0f;
 };
+
+extern TObjectPtr<UWorld> GWorld;
+
+// GWorld Setter
+inline void SetWorld(TObjectPtr<UWorld> InWorld) { GWorld = InWorld; }

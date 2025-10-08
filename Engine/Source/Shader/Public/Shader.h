@@ -43,10 +43,4 @@ protected:
 	FString FilePath;
 	EVertexLayoutType LayoutType = EVertexLayoutType::PositionColor;
 	bool bIsValid = false;
-
-private:
-	// 셰이더 컴파일 헬퍼
-	bool CompileVertexShader(const FString& InFilePath);
-	bool CompilePixelShader(const FString& InFilePath);
-	bool CreateInputLayout(EVertexLayoutType InLayoutType, ID3DBlob* VertexShaderBlob);
 };

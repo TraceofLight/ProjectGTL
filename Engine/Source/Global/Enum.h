@@ -211,7 +211,7 @@ enum class EComparisonFunc : uint8
 enum class EVertexLayoutType : uint8
 {
 	PositionColor = 0,				// Position + Color (Simple)
-	PositionColorTexturNormal,		// Position + Color + Texture + Normal (Dynamic)
+	PositionColorTextureNormal,		// Position + Color + Texture + Normal (Dynamic)
 	PositionTexture,				// Position + Texture
 	PositionNormal,					// Position + Normal
 	End = 0xFF

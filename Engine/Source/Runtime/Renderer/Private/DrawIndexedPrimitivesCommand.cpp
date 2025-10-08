@@ -34,80 +34,45 @@ void FRHIDrawIndexedPrimitivesCommand::SetupShaderForComponent(UPrimitiveCompone
 {
 	if (!InComponent || !RHIDevice) return;
 
-	// Component의 Material에서 Shader 가져오기 (Material별 정렬의 이점 활용)
-	UMaterial* ComponentMaterial = InComponent->GetMaterial();
-	UShader* ComponentShader = nullptr;
+	// 1. 셰이더 로드
+	UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
+	TObjectPtr<UShader> Shader = nullptr;
+	if (AssetSubsystem)
+	{
+		// TODO: 머티리얼에서 셰이더 경로를 가져오는 로직 필요
+		TArray<D3D11_INPUT_ELEMENT_DESC> LayoutDesc = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		};
+		Shader = AssetSubsystem->LoadShader("StaticMeshShader.hlsl", LayoutDesc);
+	}
 
+	// 2. RHI에 셰이더 설정
+	RHIDevice->SetShader(Shader);
+
+	// 3. 텍스처 및 샘플러 바인딩
+	UMaterial* ComponentMaterial = InComponent->GetMaterial();
 	if (ComponentMaterial)
 	{
-		ComponentShader = ComponentMaterial->GetShader();
-	}
-
-	// Material에 Shader가 없는 경우 컴포넌트 타입에 따른 기본 셰이더 선택
-	if (!ComponentShader)
-	{
-		// LineComponent 제거 - 언리얼 엔진에서는 Debug Drawing을 사용
-		// 기본 셰이더 로드
-		// ComponentShader = 스태틱메시 셰이더 로드 로직 필요 (임시 주석)
-
-		// Material에 Texture가 없는 경우 기본 텍스처 설정
-		if (ComponentMaterial && !ComponentMaterial->GetTexture())
+		UTexture* Texture = ComponentMaterial->GetTexture();
+		if (Texture && Texture->GetShaderResourceView())
 		{
-			// OBJ 파일과 함께 있는 텍스처나 기본 텍스처 로드 시도
-			if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(InComponent))
-			{
-				UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
-				if (StaticMesh && StaticMesh->HasMaterial())
-				{
-					// OBJ 파일의 Material 정보에서 텍스처 로드 시도
-					// TODO: Material 정보에서 실제 텍스처 파일 경로 가져와서 로드
-				}
-			}
-		}
-	}
-
-	// 셰이더 바인딩 (Material별 정렬로 인해 동일 Material이 연속으로 올 확률이 높음)
-	if
-	(ComponentShader)
-	{
-		// 셰이더 변경 추적
-		static UShader* LastShader = nullptr;
-		if (LastShader != ComponentShader)
-		{
-			LastShader = ComponentShader;
-		}
-
-		ID3D11DeviceContext* DeviceContext = RHIDevice->GetDeviceContext();
-		DeviceContext->VSSetShader(ComponentShader->GetVertexShader(), nullptr, 0);
-		DeviceContext->PSSetShader(ComponentShader->GetPixelShader(), nullptr, 0);
-		DeviceContext->IASetInputLayout(ComponentShader->GetInputLayout());
-
-		// Texture 및 Sampler 바인딩 (기존 Renderer에서 누락된 부분)
-		if (ComponentMaterial)
-		{
-			UTexture* Texture = ComponentMaterial->GetTexture();
-			if (Texture && Texture->GetShaderResourceView())
-			{
-				// 텍스처 변경 추적
-				static UTexture* LastTexture = nullptr;
-				if (LastTexture != Texture)
-				{
-					LastTexture = Texture;
-				}
-
-				ID3D11ShaderResourceView* SRV = Texture->GetShaderResourceView();
-				DeviceContext->PSSetShaderResources(0, 1, &SRV);
-
-				// 기존 Renderer에서 항상 설정했던 Sampler State
-				RHIDevice->PSSetDefaultSampler(0);
-			}
+			ID3D11DeviceContext* DeviceContext = RHIDevice->GetDeviceContext();
+			ID3D11ShaderResourceView* SRV = Texture->GetShaderResourceView();
+			DeviceContext->PSSetShaderResources(0, 1, &SRV);
+			RHIDevice->PSSetDefaultSampler(0);
 		}
 	}
 }
 
 void FRHIDrawIndexedPrimitivesCommand::RenderComponent(UPrimitiveComponent* InComponent)
 {
-	if (!InComponent || !RHIDevice) return;
+	if (!InComponent || !RHIDevice)
+	{
+		return;
+	}
 
 	// 상수 버퍼 업데이트 (Model, View, Projection)
 	RHIDevice->UpdateConstantBuffers(InComponent->GetWorldMatrix(), ViewMatrix, ProjMatrix);
@@ -130,7 +95,10 @@ void FRHIDrawIndexedPrimitivesCommand::RenderComponent(UPrimitiveComponent* InCo
 
 void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComponent* StaticMeshComp)
 {
-	if (!StaticMeshComp || !RHIDevice) return;
+	if (!StaticMeshComp || !RHIDevice)
+	{
+		return;
+	}
 
 	UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
 	if (!StaticMesh)
@@ -156,7 +124,7 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 	case EVertexLayoutType::PositionColor:
 		stride = sizeof(FVertexSimple);
 		break;
-	case EVertexLayoutType::PositionColorTexturNormal:
+	case EVertexLayoutType::PositionColorTextureNormal:
 		stride = sizeof(FVertexDynamic);
 		break;
 	default:
@@ -179,7 +147,7 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 	const TArray<FStaticMeshSection>& MeshSections = StaticMesh->GetMeshGroupInfo();
 	const TArray<UMaterialInterface*>& MaterialSlots = StaticMeshComp->GetMaterailSlots();
 
-	if (StaticMesh->HasMaterial() && MeshSections.Num() > 0)
+	if (MeshSections.Num() > 0)
 	{
 		// 언리얼 스타일: Section 단위로 렌더링
 		for (int32 SectionIndex = 0; SectionIndex < MeshSections.Num(); ++SectionIndex)
@@ -281,7 +249,7 @@ void FRHIDrawIndexedPrimitivesCommand::RenderGizmoComponent(UStaticMeshComponent
 	case EVertexLayoutType::PositionColor:
 		stride = sizeof(FVertexSimple);
 		break;
-	case EVertexLayoutType::PositionColorTexturNormal:
+	case EVertexLayoutType::PositionColorTextureNormal:
 		stride = sizeof(FVertexDynamic);
 		break;
 	default:

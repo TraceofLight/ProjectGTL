@@ -2,11 +2,8 @@
 #include "Runtime/Core/Public/Object.h"
 #include "Runtime/Subsystem/Public/SubsystemCollection.h"
 #include "Runtime/Subsystem/Public/EngineSubsystem.h"
-#include "Runtime/Core/Public/ModuleManager.h"
-#include <memory>
 
 class FAppWindow;
-// FRendererModule 제거됨
 class FRHIDevice;
 
 /**
@@ -36,7 +33,13 @@ public:
 	void SetAppWindow(FAppWindow* InWindow) { AppWindow = InWindow; }
 	FAppWindow* GetAppWindow() const { return AppWindow; }
 
-	// Module Manager 방식 접근자 제거됨 - 이제 GDynamicRHI 직접 사용
+	UWorld* GetEditorWorld() const { return EditorWorld; }
+	void SetEditorWorld(TObjectPtr<UWorld> InWorld) { EditorWorld = InWorld; }
+
+	UWorld* GetPlayWorld() const { return PlayWorld; }
+	void SetPlayWorld(TObjectPtr<UWorld> InWorld) { PlayWorld = InWorld; }
+
+	TObjectPtr<UWorld> GetWorld() const override;
 
 	// Tick engine subsystem
 	void TickEngineSubsystems(FAppWindow* InWindow = nullptr);
@@ -45,6 +48,9 @@ private:
 	bool bIsInitialized = false;
 	FEngineSubsystemCollection EngineSubsystemCollection;
 	FAppWindow* AppWindow = nullptr;
+
+	TObjectPtr<UWorld> EditorWorld;
+	TObjectPtr<UWorld> PlayWorld;
 
 	void RegisterDefaultEngineSubsystems();
 };

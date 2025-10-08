@@ -3,6 +3,7 @@
 #include "Runtime/Core/Public/Containers/TMap.h"
 #include "Source/Global/Enum.h"
 
+class UShader;
 struct FObjMaterialInfo;
 struct FVertex;
 
@@ -73,6 +74,16 @@ public:
 	// 샘플러 상태 설정
 	void PSSetDefaultSampler(UINT StartSlot);
 
+	// 셰이더 설정
+	void SetShader(TObjectPtr<UShader> InShader);
+
+	// 렌더 타겟 관리
+	bool BeginFrame();
+	void EndFrame();
+	void ClearRenderTarget(const float ClearColor[4]);
+	void ClearDepthStencilView(float Depth, uint8 Stencil);
+	void SetMainRenderTarget();
+
 private:
 	ID3D11Device* Device = nullptr;
 	ID3D11DeviceContext* DeviceContext = nullptr;
@@ -93,6 +104,13 @@ private:
 
 	// 샘플러 상태
 	ID3D11SamplerState* DefaultSamplerState = nullptr;
+
+	// 셰이더 캐시
+	TMap<FString, TObjectPtr<UShader>> ShaderCache;
+
+	// 렌더 타겟 관리
+	ID3D11RenderTargetView* MainRenderTargetView = nullptr;
+	ID3D11DepthStencilView* MainDepthStencilView = nullptr;
 
 	// Shader 컴파일 헬퍼
 	bool CompileShaderFromFile(const wstring& InFilePath, const char* InEntryPoint,

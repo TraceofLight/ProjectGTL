@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Runtime/Subsystem/Public/EngineSubsystem.h"
+#include "Shader/Public/Shader.h"
 
 struct FStaticMeshSection;
 class UStaticMesh;
@@ -26,6 +27,9 @@ public:
 	UMaterialInterface* GetDefaultMaterial() const;
 	UMaterialInterface* CreateMaterial(const FObjMaterialInfo& MaterialInfo) const;
 
+	// Shader 관련 함수들
+	TObjectPtr<UShader> LoadShader(const FString& InFilePath, const TArray<D3D11_INPUT_ELEMENT_DESC>& InLayoutDesc);
+
 	// StaticMesh 관련 함수들 (CPU 데이터 로딩 및 캐싱)
 	TObjectPtr<UStaticMesh> LoadStaticMesh(const FString& InFilePath);
 	TObjectPtr<UStaticMesh> GetStaticMesh(const FString& InFilePath);
@@ -35,6 +39,9 @@ public:
 private:
 	// Default Material (CPU 데이터만)
 	mutable UMaterialInterface* DefaultMaterial = nullptr;
+
+	// 셰이더 캐시
+	TMap<FString, TObjectPtr<UShader>> ShaderCache;
 
 	void InitializeDefaultMaterial() const;
 	void ReleaseDefaultMaterial();
@@ -47,5 +54,5 @@ private:
 	void AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const;
 
 	bool CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& Sections) const;
-	void InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots);
+	void InsertDefaultMaterial(UStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots);
 };

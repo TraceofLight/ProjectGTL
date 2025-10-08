@@ -62,7 +62,8 @@ private:
 	// Editor ShowFlags - 기본적으로 모든 표시 옵션 활성화
 	uint64 ShowFlags = static_cast<uint64>(EEngineShowFlags::SF_Primitives) |
 		static_cast<uint64>(EEngineShowFlags::SF_BillboardText) |
-		static_cast<uint64>(EEngineShowFlags::SF_Bounds);
+		static_cast<uint64>(EEngineShowFlags::SF_Bounds) |
+		static_cast<uint64>(EEngineShowFlags::SF_Grid);
 
 	// Viewport Interaction
 	void HandleViewportInteraction();

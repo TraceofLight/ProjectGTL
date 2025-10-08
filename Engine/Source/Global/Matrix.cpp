@@ -288,4 +288,58 @@ FMatrix FMatrix::Transpose() const
 	return result;
 }
 
+FMatrix FMatrix::MatrixLookAtLH(const FVector& EyePosition, const FVector& FocusPosition, const FVector& UpDirection)
+{
+    FVector ZAxis = (FocusPosition - EyePosition).Normalized();
+    FVector XAxis = UpDirection.Cross(ZAxis).Normalized();
+    FVector YAxis = ZAxis.Cross(XAxis);
+
+    FMatrix Result;
+    Result.Data[0][0] = XAxis.X;
+    Result.Data[0][1] = YAxis.X;
+    Result.Data[0][2] = ZAxis.X;
+    Result.Data[0][3] = 0.0f;
+
+    Result.Data[1][0] = XAxis.Y;
+    Result.Data[1][1] = YAxis.Y;
+    Result.Data[1][2] = ZAxis.Y;
+    Result.Data[1][3] = 0.0f;
+
+    Result.Data[2][0] = XAxis.Z;
+    Result.Data[2][1] = YAxis.Z;
+    Result.Data[2][2] = ZAxis.Z;
+    Result.Data[2][3] = 0.0f;
+
+    Result.Data[3][0] = -XAxis.Dot(EyePosition);
+    Result.Data[3][1] = -YAxis.Dot(EyePosition);
+    Result.Data[3][2] = -ZAxis.Dot(EyePosition);
+    Result.Data[3][3] = 1.0f;
+
+    return Result;
+}
+
+FMatrix FMatrix::MatrixOrthoLH(float ViewWidth, float ViewHeight, float NearZ, float FarZ)
+{
+    FMatrix Result = FMatrix::Identity();
+    Result.Data[0][0] = 2.0f / ViewWidth;
+    Result.Data[1][1] = 2.0f / ViewHeight;
+    Result.Data[2][2] = 1.0f / (FarZ - NearZ);
+    Result.Data[3][2] = -NearZ / (FarZ - NearZ);
+    return Result;
+}
+
+FMatrix FMatrix::MatrixPerspectiveFovLH(float FovAngleY, float AspectRatio, float NearZ, float FarZ)
+{
+    FMatrix Result = FMatrix();
+    float SinFov = sinf(0.5f * FovAngleY);
+    float CosFov = cosf(0.5f * FovAngleY);
+    float Height = CosFov / SinFov;
+    Result.Data[0][0] = Height / AspectRatio;
+    Result.Data[1][1] = Height;
+    Result.Data[2][2] = FarZ / (FarZ - NearZ);
+    Result.Data[2][3] = 1.0f;
+    Result.Data[3][2] = -NearZ * FarZ / (FarZ - NearZ);
+    return Result;
+}
+
 

@@ -23,6 +23,7 @@ public:
     ~FSceneRenderer();
 
     void Render();
+    void RenderWithCommandList(const FSceneView* SceneView, class FRHICommandList* CommandList);
     void Cleanup();
 
     // RenderCommandList 접근자

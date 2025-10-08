@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Runtime/Engine/Public/Engine.h"
-// RendererModule 제거됨 - 이제 GDynamicRHI 직접 사용
+
+#include "Runtime/Core/Public/ModuleManager.h"
 #include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Subsystem/Public/PathSubsystem.h"
 #include "Runtime/Subsystem/Public/DebugRenderingSubsystem.h"
@@ -29,6 +30,27 @@ UEngine::~UEngine()
 	}
 
 	GEngine = nullptr;
+}
+
+/**
+ * @brief UObject 인터페이스의 GetWorld 구현
+ * @return PIE일 경우 PlayWorld를, 그 외에는 EditorWorld를 반환
+ */
+TObjectPtr<UWorld> UEngine::GetWorld() const
+{
+	// PIE일 경우 PlayWorld 반환
+	if (PlayWorld)
+	{
+		return PlayWorld;
+	}
+
+	// 일반 편집 시에는 EditorWorld 반환
+	if (EditorWorld)
+	{
+		return EditorWorld;
+	}
+
+	return nullptr;
 }
 
 /**

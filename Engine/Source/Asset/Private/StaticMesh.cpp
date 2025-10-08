@@ -333,5 +333,5 @@ void UStaticMesh::SetMaterialSlots(const TArray<UMaterialInterface*>& InMaterial
 EVertexLayoutType UStaticMesh::GetVertexType() const
 {
 	// FVertex 사용시 기본 Vertex Layout (Position + Color + Texture + Normal)
-	return EVertexLayoutType::PositionColorTexturNormal;
+	return EVertexLayoutType::PositionColorTextureNormal;
 }

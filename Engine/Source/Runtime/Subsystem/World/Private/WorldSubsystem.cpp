@@ -11,6 +11,7 @@
 #include "Asset/Public/StaticMesh.h"
 #include "Window/Public/Viewport.h"
 #include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Engine/Public/World.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Runtime/Subsystem/Public/PathSubsystem.h"
 
@@ -34,6 +35,39 @@ void UWorldSubsystem::PostInitialize()
 		Editor->Initialize();
 	}
 
+	// EDITOR_MODE에 따라 월드 타입 결정 및 월드 생성
+	EWorldType WorldType;
+#ifdef EDITOR_MODE
+	WorldType = EWorldType::Editor;
+#else
+	WorldType = EWorldType::Game;
+#endif
+
+	// 새로운 World 생성
+	TObjectPtr<UWorld> NewWorld = NewObject<UWorld>();
+	if (!NewWorld)
+	{
+		assert(!"UWorld 생성 실패");
+		return;
+	}
+
+	// World 타입 설정
+	NewWorld->SetWorldType(WorldType);
+
+	// World를 적절한 위치에 설정
+	if (WorldType == EWorldType::Editor)
+	{
+		GEngine->SetEditorWorld(NewWorld);
+	}
+	else if (WorldType == EWorldType::PIE)
+	{
+		GEngine->SetPlayWorld(NewWorld);
+	}
+
+	// GWorld도 설정
+	GWorld = NewWorld;
+
+	// 월드에 레벨 생성 및 등록
 	CreateAndRegisterLevel();
 }
 
@@ -120,8 +154,16 @@ void UWorldSubsystem::CreateAndRegisterLevel()
 	Level->SetName(InternalName);
 	Level->SetDisplayName("New Level");
 
-	// WorldSubsystem을 Outer로 설정하여 생명주기 관리
-	Level->SetOuter(this);
+	if (GWorld)
+	{
+		Level->SetOuter(GWorld);
+		Level->SetOwningWorld(GWorld);
+		GWorld->SetLevel(Level);
+	}
+	else
+	{
+		assert(!"GWorld가 존재하지 않음");
+	}
 
 	RegisterLevel(InternalName, Level);
 
@@ -160,12 +202,11 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 
 		// 0번 ViewPort의 PerspectiveCamera 세팅을 Metadata에 포함
 		UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-		TArray<FViewportClient*>& Clients = ViewportSS->GetClients();
-		UE_LOG("WorldSubsystem: SaveCurrentLevel - Saving camera from Client[0]");
-		if (!Clients.IsEmpty() && Clients[0])
+		UE_LOG("WorldSubsystem: SaveCurrentLevel - Saving camera from Viewport 0");
+		if (ViewportSS)
 		{
-			ACameraActor* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
-			if (PerspectiveCamera)
+			ACameraActor* PerspectiveCamera = ViewportSS->GetActiveCameraForViewport(0);
+			if (PerspectiveCamera && PerspectiveCamera->GetCameraComponent()->GetCameraType() == ECameraType::ECT_Perspective)
 			{
 				UCameraComponent* CamComp = PerspectiveCamera->GetCameraComponent();
 				if (CamComp)
@@ -192,12 +233,12 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 			}
 			else
 			{
-				UE_LOG("WorldSubsystem: WARNING - Client[0] has no PerspectiveCamera, camera data not saved!");
+				UE_LOG("WorldSubsystem: WARNING - Viewport 0 has no PerspectiveCamera, camera data not saved!");
 			}
 		}
 		else
 		{
-			UE_LOG("WorldSubsystem: WARNING - No clients available, camera data not saved!");
+			UE_LOG("WorldSubsystem: WARNING - No ViewportSubsystem available, camera data not saved!");
 		}
 
 		bool bSuccess = FJsonSerializer::SaveLevelToFile(Metadata, FilePath.string());
@@ -498,7 +539,7 @@ void UWorldSubsystem::ClearCurrentLevel()
 void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMetadata)
 {
 	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	TArray<FViewportClient*>& Clients = ViewportSS->GetClients();
+	if (!ViewportSS) return;
 
 	// FOV/Near/Far가 0이면 저장된 데이터가 손상되었으므로 기본값 사용
 	bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
@@ -509,35 +550,12 @@ void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraM
 	}
 
 	// 모든 Perspective 카메라에 동일한 설정 적용
-	// 각 Viewport의 실제 크기를 기반으로 Aspect 설정
-	TArray<FViewport*>& Viewports = ViewportSS->GetViewports();
-
-	for (int32 i = 0; i < Clients.Num(); ++i)
+	const auto& PerspectiveCameras = ViewportSS->GetPerspectiveCameras();
+	for (ACameraActor* PerspectiveCamera : PerspectiveCameras)
 	{
-		UE_LOG("WorldSubsystem: Processing Client[%d]", i);
-
-		FViewportClient* Client = Clients[i];
-		if (!Client)
-		{
-			UE_LOG("WorldSubsystem: Client[%d] is NULL", i);
-			continue;
-		}
-
-		ACameraActor* PerspectiveCamera = Client->GetPerspectiveCamera();
-		if (!PerspectiveCamera)
-		{
-			UE_LOG("WorldSubsystem: Client[%d]는 PerspectiveCamera가 없습니다", i);
-			continue;
-		}
+		if (!PerspectiveCamera || !PerspectiveCamera->GetCameraComponent()) continue;
 
 		UCameraComponent* CameraComponent = PerspectiveCamera->GetCameraComponent();
-		if (!CameraComponent)
-		{
-			UE_LOG_WARNING("WorldSubsystem: Client[%d]의 PerspectiveCamera가 CameraComponent가 없습니다", i);
-			continue;
-		}
-
-		UE_LOG("WorldSubsystem: Client[%d]: 카메라 속성을 설정합니다", i);
 
 		// 카메라 설정 복원
 		PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
@@ -550,44 +568,9 @@ void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraM
 			CameraComponent->SetNearZ(InCameraMetadata.NearClip);
 			CameraComponent->SetFarZ(InCameraMetadata.FarClip);
 		}
-		else
-		{
-			UE_LOG("WorldSubsystem: Client[%d]: FOV/Near/Far 기본값을 사용합니다", i);
-		}
-
-		UE_LOG("WorldSubsystem: Client[%d] - Camera set to Location:(%.2f,%.2f,%.2f) Rotation:(%.2f,%.2f,%.2f)",
-		       i,
-		       InCameraMetadata.Location.X, InCameraMetadata.Location.Y, InCameraMetadata.Location.Z,
-		       InCameraMetadata.Rotation.X, InCameraMetadata.Rotation.Y, InCameraMetadata.Rotation.Z);
-
-		// 각 Viewport의 실제 크기를 기반으로 Aspect 계산
-		if (i < Viewports.Num() && Viewports[i])
-		{
-			const FRect& ViewportRect = Viewports[i]->GetRect();
-			const int32 ToolbarHeight = Viewports[i]->GetToolbarHeight();
-			const float ViewportWidth = static_cast<float>(ViewportRect.W);
-			const float ViewportHeight = static_cast<float>(max<LONG>(0, ViewportRect.H - ToolbarHeight));
-
-			UE_LOG("WorldSubsystem: Client[%d] Viewport: Rect:(%ld,%ld,%ld,%ld) Toolbar:%d RenderSize:(%.2fx%.2f)",
-			       i,
-			       ViewportRect.X, ViewportRect.Y, ViewportRect.W, ViewportRect.H,
-			       ToolbarHeight, ViewportWidth, ViewportHeight);
-
-			if (ViewportHeight > 0.0f && ViewportWidth > 0.0f)
-			{
-				float Aspect = ViewportWidth / ViewportHeight;
-				CameraComponent->SetAspect(Aspect);
-				UE_LOG("WorldSubsystem: Client[%d]: Aspect 설정: %.4f", i, Aspect);
-			}
-			else
-			{
-				UE_LOG("WorldSubsystem: Client[%d]: 비정상적인 viewport size, aspect를 스킵합니다", i);
-			}
-		}
-		else
-		{
-			UE_LOG("WorldSubsystem: Client[%d]: Viewport[%d]이 NULL이거나 범위 바깥입니다",
-			       i, i);
-		}
 	}
+
+	// Ortho 카메라들도 업데이트가 필요하다면 여기에 로직 추가
+
+	UE_LOG("WorldSubsystem: All cameras restored from metadata.");
 }

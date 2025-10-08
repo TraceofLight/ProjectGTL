@@ -51,6 +51,11 @@ public:
 	void RenderOverlay();
 
 	/**
+	 * @brief 뷰포트 렌더링 (매 프레임마다 호출)
+	 */
+	void RenderViewports();
+
+	/**
 	 * @brief 서브시스템 해제
 	 */
 	void Release();
@@ -106,6 +111,12 @@ public:
 	// ViewportChange 상태 접근자
 	EViewportChange GetViewportChange() const { return ViewportChange; }
 	void SetViewportChange(EViewportChange InChange) { ViewportChange = InChange; }
+
+	// New camera management API
+	ACameraActor* GetActiveCameraForViewport(int32 InViewportIndex) const;
+	TArray<ACameraActor*> GetAllCameras() const;
+	void SetViewportViewType(int32 InViewportIndex, EViewType InNewType);
+
 
 	/**
 	 * @brief 스플리터 비율 저장

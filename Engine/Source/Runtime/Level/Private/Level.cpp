@@ -4,6 +4,7 @@
 #include "Runtime/Actor/Public/Actor.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
+#include "Runtime/Engine/Public/World.h"
 
 IMPLEMENT_CLASS(ULevel, UObject)
 

@@ -27,25 +27,34 @@ void FBasePass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 {
 	if (!View || !SceneRenderer) return;
 
-	UWorld* World = View->GetWorld();
+	TObjectPtr<UWorld> World = View->GetWorld();
 	if (!World)
 	{
-		printf("[BasePass] World is null!\n");
+		UE_LOG_WARNING("BasePass: World가 존재하지 않습니다");
 		return;
 	}
 
 	FRHICommandList* RHICmdList = SceneRenderer->GetCommandList();
-	if (!RHICmdList) return;
+	if (!RHICmdList)
+	{
+		return;
+	}
 
 	// 비 매트릭스 계산
 	ACameraActor* Camera = View->GetCamera();
 	FViewport* Viewport = View->GetViewport();
 
-	if (!Camera || !Viewport) return;
+	if (!Camera || !Viewport)
+	{
+		return;
+	}
 
 	// UCameraComponent에서 ViewProjConstants 가져오기
 	UCameraComponent* CameraComp = Camera->GetCameraComponent();
-	if (!CameraComp) return;
+	if (!CameraComp)
+	{
+		return;
+	}
 
 	const FViewProjConstants& ViewProjConsts = CameraComp->GetFViewProjConstants();
 	FMatrix ViewMatrix = ViewProjConsts.View;
@@ -71,27 +80,34 @@ void FBasePass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 		int32 CulledCount = 0;
 		int32 RenderedCount = 0;
 
-		for (const TObjectPtr<AActor>& ActorPtr : Actors)
+		for (const TObjectPtr<AActor>& Actor : Actors)
 		{
-			AActor* Actor = ActorPtr.Get();
-			if (!Actor) continue;
-			if (Actor->GetActorHiddenInGame()) continue;
+			if (!Actor)
+			{
+				continue;
+			}
+			if (Actor->GetActorHiddenInGame())
+			{
+				continue;
+			}
 
 			// StaticMesh Show Flag 체크
-			if (Cast<AStaticMeshActor>(Actor) && !World->IsShowFlagEnabled(
-				EEngineShowFlags::SF_StaticMeshes))
+			if (Cast<AStaticMeshActor>(Actor) &&
+				!World->IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
+			{
 				continue;
+			}
 
 			// RenderActor 호출 및 결과 처리
 			bool bWasRendered = RenderActor(Actor, View, RHICmdList, ViewMatrix, ProjectionMatrix, HighlightColor);
 
 			if (bWasRendered)
 			{
-				RenderedCount++;
+				++RenderedCount;
 			}
 			else
 			{
-				CulledCount++;
+				++CulledCount;
 			}
 		}
 
@@ -105,6 +121,7 @@ void FBasePass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 			{
 				UE_LOG("[BasePass] Frustum Culling Stats - Total: %d, Rendered: %d, Culled: %d (%.1f%%)\n",
 				       TotalActors, RenderedCount, CulledCount, (float)CulledCount * 100.0f / TotalActors);
+				UE_LOG("[BasePass] 렌더링 대상 액터 수: %d", Actors.Num());
 			}
 		}
 	}
@@ -152,11 +169,17 @@ bool FBasePass::RenderActor(AActor* Actor, const FSceneView* View, FRHICommandLi
 	// 액터의 모든 컴포넌트 렌더링
 	for (USceneComponent* Component : Actor->GetComponents<USceneComponent>())
 	{
-		if (!Component) continue;
+		if (!Component)
+		{
+			continue;
+		}
 
 		if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
 		{
-			if (!ActorComp->IsActive()) continue;
+			if (!ActorComp->IsActive())
+			{
+				continue;
+			}
 		}
 
 		if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))

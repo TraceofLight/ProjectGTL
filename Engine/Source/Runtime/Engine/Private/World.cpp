@@ -5,6 +5,8 @@
 
 IMPLEMENT_CLASS(UWorld, UObject)
 
+TObjectPtr<UWorld> GWorld = nullptr;
+
 UWorld::UWorld()
 {
 	UE_LOG("UWorld: Created");
@@ -91,7 +93,7 @@ bool UWorld::IsShowFlagEnabled(EEngineShowFlags ShowFlag) const
 		// Level이 없으면 기본값으로 true 반환 (모든 것을 표시)
 		return true;
 	}
-	
+
 	uint64 LevelShowFlags = Level->GetShowFlags();
 	return (LevelShowFlags & static_cast<uint64>(ShowFlag)) != 0;
 }
@@ -102,9 +104,9 @@ void UWorld::SetShowFlag(EEngineShowFlags ShowFlag, bool bEnabled)
 	{
 		return;
 	}
-	
+
 	uint64 LevelShowFlags = Level->GetShowFlags();
-	
+
 	if (bEnabled)
 	{
 		LevelShowFlags |= static_cast<uint64>(ShowFlag);
@@ -113,7 +115,7 @@ void UWorld::SetShowFlag(EEngineShowFlags ShowFlag, bool bEnabled)
 	{
 		LevelShowFlags &= ~static_cast<uint64>(ShowFlag);
 	}
-	
+
 	Level->SetShowFlags(LevelShowFlags);
 }
 
@@ -129,7 +131,7 @@ uint64 UWorld::GetShowFlags() const
 			static_cast<uint64>(EEngineShowFlags::SF_StaticMeshes) |
 			static_cast<uint64>(EEngineShowFlags::SF_BoundingBoxes);
 	}
-	
+
 	return Level->GetShowFlags();
 }
 
@@ -139,6 +141,6 @@ void UWorld::SetShowFlags(uint64 InShowFlags)
 	{
 		return;
 	}
-	
+
 	Level->SetShowFlags(InShowFlags);
 }

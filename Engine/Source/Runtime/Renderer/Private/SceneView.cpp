@@ -23,7 +23,7 @@ FSceneView::~FSceneView() = default;
  * @param InViewport 뷰가 렌더링될 대상 FViewport 포인터
  * @param InWorld 뷰가 속한 UWorld 포인터
  */
-void FSceneView::Initialize(ACameraActor* InCamera, FViewport* InViewport, UWorld* InWorld)
+void FSceneView::Initialize(TObjectPtr<ACameraActor> InCamera, FViewport* InViewport, TObjectPtr<UWorld> InWorld)
 {
     Camera = InCamera;
     Viewport = InViewport;

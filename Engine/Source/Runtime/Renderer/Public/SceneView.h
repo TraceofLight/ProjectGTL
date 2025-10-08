@@ -30,7 +30,7 @@ public:
     FSceneView();
     ~FSceneView();
 
-    void Initialize(ACameraActor* InCamera, FViewport* InViewport, UWorld* InWorld);
+    void Initialize(TObjectPtr<ACameraActor> InCamera, FViewport* InViewport, TObjectPtr<UWorld> InWorld);
     void UpdateViewMatrices();
 
     // Getter & Setter
@@ -41,9 +41,9 @@ public:
     FVector GetViewLocation() const { return ViewLocation; }
     FQuaternion GetViewRotation() const { return ViewRotation; }
 
-    FViewport* GetViewport() const { return Viewport; }
-    ACameraActor* GetCamera() const { return Camera; }
-    UWorld* GetWorld() const { return World; }
+    TObjectPtr<FViewport> GetViewport() const { return Viewport; }
+    TObjectPtr<ACameraActor> GetCamera() const { return Camera; }
+    TObjectPtr<UWorld> GetWorld() const { return World; }
 
     EViewMode GetViewModeIndex() const { return ViewModeIndex; }
     void SetViewModeIndex(EViewMode InViewMode) { ViewModeIndex = InViewMode; }
@@ -60,9 +60,9 @@ public:
     // const FFrustum& GetFrustum() const { return ViewFrustum; }
 
 private:
-    ACameraActor* Camera = nullptr;
-    FViewport* Viewport = nullptr;
-    UWorld* World = nullptr;
+    TObjectPtr<ACameraActor> Camera = nullptr;
+    TObjectPtr<FViewport> Viewport = nullptr;
+    TObjectPtr<UWorld> World = nullptr;
 
     FMatrix ViewMatrix;
     FMatrix ProjectionMatrix;

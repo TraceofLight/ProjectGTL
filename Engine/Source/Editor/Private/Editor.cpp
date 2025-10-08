@@ -23,15 +23,11 @@ UEditor::~UEditor() = default;
 
 void UEditor::Initialize()
 {
-	// 렌더링 리소스는 이제 FRendererModule::GetEditorResources()를 통해 접근
-
 	// Gizmo 초기화
 	Gizmo = NewObject<UGizmo>();
 	if (Gizmo)
 	{
-		// UGizmo 생성자에 FRendererModule 전달 (Gizmo.cpp 참고)
 		Gizmo = NewObject<UGizmo>();
-		// TODO: Gizmo에 RendererModule 설정하는 방법 확인 필요
 		UE_LOG("UEditor: Gizmo가 초기화되었습니다");
 	}
 
@@ -798,29 +794,12 @@ ACameraActor* UEditor::GetActivePickingCamera()
 		return nullptr;
 	}
 
-	const auto& Clients = ViewportManager->GetClients();
-
+	// Get the viewport index under the mouse, default to 0 if none.
 	int32 Index = ViewportManager->GetViewportIndexUnderMouse();
 	Index = max(Index, 0);
 
-	if (Index >= Clients.Num())
-	{
-		return nullptr;
-	}
-
-	FViewportClient* ViewportClient = Clients[Index];
-	if (!ViewportClient)
-	{
-		return nullptr;
-	}
-	if (ViewportClient->GetViewType() == EViewType::Perspective)
-	{
-		return ViewportClient->GetPerspectiveCamera();
-	}
-	else
-	{
-	return ViewportClient->GetOrthoCamera();
-	}
+	// Get the active camera for that viewport directly from the subsystem.
+	return ViewportManager->GetActiveCameraForViewport(Index);
 }
 
 bool UEditor::IsShowFlagEnabled(EEngineShowFlags ShowFlag) const

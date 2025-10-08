@@ -108,6 +108,7 @@ public:
 	void SetMaterialSlots(const TArray<UMaterialInterface*>& InMaterialSlots);
 
 	// DrawIndexedPrimitivesCommand에서 필요한 메서드들
+	TArray<FStaticMeshSection>& GetMeshGroupInfo() { return StaticMeshData.Sections; } // Non-const version
 	const TArray<FStaticMeshSection>& GetMeshGroupInfo() const { return StaticMeshData.Sections; }
 	bool HasMaterial() const { return !MaterialSlots.IsEmpty(); }
 	uint32 GetIndexCount() const { return static_cast<uint32>(StaticMeshData.Indices.Num()); }

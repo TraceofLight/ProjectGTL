@@ -52,6 +52,7 @@ public:
 
 	const TArray<TObjectPtr<AActor>>& GetLevelActors() const { return Actors; }
 	TObjectPtr<UWorld> GetWorld() const override { return OwningWorld; }
+	void SetOwningWorld(TObjectPtr<UWorld> InWorld) { OwningWorld = InWorld; }
 
 	template <typename T>
 	TObjectPtr<T> SpawnActor(const FName& InName = FName::FName_None,
