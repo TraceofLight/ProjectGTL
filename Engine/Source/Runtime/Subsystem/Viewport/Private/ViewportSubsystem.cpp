@@ -15,6 +15,8 @@
 #include "Window/Public/ViewportClient.h"
 #include "Runtime/Actor/Public/CameraActor.h"
 #include "Runtime/Component/Public/CameraComponent.h"
+#include "Runtime/Core/Public/VertexTypes.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 #include "Runtime/UI/Widget/Public/SceneHierarchyWidget.h"
 #include "Runtime/RHI/Public/RHIDevice.h"
 
@@ -83,9 +85,9 @@ void UViewportSubsystem::InitializeViewportSystem(FAppWindow* InWindow)
     	// 4개의 뷰포트와 클라이언트를 초기화합니다.
         InitializeViewportAndClient();
 
-    	// 카메라들을 초기화합니다.
-    	InitializeOrthoGraphicCamera();
-    	InitializePerspectiveCamera();
+    	// Camera deprecated - 더 이상 카메라를 초기화하지 않음
+    	// InitializeOrthoGraphicCamera();
+    	// InitializePerspectiveCamera();
 
     	if (UConfigSubsystem* ConfigSubsystem = GEngine ? GEngine->GetEngineSubsystem<UConfigSubsystem>() : nullptr)	{
 		IniSaveSharedV = ConfigSubsystem->GetSplitV();
@@ -314,21 +316,22 @@ void UViewportSubsystem::UpdateActiveRmbViewportIndex()
 
 void UViewportSubsystem::TickCameras() const
 {
+	// Camera deprecated - 더 이상 카메라를 틱하지 않음
 	// 우클릭이 눌린 상태라면 해당 뷰포트의 카메라만 입력 반영(Update)
 	// 그렇지 않다면(비상호작용) 카메라 이동 입력은 생략하여 타 뷰포트에 영향이 가지 않도록 함
-	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
-	const bool bRmbDown = InputSubsystem && InputSubsystem->IsKeyDown(EKeyInput::MouseRight);
-	if (bRmbDown)
-	{
-		if (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < static_cast<int32>(Clients.Num()))
-		{
-			ACameraActor* ActiveCamera = GetActiveCameraForViewport(ActiveRmbViewportIdx);
-			if(ActiveCamera)
-			{
-				ActiveCamera->Tick(DT);
-			}
-		}
-	}
+	// UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
+	// const bool bRmbDown = InputSubsystem && InputSubsystem->IsKeyDown(EKeyInput::MouseRight);
+	// if (bRmbDown)
+	// {
+	// 	if (ActiveRmbViewportIdx >= 0 && ActiveRmbViewportIdx < static_cast<int32>(Clients.Num()))
+	// 	{
+	// 		ACameraActor* ActiveCamera = GetActiveCameraForViewport(ActiveRmbViewportIdx);
+	// 		if(ActiveCamera)
+	// 		{
+	// 			ActiveCamera->Tick(DT);
+	// 		}
+	// 	}
+	// }
 }
 
 void UViewportSubsystem::Update()
@@ -417,8 +420,10 @@ void UViewportSubsystem::Update()
 				FViewportClient* Client = Clients[Index];
 				if (Client && Client->IsOrtho())
 				{
-					ACameraActor* OrthoCam = GetActiveCameraForViewport(Index);
-					if (OrthoCam)
+					// Camera deprecated - 카메라 없이 처리
+					// ACameraActor* OrthoCam = GetActiveCameraForViewport(Index);
+					// if (OrthoCam)
+					// if (true) // 항상 처리
 					{
 						constexpr float DollyStep = 5.0f; // 튜닝 가능
 						constexpr float MinFovY = 10.0f; // 최소 FovY 값
@@ -462,14 +467,15 @@ void UViewportSubsystem::Update()
 
 	UpdateOrthoGraphicCameraFov();
 
+	// Camera deprecated - 직교 카메라 배열 사용 안 함
 	// FovY 업데이트 후 모든 직교 카메라의 행렬 갱신
-	for (ACameraActor* Camera : OrthoGraphicCameras)
-	{
-		if (Camera && Camera->GetCameraComponent())
-		{
-			Camera->GetCameraComponent()->UpdateMatrixByOrth();
-		}
-	}
+	// for (ACameraActor* Camera : OrthoGraphicCameras)
+	// {
+	// 	if (Camera && Camera->GetCameraComponent())
+	// 	{
+	// 		Camera->GetCameraComponent()->UpdateMatrixByOrth();
+	// 	}
+	// }
 
 	//ApplySharedOrthoCenterToAllCameras();
 
@@ -520,6 +526,7 @@ void UViewportSubsystem::RenderViewports()
 		}
 	}
 
+
 	// 프레임 종료 및 Present
 	GDynamicRHI->EndFrame();
 }
@@ -540,16 +547,17 @@ void UViewportSubsystem::Release()
 	}
 
 
-	for (ACameraActor* Cam : OrthoGraphicCameras)
-	{
-		delete Cam;
-	}
+	// Camera deprecated - 카메라 배열 삭제 안 함
+	// for (ACameraActor* Cam : OrthoGraphicCameras)
+	// {
+	// 	delete Cam;
+	// }
 
 
-	for (ACameraActor* Cam : PerspectiveCameras)
-	{
-		delete Cam;
-	}
+	// for (ACameraActor* Cam : PerspectiveCameras)
+	// {
+	// 	delete Cam;
+	// }
 
 	if (Root)
 	{
@@ -602,50 +610,15 @@ void UViewportSubsystem::InitializeViewportAndClient()
 
 void UViewportSubsystem::InitializeOrthoGraphicCamera()
 {
-	for (int i = 0; i < 6; ++i)
-	{
-		ACameraActor* Camera = NewObject<ACameraActor>();
-		Camera->SetDisplayName("Camera_" + to_string(ACameraActor::GetNextGenNumber()));
-		OrthoGraphicCameras.Add(Camera);
-	}
+	// Camera deprecated - 더 이상 카메라를 초기화하지 않음
+	// for (int i = 0; i < 6; ++i)
+	// {
+	// 	ACameraActor* Camera = NewObject<ACameraActor>();
+	// 	Camera->SetDisplayName("Camera_" + to_string(ACameraActor::GetNextGenNumber()));
+	// 	OrthoGraphicCameras.Add(Camera);
+	// }
 
-	// TODO(KHJ): 좌표축 이슈 처리 시 해결해야 함
-	// 상단
-	OrthoGraphicCameras[0]->SetActorLocation(FVector(0.0f, 0.0f, 100.0f));
-	OrthoGraphicCameras[0]->SetActorRotation(FVector(0.0f, 90.0f, 180.0f));
-	OrthoGraphicCameras[0]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[0]->GetCameraComponent()->SetFarZ(150.0f);
-
-	// 하단
-	OrthoGraphicCameras[1]->SetActorLocation(FVector(0.0f, 0.0f, -100.0f));
-	OrthoGraphicCameras[1]->SetActorRotation(FVector(0.0f, -90.0f, 0.0f));
-	OrthoGraphicCameras[1]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[1]->GetCameraComponent()->SetFarZ(150.0f);
-
-	// 왼쪽
-	OrthoGraphicCameras[2]->SetActorLocation(FVector(0.0f, 100.0f, 0.0f));
-	OrthoGraphicCameras[2]->SetActorRotation(FVector(0.0f, 0.0f, -90.0f));
-	OrthoGraphicCameras[2]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[2]->GetCameraComponent()->SetFarZ(150.0f);
-
-	// 오른쪽
-	OrthoGraphicCameras[3]->SetActorLocation(FVector(0.0f, -100.0f, 0.0f));
-	OrthoGraphicCameras[3]->SetActorRotation(FVector(0.0f, 0.0f, 90.0f));
-	OrthoGraphicCameras[3]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[3]->GetCameraComponent()->SetFarZ(150.0f);
-
-	// 정면
-	OrthoGraphicCameras[4]->SetActorLocation(FVector(100.0f, 0.0f, 0.0f));
-	OrthoGraphicCameras[4]->SetActorRotation(FVector(180.0f, 180.0f, 0.0f));
-	OrthoGraphicCameras[4]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[4]->GetCameraComponent()->SetFarZ(150.0f);
-
-	// 후면
-	OrthoGraphicCameras[5]->SetActorLocation(FVector(-100.0f, 0.0f, 0.0f));
-	OrthoGraphicCameras[5]->SetActorRotation(FVector(0.0f, 0.0f, 0.0f));
-	OrthoGraphicCameras[5]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Orthographic);
-	OrthoGraphicCameras[5]->GetCameraComponent()->SetFarZ(150.0f);
-
+	// InitialOffsets는 여전히 필요할 수 있으므로 유지
 	InitialOffsets.Emplace(0.0f, 0.0f, 100.0f);
 	InitialOffsets.Emplace(0.0f, 0.0f, -100.0f);
 	InitialOffsets.Emplace(0.0f, 100.0f, 0.0f);
@@ -656,17 +629,18 @@ void UViewportSubsystem::InitializeOrthoGraphicCamera()
 
 void UViewportSubsystem::InitializePerspectiveCamera()
 {
-	for (int i = 0; i < 4; ++i)
-	{
-		ACameraActor* Camera = NewObject<ACameraActor>();
-		Camera->SetDisplayName("Camera_" + to_string(ACameraActor::GetNextGenNumber()));
+	// Camera deprecated - 더 이상 카메라를 초기화하지 않음
+	// for (int i = 0; i < 4; ++i)
+	// {
+	// 	ACameraActor* Camera = NewObject<ACameraActor>();
+	// 	Camera->SetDisplayName("Camera_" + to_string(ACameraActor::GetNextGenNumber()));
 
-		// 초기 위치 설정
-		Camera->SetActorLocation(FVector(-25.0f, -20.0f, 18.0f));
-		Camera->SetActorRotation(FVector(0, 45.0f, 35.0f));
+	// 	// 초기 위치 설정
+	// 	Camera->SetActorLocation(FVector(-25.0f, -20.0f, 18.0f));
+	// 	Camera->SetActorRotation(FVector(0, 45.0f, 35.0f));
 
-		PerspectiveCameras.Add(Camera);
-	}
+	// 	PerspectiveCameras.Add(Camera);
+	// }
 }
 
 void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
@@ -688,7 +662,7 @@ void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 	const int32 Index = ActiveRmbViewportIdx;
 
 	// 인덱스가 범위 밖이라면 리턴합니다
-	if (Index < 0 || Index >= static_cast<int32>(Clients.Num()))
+	if (Index < 0 || Index >= Clients.Num())
 	{
 		return;
 	}
@@ -716,7 +690,8 @@ void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 		return;
 	}
 
-	ACameraActor* OrthoCam = GetActiveCameraForViewport(Index);
+	// Camera deprecated - 카메라 없이 처리
+	// ACameraActor* OrthoCam = GetActiveCameraForViewport(Index);
 	const EViewType ViewType = ViewportClient->GetViewType();
 
 	FVector OrthoCameraFoward;
@@ -760,7 +735,8 @@ void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 	if (Delta.X == 0.0f && Delta.Y == 0.0f) return;
 
 	const float Aspect = (Height > 0.f) ? (Width / Height) : 1.0f;
-	const float Rad = FVector::GetDegreeToRadian(OrthoCam->GetCameraComponent()->GetFovY());
+	// Camera deprecated - SharedFovY 사용
+	const float Rad = FVector::GetDegreeToRadian(SharedFovY);
 	const float OrthoWidth = 2.0f * std::tanf(Rad * 0.5f);
 	const float OrthoHeight = (Aspect > 0.0f) ? (OrthoWidth / Aspect) : OrthoWidth;
 
@@ -776,22 +752,42 @@ void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 	// 공유 중심 누적 이동
 	OrthoGraphicCamerapoint += WorldDelta;
 
-	for (int32 i = 0; i < static_cast<int32>(OrthoGraphicCameras.Num()); ++i)
+	// Camera deprecated - ViewportClient의 ViewLocation을 직접 업데이트
+	// 직교 뷰의 경우 모든 뷰포트가 공유 중심점을 사용하므로 모든 직교 클라이언트를 업데이트
+	for (int32 i = 0; i < static_cast<int32>(Clients.Num()); ++i)
 	{
-		if (ACameraActor* Cam = OrthoGraphicCameras[i])
+		if (Clients[i] && Clients[i]->IsOrtho())
 		{
-			Cam->SetActorLocation(OrthoGraphicCamerapoint + InitialOffsets[i]);
+			// 각 직교 뷰는 공유 중심점 + 초기 오프셋을 사용
+			int32 OrthoIdx = -1;
+			switch (Clients[i]->GetViewType())
+			{
+			case EViewType::OrthoTop: OrthoIdx = 0; break;
+			case EViewType::OrthoBottom: OrthoIdx = 1; break;
+			case EViewType::OrthoLeft: OrthoIdx = 2; break;
+			case EViewType::OrthoRight: OrthoIdx = 3; break;
+			case EViewType::OrthoFront: OrthoIdx = 4; break;
+			case EViewType::OrthoBack: OrthoIdx = 5; break;
+			default: break;
+			}
+
+			if (OrthoIdx >= 0 && OrthoIdx < static_cast<int32>(InitialOffsets.Num()))
+			{
+				Clients[i]->SetViewLocation(OrthoGraphicCamerapoint + InitialOffsets[OrthoIdx]);
+			}
 		}
 	}
 }
 
 void UViewportSubsystem::UpdateOrthoGraphicCameraFov() const
 {
-	for (ACameraActor* Camera : OrthoGraphicCameras)
+	// Camera deprecated - ViewportClient에 직접 FovY 설정
+	// 모든 직교 뷰포트에 공유 FovY를 적용
+	for (FViewportClient* Client : Clients)
 	{
-		if(Camera && Camera->GetCameraComponent())
+		if (Client && Client->IsOrtho())
 		{
-			Camera->GetCameraComponent()->SetFovY(SharedFovY);
+			Client->SetOrthoWidth(SharedFovY);
 		}
 	}
 }
@@ -820,11 +816,11 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 		const EViewType Viewport = Client->GetViewType();
 		if (Viewport == EViewType::Perspective)
 		{
-			// 퍼스펙티브는 자신 카메라 보장
-			if (i < static_cast<int32>(PerspectiveCameras.Num()) && PerspectiveCameras[i])
-			{
-				PerspectiveCameras[i]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
-			}
+			// Camera deprecated
+			// if (i < static_cast<int32>(PerspectiveCameras.Num()) && PerspectiveCameras[i])
+			// {
+			// 	PerspectiveCameras[i]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
+			// }
 		}
 		else
 		{
@@ -847,10 +843,11 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 			default: break;
 			}
 
-			if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.Num()))
-			{
-				ACameraActor* Camera = OrthoGraphicCameras[OrthoIdx];
-			}
+			// Camera deprecated
+			// if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.Num()))
+			// {
+			// 	ACameraActor* Camera = OrthoGraphicCameras[OrthoIdx];
+			// }
 		}
 
 		// 크기 반영(툴바 높이 포함) — 깜빡임/툴바 좌표 안정화
@@ -860,24 +857,25 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 	}
 
 	// 3) 오쏘 6방향 카메라를 공유 중심점에 맞춰 정렬만 수행(이동 입력 없이)
-	auto Reposition = [&](int InCamIndex, const FVector& InCamFwd)
-	{
-		if (InCamIndex < 0 || InCamIndex >= static_cast<int>(OrthoGraphicCameras.Num())) return;
-		if (ACameraActor* Camera = OrthoGraphicCameras[InCamIndex])
-		{
-			const FVector Loc = Camera->GetActorLocation();
-			const FVector ToC = Loc - OrthoGraphicCamerapoint;
-			const float Dist = std::fabs(ToC.Dot(InCamFwd));
-			Camera->SetActorLocation(OrthoGraphicCamerapoint - InCamFwd * Dist);
-		}
-	};
+	// Camera deprecated
+	// auto Reposition = [&](int InCamIndex, const FVector& InCamFwd)
+	// {
+	// 	if (InCamIndex < 0 || InCamIndex >= static_cast<int>(OrthoGraphicCameras.Num())) return;
+	// 	if (ACameraActor* Camera = OrthoGraphicCameras[InCamIndex])
+	// 	{
+	// 		const FVector Loc = Camera->GetActorLocation();
+	// 		const FVector ToC = Loc - OrthoGraphicCamerapoint;
+	// 		const float Dist = std::fabs(ToC.Dot(InCamFwd));
+	// 		Camera->SetActorLocation(OrthoGraphicCamerapoint - InCamFwd * Dist);
+	// 	}
+	// };
 
-	Reposition(0, FVector(0, 0, -1)); // Top
-	Reposition(1, FVector(0, 0, 1)); // Bottom
-	Reposition(2, FVector(0, -1, 0)); // Left
-	Reposition(3, FVector(0, 1, 0)); // Right
-	Reposition(4, FVector(-1, 0, 0)); // Front
-	Reposition(5, FVector(1, 0, 0)); // Back
+	// Reposition(0, FVector(0, 0, -1)); // Top
+	// Reposition(1, FVector(0, 0, 1)); // Bottom
+	// Reposition(2, FVector(0, -1, 0)); // Left
+	// Reposition(3, FVector(0, 1, 0)); // Right
+	// Reposition(4, FVector(-1, 0, 0)); // Front
+	// Reposition(5, FVector(1, 0, 0)); // Back
 
 	// 4) 드래그 대상 초기화
 	ActiveRmbViewportIdx = -1;
@@ -885,26 +883,12 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 
 void UViewportSubsystem::ApplySharedOrthoCenterToAllCameras() const
 {
-	// OrthoGraphicCamerapoint 기준으로 6개 오쏘 카메라 위치 갱신
-	for (ACameraActor* Camera : OrthoGraphicCameras)
-	{
-		if (!Camera) continue;
-
-		// 카메라 '전방'을 "센터 - 카메라 위치"로 잡으면, Top/Right/... 어떤 회전이라도 일관되게 작동
-		FVector Forward = (OrthoGraphicCamerapoint - Camera->GetActorLocation()).Normalized();
-
-		// 특이 케이스 보호: fwd가 0이면 월드 Z를 피벗으로 대체
-		if (Forward.IsNearlyZero())
-		{
-			Forward = FVector(0, 0, -1); // 아무거나 기본값
-		}
-
-		// 현재 센터까지의 전방 거리 유지
-		const FVector toC = Camera->GetActorLocation() - OrthoGraphicCamerapoint;
-		const float Dist = std::fabs(toC.Dot(Forward));
-
-		Camera->SetActorLocation(OrthoGraphicCamerapoint - Forward * Dist);
-	}
+	// Camera deprecated - 이 함수는 더 이상 사용하지 않음
+	// OrthoGraphicCamerapoint 기준으로 6개 오쉐 카메라 위치 갱신
+	// for (ACameraActor* Camera : OrthoGraphicCameras)
+	// {
+	// ...
+	// }
 }
 
 void UViewportSubsystem::PersistSplitterRatios()
@@ -1569,52 +1553,14 @@ void UViewportSubsystem::FinalizeFourSplitLayoutFromAnimation()
 
 ACameraActor* UViewportSubsystem::GetActiveCameraForViewport(int32 InViewportIndex) const
 {
-    if (InViewportIndex < 0 || InViewportIndex >= Clients.Num())
-    {
-        return nullptr;
-    }
-
-    const FViewportClient* Client = Clients[InViewportIndex];
-    if (!Client)
-    {
-        return nullptr;
-    }
-
-    if (Client->GetViewType() == EViewType::Perspective)
-    {
-        if (InViewportIndex < PerspectiveCameras.Num())
-        {
-            return PerspectiveCameras[InViewportIndex];
-        }
-    }
-    else
-    {
-        // Ortho: ViewType을 인덱스로 변환
-        int32 OrthoIdx = -1;
-        switch (Client->GetViewType())
-        {
-            case EViewType::OrthoTop: OrthoIdx = 0; break;
-            case EViewType::OrthoBottom: OrthoIdx = 1; break;
-            case EViewType::OrthoLeft: OrthoIdx = 2; break;
-            case EViewType::OrthoRight: OrthoIdx = 3; break;
-            case EViewType::OrthoFront: OrthoIdx = 4; break;
-            case EViewType::OrthoBack: OrthoIdx = 5; break;
-            default: break;
-        }
-        if (OrthoIdx >= 0 && OrthoIdx < OrthoGraphicCameras.Num())
-        {
-            return OrthoGraphicCameras[OrthoIdx];
-        }
-    }
-
+    // Camera deprecated - 더 이상 카메라를 반환하지 않음
     return nullptr;
 }
 
 TArray<ACameraActor*> UViewportSubsystem::GetAllCameras() const
 {
+    // Camera deprecated - 빈 배열 반환
     TArray<ACameraActor*> AllCameras;
-    AllCameras.Append(PerspectiveCameras);
-    AllCameras.Append(OrthoGraphicCameras);
     return AllCameras;
 }
 

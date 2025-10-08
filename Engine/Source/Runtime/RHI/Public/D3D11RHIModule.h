@@ -21,6 +21,8 @@ public:
 	// 정적 접근자 (기존 FRendererModule::Get() 대체)
 	static FD3D11RHIModule& GetInstance();
 
+	// 디바이스 로스트 복구
+	bool RecreateAfterDeviceLost();
 
 private:
 	bool CreateD3D11DeviceAndSwapChain();

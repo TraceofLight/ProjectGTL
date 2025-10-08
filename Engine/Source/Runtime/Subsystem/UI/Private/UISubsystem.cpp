@@ -8,6 +8,7 @@
 #include "Runtime/Core/Public/AppWindow.h"
 
 // For overlay rendering after ImGui::NewFrame()
+#include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 // 이전 사이즈 추적을 위한 정적 변수
@@ -111,6 +112,14 @@ void UUISubsystem::Tick(float DeltaSeconds)
 /**
  * @brief 모든 UI 윈도우 렌더링
  */
+void UUISubsystem::OnGraphicsDeviceRecreated()
+{
+	if (ImGuiHelper && GDynamicRHI && GDynamicRHI->IsInitialized())
+	{
+		ImGuiHelper->RebindDevice(GDynamicRHI->GetDevice(), GDynamicRHI->GetDeviceContext());
+	}
+}
+
 void UUISubsystem::Render()
 {
 	if (!ImGuiHelper)

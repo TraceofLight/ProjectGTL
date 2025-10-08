@@ -39,7 +39,7 @@ public:
     void UpdateVertexBuffer(ID3D11Buffer* Buffer, const TArray<FVector>& Vertices);
 
     // Grid 렌더링
-    void RenderGrid(float CellSize = 1.0f);
+    void RenderGrid(const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix, float CellSize = 10.0f);
 
     // Line Batching 렌더링
     void BeginLineBatch();
@@ -51,12 +51,15 @@ public:
     ID3D11Buffer* GetGizmoVertexBuffer(EPrimitiveType PrimitiveType) const;
     uint32 GetGizmoVertexCount(EPrimitiveType PrimitiveType) const;
 
+    // EditorGrid 접근자
+    FEditorGrid* GetEditorGrid() const { return EditorGrid.Get(); }
+
 private:
     FRHIDevice* RHIDevice = nullptr;
     bool bIsInitialized = false;
 
     // Grid 관리
-    std::unique_ptr<FEditorGrid> EditorGrid;
+    TUniquePtr<FEditorGrid> EditorGrid;
     ID3D11Buffer* GridVertexBuffer = nullptr;
     ID3D11Buffer* GridIndexBuffer = nullptr;
 

@@ -31,6 +31,15 @@ public:
     ~FSceneView();
 
     void Initialize(TObjectPtr<ACameraActor> InCamera, FViewport* InViewport, TObjectPtr<UWorld> InWorld);
+    void InitializeWithMatrices(
+        const FMatrix& InViewMatrix,
+        const FMatrix& InProjectionMatrix,
+        const FVector& InViewLocation,
+        const FVector& InViewRotation,
+        FViewport* InViewport,
+        TObjectPtr<UWorld> InWorld,
+        EViewMode InViewMode
+    );
     void UpdateViewMatrices();
 
     // Getter & Setter

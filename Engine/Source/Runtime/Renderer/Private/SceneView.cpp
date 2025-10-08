@@ -52,6 +52,65 @@ void FSceneView::Initialize(TObjectPtr<ACameraActor> InCamera, FViewport* InView
 }
 
 /**
+ * @brief 카메라 없이 행렬을 직접 받아 FSceneView를 초기화하는 함수
+ * 카메라 시스템이 deprecated되면서 ViewportClient가 직접 행렬을 제공하도록 변경
+ * @param InViewMatrix 뷰 행렬 (월드 공간 -> 뷰 공간)
+ * @param InProjectionMatrix 투영 행렬 (뷰 공간 -> 클립 공간)
+ * @param InViewLocation 뷰의 월드 공간 위치
+ * @param InViewRotation 뷰의 오일러 회전각
+ * @param InViewport 렌더링될 뷰포트
+ * @param InWorld 뷰가 속한 월드
+ * @param InViewMode 렌더링 모드 (Lit, Unlit, Wireframe 등)
+ */
+void FSceneView::InitializeWithMatrices(
+    const FMatrix& InViewMatrix,
+    const FMatrix& InProjectionMatrix,
+    const FVector& InViewLocation,
+    const FVector& InViewRotation,
+    FViewport* InViewport,
+    TObjectPtr<UWorld> InWorld,
+    EViewMode InViewMode
+)
+{
+    // Camera deprecated - 카메라 없이 행렬을 직접 사용
+    Camera = nullptr;
+    Viewport = InViewport;
+    World = InWorld;
+    ViewModeIndex = InViewMode;
+
+    // 행렬 설정
+    ViewMatrix = InViewMatrix;
+    ProjectionMatrix = InProjectionMatrix;
+    ViewProjectionMatrix = ViewMatrix * ProjectionMatrix;
+
+    // 뷰 위치/회전 설정
+    ViewLocation = InViewLocation;
+    ViewRotation = FQuaternion::FromEuler(InViewRotation);
+
+    // 뷰포트 정보 설정
+    if (Viewport)
+    {
+        ViewportSize = FVector2(
+            static_cast<float>(Viewport->GetSizeX()),
+            static_cast<float>(Viewport->GetSizeY())
+        );
+
+        const FRect& viewportRect = Viewport->GetRect();
+        ViewRect = FRect(
+            viewportRect.X, viewportRect.Y,
+            viewportRect.X + viewportRect.W,
+            viewportRect.Y + viewportRect.H
+        );
+
+        // Aspect Ratio 계산
+        if (ViewportSize.Y > 0)
+        {
+            AspectRatio = ViewportSize.X / ViewportSize.Y;
+        }
+    }
+}
+
+/**
  * @brief 카메라의 현재 위치, 회전 및 설정을 기반으로 뷰 행렬들을 업데이트하는 함수
  * 카메라 컴포넌트로부터 위치, FOV, 뷰 행렬, 투영 행렬을 가져와 계산
  */

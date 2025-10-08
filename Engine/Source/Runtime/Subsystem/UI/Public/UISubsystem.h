@@ -67,6 +67,9 @@ public:
 	void ForceArrangeRightPanels();
 	void OnPanelVisibilityChanged();
 
+	// 그래픽 디바이스가 재생성되었을 때(ImGui DX11 백엔드만 재바인딩)
+	void OnGraphicsDeviceRecreated();
+
 	// Console 패널 레이아웃 함수
 	void ArrangeConsolePanel();
 	void SaveConsoleHeight(float InHeight) { SavedConsoleHeight = InHeight; }

@@ -535,39 +535,40 @@ void UWorldSubsystem::ClearCurrentLevel()
  */
 void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMetadata)
 {
-	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	if (!ViewportSS) return;
+	// Camera deprecated - 더 이상 카메라를 복원하지 않음
+	// UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	// if (!ViewportSS) return;
 
 	// FOV/Near/Far가 0이면 저장된 데이터가 손상되었으므로 기본값 사용
-	bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
-		InCameraMetadata.FarClip <= 0.0f);
-	if (bUseDefaults)
-	{
-		UE_LOG_WARNING("WorldSubsystem: 경고: 카메라 메타데이터 손상, 기본값을 사용합니다");
-	}
+	// bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
+	// 	InCameraMetadata.FarClip <= 0.0f);
+	// if (bUseDefaults)
+	// {
+	// 	UE_LOG_WARNING("월드Subsystem: 경고: 카메라 메타데이터 손상, 기본값을 사용합니다");
+	// }
 
 	// 모든 Perspective 카메라에 동일한 설정 적용
-	const auto& PerspectiveCameras = ViewportSS->GetPerspectiveCameras();
-	for (ACameraActor* PerspectiveCamera : PerspectiveCameras)
-	{
-		if (!PerspectiveCamera || !PerspectiveCamera->GetCameraComponent()) continue;
+	// const auto& PerspectiveCameras = ViewportSS->GetPerspectiveCameras();
+	// for (ACameraActor* PerspectiveCamera : PerspectiveCameras)
+	// {
+	// 	if (!PerspectiveCamera || !PerspectiveCamera->GetCameraComponent()) continue;
 
-		UCameraComponent* CameraComponent = PerspectiveCamera->GetCameraComponent();
+	// 	UCameraComponent* CameraComponent = PerspectiveCamera->GetCameraComponent();
 
-		// 카메라 설정 복원
-		PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
-		PerspectiveCamera->SetActorRotation(InCameraMetadata.Rotation);
+	// 	// 카메라 설정 복원
+	// 	PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
+	// 	PerspectiveCamera->SetActorRotation(InCameraMetadata.Rotation);
 
-		// FOV/Near/Far는 유효성 검사 후 설정
-		if (!bUseDefaults)
-		{
-			CameraComponent->SetFovY(InCameraMetadata.FOV);
-			CameraComponent->SetNearZ(InCameraMetadata.NearClip);
-			CameraComponent->SetFarZ(InCameraMetadata.FarClip);
-		}
-	}
+	// 	// FOV/Near/Far는 유효성 검사 후 설정
+	// 	if (!bUseDefaults)
+	// 	{
+	// 		CameraComponent->SetFovY(InCameraMetadata.FOV);
+	// 		CameraComponent->SetNearZ(InCameraMetadata.NearClip);
+	// 		CameraComponent->SetFarZ(InCameraMetadata.FarClip);
+	// 	}
+	// }
 
 	// Ortho 카메라들도 업데이트가 필요하다면 여기에 로직 추가
 
-	UE_LOG("WorldSubsystem: All cameras restored from metadata.");
+	UE_LOG("월드Subsystem: Camera restore deprecated - no longer using cameras.");
 }

@@ -84,6 +84,14 @@ public:
 	void ClearDepthStencilView(float Depth, uint8 Stencil);
 	void SetMainRenderTarget();
 
+	// RTV 캐싱 관리
+	bool CreateBackBufferRTV();
+	void ReleaseBackBufferRTV();
+	ID3D11RenderTargetView* GetMainRenderTargetView() const { return MainRenderTargetView; }
+
+	// SwapChain Resize 관리
+	bool ResizeSwapChain(uint32 Width, uint32 Height);
+
 private:
 	ID3D11Device* Device = nullptr;
 	ID3D11DeviceContext* DeviceContext = nullptr;
@@ -95,6 +103,12 @@ private:
 	TMap<EComparisonFunc, ID3D11DepthStencilState*> DepthStencilStates;
 	ID3D11BlendState* BlendStateEnabled = nullptr;
 	ID3D11BlendState* BlendStateDisabled = nullptr;
+
+	// DepthWrite/ColorWrite 상태 캐싱
+	ID3D11DepthStencilState* DepthWriteEnabled = nullptr;
+	ID3D11DepthStencilState* DepthWriteDisabled = nullptr;
+	ID3D11BlendState* ColorWriteEnabled = nullptr;
+	ID3D11BlendState* ColorWriteDisabled = nullptr;
 
 	// 상수 버퍼들
 	ID3D11Buffer* ConstantBuffer = nullptr;
@@ -111,6 +125,7 @@ private:
 	// 렌더 타겟 관리
 	ID3D11RenderTargetView* MainRenderTargetView = nullptr;
 	ID3D11DepthStencilView* MainDepthStencilView = nullptr;
+	bool bRTVInitialized = false;
 
 	// Shader 컴파일 헬퍼
 	bool CompileShaderFromFile(const wstring& InFilePath, const char* InEntryPoint,
@@ -120,6 +135,8 @@ private:
 	void CreateRasterizerStates();
 	void CreateDepthStencilStates();
 	void CreateBlendStates();
+	void CreateDepthWriteStates();
+	void CreateColorWriteStates();
 	void CreateConstantBuffer();
 	void CreateSamplerState();
 };

@@ -4,6 +4,7 @@
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Core/Public/AppWindow.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
+#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 
 void FD3D11RHIModule::StartupModule()
 {
@@ -61,30 +62,31 @@ bool FD3D11RHIModule::CreateD3D11DeviceAndSwapChain()
 		D3D_FEATURE_LEVEL_10_0
 	};
 
-	// 스왑체인 설정
+	// 스왑체인 설정 (더블 버퍼링 + FLIP 모델)
 	DXGI_SWAP_CHAIN_DESC SwapChainDesc = {};
-	SwapChainDesc.BufferCount = 1;
-	SwapChainDesc.BufferDesc.Width = 1920;
-	SwapChainDesc.BufferDesc.Height = 1080;
-	SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	SwapChainDesc.BufferDesc.RefreshRate.Numerator = 60;
-	SwapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
+	SwapChainDesc.BufferDesc.Width = 0;  // 창 크기에 맞게 자동 설정
+	SwapChainDesc.BufferDesc.Height = 0;  // 창 크기에 맞게 자동 설정
+	SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;  // CGEngine과 동일
+	SwapChainDesc.BufferDesc.RefreshRate.Numerator = 0;  // 기본값 사용
+	SwapChainDesc.BufferDesc.RefreshRate.Denominator = 0;  // 기본값 사용
 	SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	SwapChainDesc.OutputWindow = GetWindowHandle();
 	SwapChainDesc.SampleDesc.Count = 1;
 	SwapChainDesc.SampleDesc.Quality = 0;
+	SwapChainDesc.BufferCount = 2;  // 더블 버퍼링
 	SwapChainDesc.Windowed = TRUE;
 
 	// DirectX 디바이스, 컨텍스트, 스왑체인 생성
+	UINT createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;  // FLIP 모델을 위해 필요
+#ifdef _DEBUG
+	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(
 		nullptr,
 		D3D_DRIVER_TYPE_HARDWARE,
 		nullptr,
-#ifdef _DEBUG
-		D3D11_CREATE_DEVICE_DEBUG,
-#else
-		0,
-#endif
+		createDeviceFlags,
 		FeatureLevels,
 		ARRAYSIZE(FeatureLevels),
 		D3D11_SDK_VERSION,
@@ -108,6 +110,13 @@ bool FD3D11RHIModule::CreateD3D11DeviceAndSwapChain()
 
 	// 전역 RHI 인스턴스 설정
 	GDynamicRHI = RHIDevice;
+
+	// BackBuffer RenderTargetView 생성
+	if (!RHIDevice->CreateBackBufferRTV())
+	{
+		UE_LOG_ERROR("FD3D11RHIModule: BackBuffer RTV 생성 실패");
+		return false;
+	}
 
 	// EditorRenderResources 초기화
 	EditorResources = MakeUnique<FEditorRenderResources>();
@@ -136,4 +145,43 @@ HWND FD3D11RHIModule::GetWindowHandle()
 FD3D11RHIModule& FD3D11RHIModule::GetInstance()
 {
 	return FModuleManager::GetInstance().LoadModuleChecked<FD3D11RHIModule>("D3D11RHI");
+}
+
+bool FD3D11RHIModule::RecreateAfterDeviceLost()
+{
+	UE_LOG_ERROR("FD3D11RHIModule: DEVICE LOST detected. Recreating D3D11 device and swap chain...");
+
+	// 1) Editor 리소스 정리
+	if (EditorResources)
+	{
+		EditorResources->Shutdown();
+		EditorResources.Reset();
+	}
+
+	// 2) 기존 RHI 정리
+	if (GDynamicRHI)
+	{
+		GDynamicRHI->Shutdown();
+		delete GDynamicRHI;
+		GDynamicRHI = nullptr;
+	}
+
+	// 3) 새 디바이스/스왑체인 생성
+	if (!CreateD3D11DeviceAndSwapChain())
+	{
+		UE_LOG_ERROR("FD3D11RHIModule: RecreateAfterDeviceLost failed to create device/swap chain");
+		return false;
+	}
+
+	// 4) ImGui DX11 백엔드만 재바인딩 (UIWindow 상태 보존)
+	if (GEngine)
+	{
+		if (auto* UISubsystem = GEngine->GetEngineSubsystem<UUISubsystem>())
+		{
+			UISubsystem->OnGraphicsDeviceRecreated();
+		}
+	}
+
+	UE_LOG_SUCCESS("FD3D11RHIModule: Device recreation complete");
+	return true;
 }

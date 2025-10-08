@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Runtime/RHI/Public/RHIDevice.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 
 #include "DirectXTK/WICTextureLoader.h"
 #include "DirectXTK/DDSTextureLoader.h"
@@ -794,7 +795,7 @@ void FRHIDevice::UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix
 		memcpy(MappedResource.pData, &cbData, sizeof(cbData));
 		DeviceContext->Unmap(ConstantBuffer, 0);
 
-		// 상수 버퍼를 젠자 쉐이더와 픽셀 쉐이더에 바인드
+		// 상수 버퍼를 정점 셰이더와 픽셀 셰이더에 바인드
 		DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
 		DeviceContext->PSSetConstantBuffers(0, 1, &ConstantBuffer);
 	}
@@ -1083,51 +1084,39 @@ bool FRHIDevice::BeginFrame()
 		return false;
 	}
 
-	// 백버퍼에서 생성
-	ID3D11Texture2D* BackBuffer = nullptr;
-	HRESULT ResultHandle = SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&BackBuffer));
-	if (FAILED(ResultHandle))
+	// RTV가 이미 생성되어 있는지 확인
+	if (!bRTVInitialized || !MainRenderTargetView)
 	{
-		UE_LOG_ERROR("RHIDevice: SwapChain BackBuffer 가져오기 실패 (HRESULT: 0x%08lX)", ResultHandle);
+		UE_LOG_ERROR("RHIDevice: BeginFrame - RTV가 생성되지 않았습니다");
 		return false;
 	}
-
-	// 렌더 타겟 뷰 생성
-	ResultHandle = Device->CreateRenderTargetView(BackBuffer, nullptr, &MainRenderTargetView);
-	BackBuffer->Release();
-	if (FAILED(ResultHandle))
-	{
-		UE_LOG_ERROR("RHIDevice: RenderTargetView 생성 실패 (HRESULT: 0x%08lX)", ResultHandle);
-		return false;
-	}
-
-	// Depth Stencil Buffer 생성 (필요하다면)
-	// 일단은 렌더 타겟만 설정
 
 	return true;
 }
 
 void FRHIDevice::EndFrame()
 {
-	if (!bIsInitialized || !SwapChain)
+	if (!bIsInitialized || !SwapChain || !DeviceContext)
 	{
 		return;
 	}
 
-	// Present
-	SwapChain->Present(1, 0);
-
-	// 렌더 타겟 뷰 해제
-	if (MainRenderTargetView)
+	// Present (VSync off)
+	// 0, 0 = VSync 비활성화, 즉시 present
+	HRESULT hr = SwapChain->Present(0, 0);
+	if (FAILED(hr))
 	{
-		MainRenderTargetView->Release();
-		MainRenderTargetView = nullptr;
-	}
-
-	if (MainDepthStencilView)
-	{
-		MainDepthStencilView->Release();
-		MainDepthStencilView = nullptr;
+		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+		{
+			HRESULT reason = Device ? Device->GetDeviceRemovedReason() : hr;
+			UE_LOG_ERROR("RHIDevice: DEVICE LOST during Present (hr=0x%08lX, reason=0x%08lX)", hr, reason);
+			// 즉시 복구 시도
+			FD3D11RHIModule::GetInstance().RecreateAfterDeviceLost();
+		}
+		else
+		{
+			UE_LOG_ERROR("RHIDevice: Present 실패 (HRESULT: 0x%08lX)", hr);
+		}
 	}
 }
 
@@ -1164,5 +1153,211 @@ void FRHIDevice::ClearDepthStencilView(float Depth, uint8 Stencil)
 	if (MainDepthStencilView)
 	{
 		DeviceContext->ClearDepthStencilView(MainDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, Depth, Stencil);
+	}
+}
+
+// RTV 캐싱 관리
+bool FRHIDevice::CreateBackBufferRTV()
+{
+	if (!Device || !SwapChain)
+	{
+		UE_LOG_ERROR("RHIDevice: CreateBackBufferRTV 실패 - Device 또는 SwapChain이 null입니다");
+		return false;
+	}
+
+	// 이미 생성되어 있다면 해제 후 재생성
+	if (bRTVInitialized)
+	{
+		ReleaseBackBufferRTV();
+	}
+
+	// BackBuffer에서 Texture2D 가져오기
+	ID3D11Texture2D* BackBuffer = nullptr;
+	HRESULT hr = SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&BackBuffer));
+	if (FAILED(hr))
+	{
+		UE_LOG_ERROR("RHIDevice: SwapChain BackBuffer 가져오기 실패 (HRESULT: 0x%08lX)", hr);
+		return false;
+	}
+
+	// RenderTargetView 생성: 스왑체인 포맷과 일치시킵니다.
+	// (이 엔진의 스왑체인은 DXGI_FORMAT_B8G8R8A8_UNORM로 생성됩니다)
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;  // SwapChain과 동일 포맷
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+
+	hr = Device->CreateRenderTargetView(BackBuffer, &rtvDesc, &MainRenderTargetView);
+	if (FAILED(hr))
+	{
+		// 일부 환경에서 명시적 RTV desc가 거부될 수 있으므로 NULL desc로 재시도
+		hr = Device->CreateRenderTargetView(BackBuffer, nullptr, &MainRenderTargetView);
+	}
+	BackBuffer->Release();
+
+	if (FAILED(hr))
+	{
+		UE_LOG_ERROR("RHIDevice: RenderTargetView 생성 실패 (HRESULT: 0x%08lX)", hr);
+		MainRenderTargetView = nullptr;
+		bRTVInitialized = false;
+		return false;
+	}
+
+	bRTVInitialized = true;
+	UE_LOG_SUCCESS("RHIDevice: BackBuffer RTV 생성 성공");
+	return true;
+}
+
+void FRHIDevice::ReleaseBackBufferRTV()
+{
+	if (MainRenderTargetView)
+	{
+		MainRenderTargetView->Release();
+		MainRenderTargetView = nullptr;
+	}
+
+	if (MainDepthStencilView)
+	{
+		MainDepthStencilView->Release();
+		MainDepthStencilView = nullptr;
+	}
+
+	bRTVInitialized = false;
+}
+
+bool FRHIDevice::ResizeSwapChain(uint32 Width, uint32 Height)
+{
+	if (!bIsInitialized || !SwapChain || !Device)
+	{
+		UE_LOG_ERROR("RHIDevice: ResizeSwapChain 실패 - 초기화되지 않았습니다");
+		return false;
+	}
+
+	UE_LOG("RHIDevice: SwapChain Resize 시작 (%ux%u)", Width, Height);
+
+	// 1. Device 상태 확인 (Resize 전)
+	HRESULT deviceStatus = Device->GetDeviceRemovedReason();
+	if (FAILED(deviceStatus))
+	{
+		UE_LOG_ERROR("RHIDevice: Resize 전 Device 제거됨 (Reason: 0x%08lX)", deviceStatus);
+		return false;
+	}
+
+	// 2. 모든 RenderTarget 해제 (SwapChain을 참조하는 모든 리소스)
+	if (DeviceContext)
+	{
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		DeviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
+		DeviceContext->Flush(); // 모든 커맨드 완료 대기
+	}
+
+	ReleaseBackBufferRTV();
+
+	// 3. ResizeBuffers 호출
+	// 0 = 기존 버퍼 수 유지
+	// DXGI_FORMAT_UNKNOWN = 기존 포맷 유지
+	// 0 = 기존 플래그 유지
+	HRESULT hr = SwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, 0);
+	if (FAILED(hr))
+	{
+		if (hr == DXGI_ERROR_DEVICE_REMOVED)
+		{
+			HRESULT reason = Device->GetDeviceRemovedReason();
+			UE_LOG_ERROR("RHIDevice: ResizeBuffers 실패 - DEVICE_REMOVED (Reason: 0x%08lX)", reason);
+		}
+		else
+		{
+			UE_LOG_ERROR("RHIDevice: ResizeBuffers 실패 (HRESULT: 0x%08lX)", hr);
+		}
+		return false;
+	}
+
+	// 4. Device 상태 확인 (Resize 후)
+	deviceStatus = Device->GetDeviceRemovedReason();
+	if (FAILED(deviceStatus))
+	{
+		UE_LOG_ERROR("RHIDevice: Resize 후 Device 제거됨 (Reason: 0x%08lX)", deviceStatus);
+		return false;
+	}
+
+	// 5. 새로운 RenderTargetView 생성
+	if (!CreateBackBufferRTV())
+	{
+		UE_LOG_ERROR("RHIDevice: Resize 후 RTV 재생성 실패");
+		return false;
+	}
+
+	UE_LOG_SUCCESS("RHIDevice: SwapChain Resize 성공 (%ux%u)", Width, Height);
+	return true;
+}
+
+void FRHIDevice::CreateDepthWriteStates()
+{
+	if (!Device) return;
+
+	// DepthWrite 활성화 상태
+	{
+		D3D11_DEPTH_STENCIL_DESC desc = {};
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.DepthFunc = D3D11_COMPARISON_LESS;
+		desc.StencilEnable = FALSE;
+
+		HRESULT hr = Device->CreateDepthStencilState(&desc, &DepthWriteEnabled);
+		if (FAILED(hr))
+		{
+			UE_LOG_ERROR("RHIDevice: DepthWriteEnabled 생성 실패 (HRESULT: 0x%08lX)", hr);
+		}
+	}
+
+	// DepthWrite 비활성화 상태
+	{
+		D3D11_DEPTH_STENCIL_DESC desc = {};
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		desc.DepthFunc = D3D11_COMPARISON_LESS;
+		desc.StencilEnable = FALSE;
+
+		HRESULT hr = Device->CreateDepthStencilState(&desc, &DepthWriteDisabled);
+		if (FAILED(hr))
+		{
+			UE_LOG_ERROR("RHIDevice: DepthWriteDisabled 생성 실패 (HRESULT: 0x%08lX)", hr);
+		}
+	}
+}
+
+void FRHIDevice::CreateColorWriteStates()
+{
+	if (!Device) return;
+
+	// ColorWrite 활성화 상태
+	{
+		D3D11_BLEND_DESC desc = {};
+		desc.AlphaToCoverageEnable = FALSE;
+		desc.IndependentBlendEnable = FALSE;
+		auto& rt = desc.RenderTarget[0];
+		rt.BlendEnable = FALSE;
+		rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+		HRESULT hr = Device->CreateBlendState(&desc, &ColorWriteEnabled);
+		if (FAILED(hr))
+		{
+			UE_LOG_ERROR("RHIDevice: ColorWriteEnabled 생성 실패 (HRESULT: 0x%08lX)", hr);
+		}
+	}
+
+	// ColorWrite 비활성화 상태
+	{
+		D3D11_BLEND_DESC desc = {};
+		desc.AlphaToCoverageEnable = FALSE;
+		desc.IndependentBlendEnable = FALSE;
+		auto& rt = desc.RenderTarget[0];
+		rt.BlendEnable = FALSE;
+		rt.RenderTargetWriteMask = 0; // 모든 쓰기 비활성화
+
+		HRESULT hr = Device->CreateBlendState(&desc, &ColorWriteDisabled);
+		if (FAILED(hr))
+		{
+			UE_LOG_ERROR("RHIDevice: ColorWriteDisabled 생성 실패 (HRESULT: 0x%08lX)", hr);
+		}
 	}
 }

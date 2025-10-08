@@ -61,9 +61,6 @@ void UEditor::RenderEditor()
 		return;
 	}
 
-	// 그리드 렌더링
-	EditorResources->RenderGrid();
-
 	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
 	ULevel* CurrentLevel = WorldSS ? WorldSS->GetCurrentLevel() : nullptr;
 	// Editor에서 선택된 Actor 가져오기

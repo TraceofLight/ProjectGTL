@@ -15,6 +15,9 @@ public:
 	void Initialize(HWND InWindowHandle);
 	void Release();
 
+	// Device lost 후 새 D3D11 디바이스로 백엔드 재바인딩
+	void RebindDevice(ID3D11Device* InDevice, ID3D11DeviceContext* InDeviceContext);
+
 	void BeginFrame() const;
 	void EndFrame() const;
 

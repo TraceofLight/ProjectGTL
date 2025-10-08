@@ -30,6 +30,16 @@ public:
         CellSize = newCellSize;
     }
 
+    const TArray<FVector>& GetVertices() const
+    {
+        return Vertices;
+    }
+
+    int GetNumLines() const
+    {
+        return NumLines;
+    }
+
 private:
     float CellSize = 1.0f;
     int NumLines = 250;

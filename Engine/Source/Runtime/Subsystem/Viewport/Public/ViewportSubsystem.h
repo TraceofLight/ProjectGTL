@@ -104,10 +104,6 @@ public:
 	TArray<FViewport*>& GetViewports() { return Viewports; }
 	TArray<FViewportClient*>& GetClients() { return Clients; }
 
-	// 카메라 배열 접근자
-	const TArray<ACameraActor*>& GetOrthographicCameras() const { return OrthoGraphicCameras; }
-	const TArray<ACameraActor*>& GetPerspectiveCameras() const { return PerspectiveCameras; }
-
 	// ViewportChange 상태 접근자
 	EViewportChange GetViewportChange() const { return ViewportChange; }
 	void SetViewportChange(EViewportChange InChange) { ViewportChange = InChange; }
@@ -168,9 +164,6 @@ private:
 
 	TArray<FViewport*> Viewports;
 	TArray<FViewportClient*> Clients;
-
-	TArray<ACameraActor*> OrthoGraphicCameras;
-	TArray<ACameraActor*> PerspectiveCameras;
 
 	TArray<FVector> InitialOffsets;
 

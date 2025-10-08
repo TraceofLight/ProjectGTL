@@ -11,6 +11,7 @@
 #include "Window/Public/Viewport.h"
 #include "Editor/Public/Editor.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
+#include "Runtime/Renderer/Public/EditorGrid.h"
 #include "Runtime/RHI/Public/D3D11RHIModule.h"
 #include "Runtime/Component/Public/CameraComponent.h"
 #include "Runtime/Level/Public/Level.h"
@@ -50,29 +51,17 @@ void FDebugPass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 		return;
 	}
 
-	// Editor 시스템에서 뷰 매트릭스 가져오기
+	// Editor 시스템에서 Editor 가져오기 (Camera 사용 안 함!)
 	auto* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
 	if (!WorldSS || !WorldSS->GetEditor()) return;
 
 	UEditor* Editor = WorldSS->GetEditor();
 	FViewport* Viewport = View->GetViewport();
-	ACameraActor* Camera = Editor->GetCamera();
 
-	if (!Camera || !Viewport)
+	if (!Viewport)
 	{
 		return;
 	}
-
-	// UCameraComponent에서 ViewProj 데이터 가져오기
-	UCameraComponent* CameraComponent = Camera->GetCameraComponent();
-	if (!CameraComponent)
-	{
-		return;
-	}
-
-	// FViewProjConstants ViewProjData = CameraComp->GetFViewProjConstants();
-	// FMatrix ViewMatrix = ViewProjData.View;
-	// FMatrix ProjectionMatrix = ViewProjData.Projection;
 
 	// Editor의 ShowFlag 사용 및 Selection 체크
 	bool bHasSelection = Editor->HasSelectedActor();
@@ -120,22 +109,56 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 		return;
 	}
 
-	// FD3D11RHIModule을 통한 그리드 렌더링
+	// FD3D11RHIModule을 통한 그리드 렌더링 리소스 가져오기
 	FD3D11RHIModule& RHIModule = FD3D11RHIModule::GetInstance();
 	FEditorRenderResources* EditorResources = RHIModule.GetEditorResources();
-	if (EditorResources)
+	if (!EditorResources)
 	{
-		EditorResources->RenderGrid();
+		return;
+	}
+
+	// Line Batching 시작
+	EditorResources->BeginLineBatch();
+
+	// 테스트: 간단한 큰 라인 몇 개만 그리기
+	// X축 라인 (빨간색)
+	EditorResources->AddLine(FVector(-1000.0f, 0.0f, 0.0f), FVector(1000.0f, 0.0f, 0.0f), FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	// Y축 라인 (녹색)
+	EditorResources->AddLine(FVector(0.0f, -1000.0f, 0.0f), FVector(0.0f, 1000.0f, 0.0f), FVector4(0.0f, 1.0f, 0.0f, 1.0f));
+	// Z축 라인 (파란색)
+	EditorResources->AddLine(FVector(0.0f, 0.0f, -1000.0f), FVector(0.0f, 0.0f, 1000.0f), FVector4(0.0f, 0.0f, 1.0f, 1.0f));
+	
+	// 그리드 라인 10x10 테스트 (흰색) - Z=-1에 그리기
+	FVector4 GridColor(0.7f, 0.7f, 0.7f, 1.0f); // 약간 어두운 회색
+	float GridSize = 100.0f;
+	int32 GridLines = 10;
+	float GridZ = -1.0f; // 그리드를 약간 아래에 그리기
+	
+	// X 방향 라인 (Y축을 따라)
+	for (int32 i = -GridLines; i <= GridLines; ++i)
+	{
+		float y = i * GridSize;
+		EditorResources->AddLine(
+			FVector(-GridLines * GridSize, y, GridZ), 
+			FVector(GridLines * GridSize, y, GridZ), 
+			GridColor);
+	}
+	
+	// Y 방향 라인 (X축을 따라)
+	for (int32 i = -GridLines; i <= GridLines; ++i)
+	{
+		float x = i * GridSize;
+		EditorResources->AddLine(
+			FVector(x, -GridLines * GridSize, GridZ), 
+			FVector(x, GridLines * GridSize, GridZ), 
+			GridColor);
 	}
 
 	// 언리얼에서는 ULevel에서 액터들을 가져옴
 	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
 	ULevel* CurrentLevel = WorldSS ? WorldSS->GetCurrentLevel() : nullptr;
-	if (CurrentLevel && EditorResources)
+	if (CurrentLevel)
 	{
-		// FEditorRenderResources를 통한 Line Batching 시작
-		EditorResources->BeginLineBatch();
-
 		const TArray<TObjectPtr<AActor>>& Actors = CurrentLevel->GetLevelActors();
 		for (const TObjectPtr<AActor>& ActorPtr : Actors)
 		{
@@ -150,17 +173,12 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 				}
 			}
 		}
-
-		// Line Batching 종료
-		UEditor* Editor = WorldSS->GetEditor();
-		if (Editor && Editor->GetCamera() && Editor->GetCamera()->GetCameraComponent())
-		{
-			FViewProjConstants ViewProjData = Editor->GetCamera()->GetCameraComponent()->GetFViewProjConstants();
-			FMatrix ViewMatrix = ViewProjData.View;
-			FMatrix ProjectionMatrix = ViewProjData.Projection;
-			EditorResources->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
-		}
 	}
+
+	// Line Batching 종료 - 항상 호출
+	FMatrix ViewMatrix = View->GetViewMatrix();
+	FMatrix ProjectionMatrix = View->GetProjectionMatrix();
+	EditorResources->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
 }
 
 void FDebugPass::RenderGizmos(const FSceneView* View, FSceneRenderer* SceneRenderer, UEditor* Editor)
@@ -267,22 +285,17 @@ void FDebugPass::RenderDebugComponents(const FSceneView* View, FSceneRenderer* S
 	FRHICommandList* RHICmdList = SceneRenderer->GetCommandList();
 	if (!RHICmdList) return;
 
-	// Editor 시스템에서 뷰 매트릭스 가져오기
+	// FSceneView에서 직접 매트릭스 가져오기 (Camera 사용 안 함!)
 	auto* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
 	if (!WorldSS || !WorldSS->GetEditor()) return;
 
 	UEditor* Editor = WorldSS->GetEditor();
-	ACameraActor* Camera = Editor->GetCamera();
 	FViewport* Viewport = View->GetViewport();
-	if (!Camera || !Viewport) return;
+	if (!Viewport) return;
 
-	// UCameraComponent에서 ViewProj 데이터 가져오기
-	UCameraComponent* CameraComp = Camera->GetCameraComponent();
-	if (!CameraComp) return;
-
-	FViewProjConstants ViewProjData = CameraComp->GetFViewProjConstants();
-	FMatrix ViewMatrix = ViewProjData.View;
-	FMatrix ProjectionMatrix = ViewProjData.Projection;
+	// Camera 대신 View에서 직접 매트릭스 사용
+	FMatrix ViewMatrix = View->GetViewMatrix();
+	FMatrix ProjectionMatrix = View->GetProjectionMatrix();
 
 	// 언리얼에서 ULevel에서 액터들을 가져옴
 	ULevel* CurrentLevel = WorldSS->GetCurrentLevel();

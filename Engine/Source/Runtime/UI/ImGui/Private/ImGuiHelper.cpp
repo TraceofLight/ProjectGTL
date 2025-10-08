@@ -66,6 +66,18 @@ void UImGuiHelper::Release()
 	bIsInitialized = false;
 }
 
+void UImGuiHelper::RebindDevice(ID3D11Device* InDevice, ID3D11DeviceContext* InDeviceContext)
+{
+	// ImGui 컨텍스트와 Win32 플랫폼 백엔드는 유지하고, DX11 백엔드만 교체
+	if (!bIsInitialized)
+	{
+		return; // 아직 Initialize 전이면 아무 것도 하지 않음
+	}
+
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplDX11_Init(InDevice, InDeviceContext);
+}
+
 /**
  * @brief ImGui 새 프레임 시작
  */

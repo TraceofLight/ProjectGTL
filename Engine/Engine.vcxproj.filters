@@ -848,26 +848,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Asset\Shader\StaticMeshShader.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\StaticMeshShader.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\SampleShader.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\BatchLinePS.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\BatchLineVS.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\ShaderFont.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="Engine.rc" />
   </ItemGroup>
   <ItemGroup>

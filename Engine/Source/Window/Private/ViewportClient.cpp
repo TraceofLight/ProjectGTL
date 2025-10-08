@@ -40,7 +40,8 @@ FMatrix FViewportClient::GetViewMatrix() const
 
 FMatrix FViewportClient::GetProjectionMatrix() const
 {
-    const float AspectRatio = ViewSize.X > 0.0f ? (float)ViewSize.Y / (float)ViewSize.X : 1.0f;
+    // AspectRatio = 너비 / 높이
+    const float AspectRatio = ViewSize.Y > 0.0f ? (float)ViewSize.X / (float)ViewSize.Y : 1.0f;
 
     if (IsOrtho())
     {
@@ -73,42 +74,53 @@ void FViewportClient::Draw(FViewport* InViewport)
 	TObjectPtr<UWorld> World = GEngine->GetWorld();
 	if (!World)
 	{
+		UE_LOG("ViewportClient::Draw - No World");
 		return;
 	}
 
+	// Camera deprecated - 카메라 없이 ViewportClient의 행렬을 직접 사용
 	// Get Current Camera from ViewportSubsystem
-	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	ACameraActor* CurrentCamera = nullptr;
-	if (ViewportSS)
-	{
-		// Find the index for the given viewport pointer
-		int32 ViewportIndex = -1;
-		const auto& Viewports = ViewportSS->GetViewports();
-		for (int32 i = 0; i < Viewports.Num(); ++i)
-		{
-			if (Viewports[i] == InViewport)
-			{
-				ViewportIndex = i;
-				break;
-			}
-		}
-		CurrentCamera = ViewportSS->GetActiveCameraForViewport(ViewportIndex);
-	}
+	// UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	// ACameraActor* CurrentCamera = nullptr;
+	// if (ViewportSS)
+	// {
+	// 	// Find the index for the given viewport pointer
+	// 	int32 ViewportIndex = -1;
+	// 	const auto& Viewports = ViewportSS->GetViewports();
+	// 	for (int32 i = 0; i < Viewports.Num(); ++i)
+	// 	{
+	// 		if (Viewports[i] == InViewport)
+	// 		{
+	// 			ViewportIndex = i;
+	// 			break;
+	// 		}
+	// 	}
+	// 	CurrentCamera = ViewportSS->GetActiveCameraForViewport(ViewportIndex);
+	// }
 
-	if (!CurrentCamera)
-	{
-		// UE_LOG("ViewportClient::Draw - No active camera for this viewport");
-		return; // 렌더링할 카메라가 없으면 종료
-	}
+	// if (!CurrentCamera)
+	// {
+	// 	// UE_LOG("ViewportClient::Draw - No active camera for this viewport");
+	// 	return; // 렌더링할 카메라가 없으면 종료
+	// }
 
 	// SceneViewFamily
 	FSceneViewFamily ViewFamily;
 	ViewFamily.SetRenderTarget(InViewport);
-	ViewFamily.SetCurrentTime(World->GetTimeSeconds());	ViewFamily.SetDeltaWorldTime(World->GetDeltaSeconds());
+	ViewFamily.SetCurrentTime(World->GetTimeSeconds());
+	ViewFamily.SetDeltaWorldTime(World->GetDeltaSeconds());
 
-	// SceneView
+	// SceneView - 카메라 대신 ViewportClient의 행렬을 직접 사용
 	FSceneView View;
-	View.Initialize(TObjectPtr<ACameraActor>(CurrentCamera), InViewport, World);
+	View.InitializeWithMatrices(
+		GetViewMatrix(),
+		GetProjectionMatrix(),
+		ViewLocation,
+		ViewRotation,
+		InViewport,
+		World,
+		ViewMode
+	);
 	ViewFamily.AddView(&View);
 
 	// SceneRenderer

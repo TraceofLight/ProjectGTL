@@ -153,49 +153,12 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 					ImGui::SetItemDefaultFocus();
 			}
 
-			// Perspective 선택 시 하위 옵션 표시
+			// Perspective 선택 시 하위 옵션 표시 - Camera deprecated
 			if (CurType == EViewType::Perspective)
 			{
-				ImGui::Separator();
-				ImGui::TextDisabled("VIEW");
-
-				auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-				const auto& PerspectiveCameras = ViewportSS->GetPerspectiveCameras();
-
-				if (ViewportIndex < PerspectiveCameras.Num() && PerspectiveCameras[ViewportIndex])
-				{
-					ACameraActor* Camera = PerspectiveCameras[ViewportIndex];
-					if (Camera && Camera->GetCameraComponent())
-					{
-						UCameraComponent* CamComp = Camera->GetCameraComponent();
-
-						ImGui::Spacing();
-
-						// FOV
-						float fov = CamComp->GetFovY();
-						ImGui::SetNextItemWidth(180.0f);
-						if (ImGui::DragFloat("Field of View", &fov, 1.0f, 30.0f, 120.0f, "%.1f"))
-						{
-							CamComp->SetFovY(fov);
-						}
-
-						// Near Plane
-						float nearZ = CamComp->GetNearZ();
-						ImGui::SetNextItemWidth(180.0f);
-						if (ImGui::DragFloat("Near View Plane", &nearZ, 0.01f, 0.01f, 10.0f, "%.2f"))
-						{
-							CamComp->SetNearZ(nearZ);
-						}
-
-						// Far Plane
-						float farZ = CamComp->GetFarZ();
-						ImGui::SetNextItemWidth(180.0f);
-						if (ImGui::DragFloat("Far View Plane", &farZ, 10.0f, 100.0f, 10000.0f, "%.0f"))
-						{
-							CamComp->SetFarZ(farZ);
-						}
-					}
-				}
+				// TODO: Camera가 deprecated되어 FOV 등의 설정을 다른 방식으로 처리해야 함
+				// ImGui::Separator();
+				// ImGui::TextDisabled("VIEW");
 			}
 
 			ImGui::EndCombo();

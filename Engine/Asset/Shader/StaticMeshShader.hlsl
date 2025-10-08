@@ -37,7 +37,7 @@ struct PS_INPUT
 	float2 TexCoord : TEXCOORD0;    // 텍스처 좌표
 };
 
-PS_INPUT mainVS(VS_INPUT input)
+PS_INPUT VSMain(VS_INPUT input)
 {
 	PS_INPUT output;
 
@@ -69,7 +69,7 @@ PS_INPUT mainVS(VS_INPUT input)
 	return output;
 }
 
-float4 mainPS(PS_INPUT input) : SV_TARGET
+float4 PSMain(PS_INPUT input) : SV_TARGET
 {
 	const float bUseVertexColor = MaterialUsage.x;
 	const float bUseDiffuseTexture = MaterialUsage.y;
@@ -81,14 +81,11 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 		const float4 diffuseTexColor = DiffuseTexture.Sample(DefaultSampler, input.TexCoord);
 		finalColor = diffuseTexColor;
 	}
-	
+
 	if (bUseVertexColor > 0.5f)
 	{
 		finalColor = input.Color;
 	}
 
-	
-
 	return finalColor;
 }
-

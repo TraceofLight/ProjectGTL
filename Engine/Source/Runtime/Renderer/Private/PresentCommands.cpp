@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Runtime/Renderer/Public/PresentCommands.h"
 #include "Runtime/RHI/Public/RHIDevice.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 
 //=============================================================================
 // FRHIPresentCommand
@@ -26,11 +27,20 @@ void FRHIPresentCommand::Execute()
         return;
     }
 
-    // Present 실행
+    // Present 실행 (VSync Off)
     HRESULT hr = SwapChain->Present(0, 0);
     if (FAILED(hr))
     {
-        UE_LOG_ERROR("FRHIPresentCommand: Present 실패 (HRESULT: 0x%08lX)", hr);
+        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+        {
+            HRESULT reason = RHIDevice->GetDevice() ? RHIDevice->GetDevice()->GetDeviceRemovedReason() : hr;
+            UE_LOG_ERROR("FRHIPresentCommand: DEVICE LOST during Present (hr=0x%08lX, reason=0x%08lX)", hr, reason);
+            FD3D11RHIModule::GetInstance().RecreateAfterDeviceLost();
+        }
+        else
+        {
+            UE_LOG_ERROR("FRHIPresentCommand: Present 실패 (HRESULT: 0x%08lX)", hr);
+        }
     }
 }
 

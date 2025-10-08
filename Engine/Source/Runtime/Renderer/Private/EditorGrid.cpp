@@ -35,34 +35,20 @@ void FEditorGrid::UpdateVerticesBy(float NewCellSize)
     }
 
     uint32 vertexIndex = 0;
-    // z축 라인 업데이트
+    // Y축 방향 라인들 (X축을 따라 이동) - 바닥면(Z=0)
     for (int32 LineCount = -NumLines / 2; LineCount < NumLines / 2; ++LineCount)
     {
-        if (LineCount == 0)
-        {
-            Vertices[vertexIndex++] = { static_cast<float>(LineCount) * NewCellSize, -LineLength, 0.0f };
-            Vertices[vertexIndex++] = { static_cast<float>(LineCount) * NewCellSize, 0.f, 0.f };
-        }
-        else
-        {
-            Vertices[vertexIndex++] = { static_cast<float>(LineCount) * NewCellSize, -LineLength, 0.0f };
-            Vertices[vertexIndex++] = { static_cast<float>(LineCount) * NewCellSize, LineLength, 0.0f };
-        }
+        float xPos = static_cast<float>(LineCount) * NewCellSize;
+        Vertices[vertexIndex++] = { xPos, -LineLength, 0.0f };
+        Vertices[vertexIndex++] = { xPos, LineLength, 0.0f };
     }
 
-    // x축 라인 업데이트
+    // X축 방향 라인들 (Y축을 따라 이동) - 바닥면(Z=0)
     for (int32 LineCount = -NumLines / 2; LineCount < NumLines / 2; ++LineCount)
     {
-        if (LineCount == 0)
-        {
-            Vertices[vertexIndex++] = { -LineLength, static_cast<float>(LineCount) * NewCellSize, 0.0f };
-            Vertices[vertexIndex++] = { 0.f, static_cast<float>(LineCount) * NewCellSize, 0.0f };
-        }
-        else
-        {
-            Vertices[vertexIndex++] = { -LineLength, static_cast<float>(LineCount) * NewCellSize, 0.0f };
-            Vertices[vertexIndex++] = { LineLength, static_cast<float>(LineCount) * NewCellSize, 0.0f };
-        }
+        float yPos = static_cast<float>(LineCount) * NewCellSize;
+        Vertices[vertexIndex++] = { -LineLength, yPos, 0.0f };
+        Vertices[vertexIndex++] = { LineLength, yPos, 0.0f };
     }
 }
 
