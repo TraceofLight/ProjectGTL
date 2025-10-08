@@ -15,7 +15,7 @@
 #include "Window/Public/ViewportClient.h"
 #include "Runtime/Actor/Public/CameraActor.h"
 #include "Runtime/Component/Public/CameraComponent.h"
-#include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
+#include "Runtime/UI/Widget/Public/SceneHierarchyWidget.h"
 
 IMPLEMENT_CLASS(UViewportSubsystem, UEngineSubsystem)
 

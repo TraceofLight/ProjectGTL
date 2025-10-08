@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 
 /**
  * @brief 언리얼 엔진 스타일의 문자열 타입들

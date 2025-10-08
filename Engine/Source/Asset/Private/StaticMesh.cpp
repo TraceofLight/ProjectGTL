@@ -3,7 +3,7 @@
 #include "Asset/Public/StaticMeshData.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Renderer/Public/RendererModule.h"
+#include "Runtime/Renderer/Public/RendererModule.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Utility/Public/Archive.h"
 

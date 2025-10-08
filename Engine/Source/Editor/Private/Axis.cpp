@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Editor/Public/Axis.h"
 
-#include "Renderer/Public/RendererModule.h"
-#include "Renderer/Public/EditorRenderResources.h"
+#include "Runtime/Renderer/Public/RendererModule.h"
+#include "Runtime/Renderer/Public/EditorRenderResources.h"
 
 UAxis::UAxis(FRendererModule* InRenderModule)
 	: RenderModule(InRenderModule)

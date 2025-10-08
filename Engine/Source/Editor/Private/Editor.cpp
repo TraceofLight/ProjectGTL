@@ -3,15 +3,15 @@
 
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Renderer/Public/RendererModule.h"
-#include "Renderer/Public/EditorRenderResources.h"
+#include "Runtime/Renderer/Public/RendererModule.h"
+#include "Runtime/Renderer/Public/EditorRenderResources.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Window/Public/ViewportClient.h"
 #include "Window/Public/Viewport.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
-#include "Render/UI/Factory/Public/UIWindowFactory.h"
+#include "Runtime/UI/Factory/Public/UIWindowFactory.h"
 
 IMPLEMENT_CLASS(UEditor, UObject)
 

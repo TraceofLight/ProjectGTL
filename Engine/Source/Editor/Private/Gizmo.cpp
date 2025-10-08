@@ -3,8 +3,8 @@
 
 #include "Runtime/Actor/Public/Actor.h"
 #include "Global/Quaternion.h"
-#include "Renderer/Public/EditorRenderResources.h"
-#include "Renderer/Public/RendererModule.h"
+#include "Runtime/Renderer/Public/EditorRenderResources.h"
+#include "Runtime/Renderer/Public/RendererModule.h"
 #include "Runtime/Actor/Public/CameraActor.h"
 
 IMPLEMENT_CLASS(UGizmo, UObject)

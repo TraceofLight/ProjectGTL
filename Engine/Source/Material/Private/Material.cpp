@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Material/Public/Material.h"
-#include "Render/RHI/Public/RHIDevice.h"
+#include "Runtime/RHI/Public/RHIDevice.h"
 
 IMPLEMENT_CLASS(UMaterialInterface, UObject)
 IMPLEMENT_CLASS(UMaterial, UMaterialInterface)

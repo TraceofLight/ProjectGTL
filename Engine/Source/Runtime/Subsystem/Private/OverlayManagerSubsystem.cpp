@@ -3,13 +3,13 @@
 #include "Runtime/Core/Public/EngineStatics.h"
 #include "Global/Memory.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Renderer/Public/RendererModule.h"
+#include "Runtime/Renderer/Public/RendererModule.h"
 
 #include <psapi.h>
 
-#include "Render/RHI/Public/RHIDevice.h"
-#include "Renderer/SceneRenderer.h"
-#include "Renderer/SceneView/Public/SceneView.h"
+#include "Runtime/RHI/Public/RHIDevice.h"
+#include "Runtime/Renderer/Public/SceneRenderer.h"
+#include "Runtime/Renderer/Public/SceneView.h"
 
 // memory update
 static constexpr float MEMORY_UPDATE_INTERVAL = 1.0f;

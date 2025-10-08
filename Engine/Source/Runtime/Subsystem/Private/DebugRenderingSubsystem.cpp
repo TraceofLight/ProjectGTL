@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Runtime/Subsystem/Public/DebugRenderingSubsystem.h"
-#include "Renderer/RenderCommand/Public/RHICommandList.h"
-#include "Render/RHI/Public/RHIDevice.h"
+#include "Runtime/Renderer/Public/RHICommandList.h"
+#include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Core/Public/EngineStatics.h"
 #include "Global/Memory.h"
 #include "Runtime/Engine/Public/Engine.h"
@@ -450,7 +450,7 @@ FString UDebugRenderingSubsystem::GetMemorySizeString(SIZE_T InBytes)
 {
     // FString::Printf가 없으므로 표준 C++ 방식 사용
     char buffer[64];
-    
+
     if (InBytes >= 1024 * 1024 * 1024) // GB
     {
         sprintf_s(buffer, "%.2f GB", static_cast<double>(InBytes) / (1024.0 * 1024.0 * 1024.0));
@@ -467,7 +467,7 @@ FString UDebugRenderingSubsystem::GetMemorySizeString(SIZE_T InBytes)
     {
         sprintf_s(buffer, "%llu B", InBytes);
     }
-    
+
     return FString(buffer);
 }
 
