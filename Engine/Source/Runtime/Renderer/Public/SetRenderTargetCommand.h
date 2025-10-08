@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "RenderCommand.h"
 
-class URHIDevice;
+class FRHIDevice;
 class FSceneView;
 
 /**
@@ -11,7 +11,7 @@ class FRHISetRenderTargetCommand :
     public IRHICommand
 {
 public:
-    FRHISetRenderTargetCommand(URHIDevice* InRHIDevice, const FSceneView* InView)
+    FRHISetRenderTargetCommand(FRHIDevice* InRHIDevice, const FSceneView* InView)
         : RHIDevice(InRHIDevice), View(InView)
     {
     }
@@ -24,6 +24,6 @@ public:
     }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     const FSceneView* View;
 };

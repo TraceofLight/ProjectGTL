@@ -6,7 +6,7 @@
 // FRHIPresentCommand
 //=============================================================================
 
-FRHIPresentCommand::FRHIPresentCommand(URHIDevice* InRHIDevice)
+FRHIPresentCommand::FRHIPresentCommand(FRHIDevice* InRHIDevice)
     : RHIDevice(InRHIDevice)
 {
 }
@@ -43,7 +43,7 @@ ERHICommandType FRHIPresentCommand::GetCommandType() const
 // FRHIGetBackBufferSurfaceCommand
 //=============================================================================
 
-FRHIGetBackBufferSurfaceCommand::FRHIGetBackBufferSurfaceCommand(URHIDevice* InRHIDevice, IDXGISurface** OutSurface)
+FRHIGetBackBufferSurfaceCommand::FRHIGetBackBufferSurfaceCommand(FRHIDevice* InRHIDevice, IDXGISurface** OutSurface)
     : RHIDevice(InRHIDevice), OutputSurface(OutSurface)
 {
 }
@@ -81,7 +81,7 @@ ERHICommandType FRHIGetBackBufferSurfaceCommand::GetCommandType() const
 // FRHIGetBackBufferRTVCommand
 //=============================================================================
 
-FRHIGetBackBufferRTVCommand::FRHIGetBackBufferRTVCommand(URHIDevice* InRHIDevice, ID3D11RenderTargetView** OutRTV)
+FRHIGetBackBufferRTVCommand::FRHIGetBackBufferRTVCommand(FRHIDevice* InRHIDevice, ID3D11RenderTargetView** OutRTV)
     : RHIDevice(InRHIDevice), OutputRTV(OutRTV)
 {
 }

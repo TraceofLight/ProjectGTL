@@ -10,7 +10,7 @@
 
 class FRHISetRenderTargetCommand;
 
-FRHICommandList::FRHICommandList(URHIDevice* InRHIDevice)
+FRHICommandList::FRHICommandList(FRHIDevice* InRHIDevice)
     : RHIDevice(InRHIDevice)
       , ExecutedCommandCount(0)
       , TotalDrawCalls(0)

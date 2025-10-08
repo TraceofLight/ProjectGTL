@@ -3,8 +3,8 @@
 
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Renderer/Public/RendererModule.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Runtime/Level/Public/Level.h"
@@ -26,7 +26,6 @@ void UEditor::Initialize()
 	// 렌더링 리소스는 이제 FRendererModule::GetEditorResources()를 통해 접근
 
 	// Gizmo 초기화
-	FRendererModule& RendererModule = FRendererModule::Get();
 	Gizmo = NewObject<UGizmo>();
 	if (Gizmo)
 	{
@@ -58,9 +57,9 @@ void UEditor::Update()
  */
 void UEditor::RenderEditor()
 {
-	// FRendererModule을 통해 Editor 렌더링 리소스 얻기
-	FRendererModule& RendererModule = FRendererModule::Get();
-	FEditorRenderResources* EditorResources = RendererModule.GetEditorResources();
+	// FD3D11RHIModule을 통해 Editor 렌더링 리소스 얻기
+	FD3D11RHIModule& RHIModule = FD3D11RHIModule::GetInstance();
+	FEditorRenderResources* EditorResources = RHIModule.GetEditorResources();
 	if (!EditorResources)
 	{
 		return;

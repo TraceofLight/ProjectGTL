@@ -2,12 +2,12 @@
 #include "Runtime/UI/Widget/Public/ViewportControlWidget.h"
 
 #include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Window/Public/ViewportClient.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/Splitter.h"
-#include "Runtime/Renderer/Public/RendererModule.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
+#include "Runtime/Renderer/Public/EditorRenderResources.h"
 
 // 정적 멤버 정의
 const char* UViewportControlWidget::ViewModeLabels[] = {
@@ -349,9 +349,9 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 
 void UViewportControlWidget::RenderGridSizeControl()
 {
-	// RendererModule을 통해 EditorRenderResources 접근
-	FRendererModule& RendererModule = FRendererModule::Get();
-	FEditorRenderResources* EditorResources = RendererModule.GetEditorResources();
+	// D3D11RHIModule을 통해 EditorRenderResources 접근
+	FD3D11RHIModule& RHIModule = FD3D11RHIModule::GetInstance();
+	FEditorRenderResources* EditorResources = RHIModule.GetEditorResources();
 	if (!EditorResources)
 	{
 		return;

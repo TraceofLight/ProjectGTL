@@ -3,18 +3,18 @@
 #include "Editor/Public/EditorPrimitive.h"
 #include "Global/CoreTypes.h"
 
-class FRendererModule;
+class FD3D11RHIModule;
 
 class UAxis :
 	public UObject
 {
 public:
-	UAxis(FRendererModule* InRenderModule);
+	UAxis(FD3D11RHIModule* InRenderModule);
 	~UAxis() override;
 	void Render();
 
 private:
-	FRendererModule* RenderModule = nullptr;
+	FD3D11RHIModule* RenderModule = nullptr;
 	FEditorPrimitive Primitive;
 	TArray<FVertex> AxisVertices;
 };

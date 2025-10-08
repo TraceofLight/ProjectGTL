@@ -14,14 +14,11 @@ struct FVertex;
  * - 그래픽 리소스(버퍼, 셰이더, 텍스처) 생성/해제 책임만 담당
  * - DeviceResources에 대한 접근을 캡슐화
  */
-UCLASS()
-class URHIDevice :
-	public UObject
+class FRHIDevice
 {
-	GENERATED_BODY()
-	DECLARE_SINGLETON_CLASS(URHIDevice, UObject)
-
 public:
+	FRHIDevice();
+	~FRHIDevice();
 	void Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InDeviceContext);
 	void Shutdown();
 
@@ -109,4 +106,4 @@ private:
 	void CreateSamplerState();
 };
 
-extern URHIDevice* GDynamicRHI;
+extern FRHIDevice* GDynamicRHI;

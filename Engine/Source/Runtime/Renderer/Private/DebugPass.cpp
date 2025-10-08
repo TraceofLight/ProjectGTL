@@ -10,9 +10,8 @@
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Window/Public/Viewport.h"
 #include "Editor/Public/Editor.h"
-#include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
-#include "Runtime/Renderer/Public/RendererModule.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 #include "Runtime/Component/Public/CameraComponent.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
@@ -125,9 +124,9 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 		return;
 	}
 
-	// FEditorRenderResources를 통한 그리드 렌더링
-	FRendererModule& RendererModule = FRendererModule::Get();
-	FEditorRenderResources* EditorResources = RendererModule.GetEditorResources();
+	// FD3D11RHIModule을 통한 그리드 렌더링
+	FD3D11RHIModule& RHIModule = FD3D11RHIModule::GetInstance();
+	FEditorRenderResources* EditorResources = RHIModule.GetEditorResources();
 	if (EditorResources)
 	{
 		EditorResources->RenderGrid();

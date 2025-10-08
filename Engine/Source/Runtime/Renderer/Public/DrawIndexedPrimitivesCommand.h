@@ -14,7 +14,7 @@ class FRHIDrawIndexedPrimitivesCommand :
     public IRHICommand
 {
 public:
-    FRHIDrawIndexedPrimitivesCommand(URHIDevice* InRHIDevice, UPrimitiveComponent* InComponent,
+    FRHIDrawIndexedPrimitivesCommand(FRHIDevice* InRHIDevice, UPrimitiveComponent* InComponent,
                                      const FMatrix& InViewMatrix, const FMatrix& InProjMatrix)
         : RHIDevice(InRHIDevice), Component(InComponent), ViewMatrix(InViewMatrix),
           ProjMatrix(InProjMatrix), MaterialPtr(nullptr),
@@ -24,7 +24,7 @@ public:
     }
 
     // 기즈모용 색상 오버라이드 생성자
-    FRHIDrawIndexedPrimitivesCommand(URHIDevice* InRHIDevice, UPrimitiveComponent* InComponent,
+    FRHIDrawIndexedPrimitivesCommand(FRHIDevice* InRHIDevice, UPrimitiveComponent* InComponent,
                                      const FMatrix& InViewMatrix, const FMatrix& InProjMatrix,
                                      const FVector& InOverrideColor)
         : RHIDevice(InRHIDevice), Component(InComponent), ViewMatrix(InViewMatrix),
@@ -35,7 +35,7 @@ public:
     }
 
     // 기즈모 호버링용 생성자
-    FRHIDrawIndexedPrimitivesCommand(URHIDevice* InRHIDevice, UPrimitiveComponent* InComponent,
+    FRHIDrawIndexedPrimitivesCommand(FRHIDevice* InRHIDevice, UPrimitiveComponent* InComponent,
                                      const FMatrix& InViewMatrix, const FMatrix& InProjMatrix,
                                      const FVector& InOverrideColor, bool bInIsHovering)
         : RHIDevice(InRHIDevice), Component(InComponent), ViewMatrix(InViewMatrix),
@@ -72,7 +72,7 @@ public:
     }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     UPrimitiveComponent* Component;
     FMatrix ViewMatrix;
     FMatrix ProjMatrix;

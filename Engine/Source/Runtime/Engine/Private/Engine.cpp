@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Renderer/Public/RendererModule.h"
+// RendererModule 제거됨 - 이제 GDynamicRHI 직접 사용
 #include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Subsystem/Public/PathSubsystem.h"
 #include "Runtime/Subsystem/Public/DebugRenderingSubsystem.h"
@@ -39,8 +39,7 @@ void UEngine::Initialize()
 {
 	if (!bIsInitialized)
 	{
-		// ModuleManager를 통한 RendererModule 초기화
-		FRendererModule& RendererModule = FRendererModule::Get();
+		// RHI는 이미 PreInit에서 초기화되었으므로 별도 처리 불필요
 
 		RegisterDefaultEngineSubsystems();
 
@@ -62,7 +61,7 @@ void UEngine::Shutdown()
 		EngineSubsystemCollection.Deinitialize();
 
 		// ModuleManager를 통한 모듈 정리
-		FModuleManager::Get().ShutdownAllModules();
+		FModuleManager::GetInstance().ShutdownAllModules();
 
 		bIsInitialized = false;
 
@@ -70,24 +69,7 @@ void UEngine::Shutdown()
 	}
 }
 
-FRendererModule& UEngine::GetRendererModule() const
-{
-	return FRendererModule::Get();
-}
-
-void UEngine::InitializeRHIDevice(URHIDevice* InRHIDevice)
-{
-	if (!InRHIDevice)
-	{
-		UE_LOG_ERROR("UEngine: InitializeRHIDevice 실패 - InRHIDevice가 null입니다");
-		return;
-	}
-
-	FRendererModule& RendererModule = GetRendererModule();
-	RendererModule.SetRHIDevice(InRHIDevice);
-
-	UE_LOG("UEngine: RHIDevice 초기화 완료");
-}
+// GetRendererModule 제거됨 - 이제 GDynamicRHI 직접 사용
 
 /**
  * @brief 모든 Tickable 엔진 서브시스템의 Tick 함수를 우선순위 순서대로 호출

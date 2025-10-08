@@ -4,20 +4,17 @@
 #include "Runtime/Actor/Public/Actor.h"
 #include "Global/Quaternion.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
-#include "Runtime/Renderer/Public/RendererModule.h"
 #include "Runtime/Actor/Public/CameraActor.h"
+#include "Runtime/Renderer/Public/SceneRenderer.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 
 IMPLEMENT_CLASS(UGizmo, UObject)
 
 UGizmo::UGizmo()
 {
-
-}
-
-UGizmo::UGizmo(FRendererModule* InRenderModule)
-	: RenderModule(InRenderModule)
-{
-	FEditorRenderResources* EditorResources = RenderModule->GetEditorResources();
+	// D3D11RHIModule에서 EditorRenderResources 가져오기
+	FD3D11RHIModule& RHIModule = FD3D11RHIModule::GetInstance();
+	FEditorRenderResources* EditorResources = RHIModule.GetEditorResources();
 
 	Primitives.SetNum(3);
 	GizmoColor.SetNum(3);
@@ -70,7 +67,7 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
                          float InViewportHeight, int32 ViewportIndex)
 {
 	TargetActor = InActor;
-	if (!TargetActor || !RenderModule)
+	if (!TargetActor)
 	{
 		return;
 	}
@@ -112,19 +109,19 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
 	FQuaternion RotationX = LocalRotation * FQuaternion::Identity();
 	P.Rotation = RotationX.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Forward, ViewportIndex);
-	RenderModule->RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
 	// Y축 (Right) - 초록색 (Z축 주위로 90도 회전)
 	FQuaternion RotY = LocalRotation * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
 	P.Rotation = RotY.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Right, ViewportIndex);
-	RenderModule->RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
-	// Z축 (Up) - 파란색 (Y축 주위로 -90도 회전)
+	// Z성 (Up) - 파란색 (Y성 주위로 -90도 회전)
 	FQuaternion RotZ = LocalRotation * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
 	P.Rotation = RotZ.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Up, ViewportIndex);
-	RenderModule->RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 }
 
 void UGizmo::ChangeGizmoMode()

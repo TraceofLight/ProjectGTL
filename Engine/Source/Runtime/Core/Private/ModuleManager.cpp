@@ -1,31 +1,37 @@
 ﻿#include "pch.h"
 #include "Runtime/Core/Public/ModuleManager.h"
 
-FModuleManager& FModuleManager::Get()
+FModuleManager& FModuleManager::GetInstance()
 {
     static FModuleManager Instance;
     return Instance;
 }
 
-IModuleInterface* FModuleManager::GetModulePtr(const std::string& ModuleName)
+IModuleInterface* FModuleManager::GetModulePtr(const FString& ModuleName)
 {
-    auto It = LoadedModules.find(ModuleName);
-    if (It != LoadedModules.end())
-    {
-        return It->second;
-    }
-    return nullptr;
+	IModuleInterface** ModulePtr = LoadedModules.Find(ModuleName);
+
+	if (ModulePtr != nullptr)
+	{
+		return *ModulePtr;
+	}
+
+	return nullptr;
 }
 
-void FModuleManager::UnloadModule(const std::string& ModuleName)
+void FModuleManager::UnloadModule(const FString& ModuleName)
 {
-    auto It = LoadedModules.find(ModuleName);
-    if (It != LoadedModules.end())
-    {
-        It->second->ShutdownModule();
-        delete It->second;
-        LoadedModules.erase(It);
-    }
+	IModuleInterface** ModulePtr = LoadedModules.Find(ModuleName);
+
+	if (ModulePtr != nullptr)
+	{
+		IModuleInterface* Module = *ModulePtr;
+
+		Module->ShutdownModule();
+		delete Module;
+
+		LoadedModules.Remove(ModuleName);
+	}
 }
 
 void FModuleManager::ShutdownAllModules()
@@ -35,5 +41,5 @@ void FModuleManager::ShutdownAllModules()
         Pair.second->ShutdownModule();
         delete Pair.second;
     }
-    LoadedModules.clear();
+    LoadedModules.Empty();
 }

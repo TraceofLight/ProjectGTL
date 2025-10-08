@@ -2,7 +2,7 @@
 
 #include "RenderCommand.h"
 
-class URHIDevice;
+class FRHIDevice;
 
 /**
  * @brief SwapChain Present 명령 (언리얼 스타일)
@@ -10,14 +10,14 @@ class URHIDevice;
 class FRHIPresentCommand : public IRHICommand
 {
 public:
-    FRHIPresentCommand(URHIDevice* InRHIDevice);
-    
-    virtual void Execute() override;
-    virtual ERHICommandType GetCommandType() const override;
-    virtual FName GetName() const override { return FName("Present"); }
+    FRHIPresentCommand(FRHIDevice* InRHIDevice);
+
+    void Execute() override;
+    ERHICommandType GetCommandType() const override;
+    FName GetName() const override { return FName("Present"); }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
 };
 
 /**
@@ -26,14 +26,14 @@ private:
 class FRHIGetBackBufferSurfaceCommand : public IRHICommand
 {
 public:
-    FRHIGetBackBufferSurfaceCommand(URHIDevice* InRHIDevice, IDXGISurface** OutSurface);
-    
+    FRHIGetBackBufferSurfaceCommand(FRHIDevice* InRHIDevice, IDXGISurface** OutSurface);
+
     virtual void Execute() override;
     virtual ERHICommandType GetCommandType() const override;
     virtual FName GetName() const override { return FName("GetBackBufferSurface"); }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     IDXGISurface** OutputSurface;
 };
 
@@ -43,13 +43,13 @@ private:
 class FRHIGetBackBufferRTVCommand : public IRHICommand
 {
 public:
-    FRHIGetBackBufferRTVCommand(URHIDevice* InRHIDevice, ID3D11RenderTargetView** OutRTV);
-    
+    FRHIGetBackBufferRTVCommand(FRHIDevice* InRHIDevice, ID3D11RenderTargetView** OutRTV);
+
     virtual void Execute() override;
     virtual ERHICommandType GetCommandType() const override;
     virtual FName GetName() const override { return FName("GetBackBufferRTV"); }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     ID3D11RenderTargetView** OutputRTV;
 };

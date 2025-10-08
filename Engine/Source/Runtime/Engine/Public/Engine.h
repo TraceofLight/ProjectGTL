@@ -6,8 +6,8 @@
 #include <memory>
 
 class FAppWindow;
-class FRendererModule;
-class URHIDevice;
+// FRendererModule 제거됨
+class FRHIDevice;
 
 /**
  * @brief 게임에서 가장 핵심이 되는 EngineSubsystem 클래스
@@ -35,10 +35,8 @@ public:
 
 	void SetAppWindow(FAppWindow* InWindow) { AppWindow = InWindow; }
 	FAppWindow* GetAppWindow() const { return AppWindow; }
-	
-	// Module Manager 방식 접근자
-	FRendererModule& GetRendererModule() const;
-	void InitializeRHIDevice(URHIDevice* InRHIDevice);
+
+	// Module Manager 방식 접근자 제거됨 - 이제 GDynamicRHI 직접 사용
 
 	// Tick engine subsystem
 	void TickEngineSubsystems(FAppWindow* InWindow = nullptr);

@@ -11,15 +11,15 @@ UMaterial::~UMaterial()
 	// SafeDelete(RenderProxy);
 	if (DiffuseTexture)
 	{
-		URHIDevice::GetInstance().ReleaseTexture(DiffuseTexture);
+		GDynamicRHI->ReleaseTexture(DiffuseTexture);
 	}
 	if (NormalTexture)
 	{
-		URHIDevice::GetInstance().ReleaseTexture(NormalTexture);
+		GDynamicRHI->ReleaseTexture(NormalTexture);
 	}
 	if (SpecularTexture)
 	{
-		URHIDevice::GetInstance().ReleaseTexture(SpecularTexture);
+		GDynamicRHI->ReleaseTexture(SpecularTexture);
 	}
 }
 
@@ -35,8 +35,6 @@ const FObjMaterialInfo& UMaterial::GetMaterialInfo() const
 
 void UMaterial::ImportAllTextures()
 {
-	URHIDevice& RHIDevice = URHIDevice::GetInstance();
-
 	const auto ImportTexture = [&](const FString& TexturePath, void (UMaterial::*Setter)(ID3D11ShaderResourceView*))
 	{
 		if (TexturePath.empty())
@@ -45,7 +43,7 @@ void UMaterial::ImportAllTextures()
 		}
 
 		std::wstring WTexturePath(TexturePath.begin(), TexturePath.end());
-		ID3D11ShaderResourceView* SRV = RHIDevice.CreateTextureFromFile(WTexturePath);
+		ID3D11ShaderResourceView* SRV = GDynamicRHI->CreateTextureFromFile(WTexturePath);
 
 		if (SRV)
 		{

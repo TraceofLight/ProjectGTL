@@ -1,7 +1,7 @@
 #pragma once
 #include "RenderCommand.h"
 
-class URHIDevice;
+class FRHIDevice;
 
 /**
  * @brief Line Batch End Command Class
@@ -10,7 +10,7 @@ class FRHIEndLineBatchCommand :
     public IRHICommand
 {
 public:
-    FRHIEndLineBatchCommand(URHIDevice* InRHIDevice, const FMatrix& InModelMatrix,
+    FRHIEndLineBatchCommand(FRHIDevice* InRHIDevice, const FMatrix& InModelMatrix,
                             const FMatrix& InViewMatrix, const FMatrix& InProjMatrix)
         : RHIDevice(InRHIDevice), ModelMatrix(InModelMatrix), ViewMatrix(InViewMatrix),
           ProjMatrix(InProjMatrix)
@@ -25,7 +25,7 @@ public:
     }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     FMatrix ModelMatrix;
     FMatrix ViewMatrix;
     FMatrix ProjMatrix;

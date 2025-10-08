@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "RenderCommand.h"
 
-class URHIDevice;
+class FRHIDevice;
 
 /**
 * @brief Blend State 설정 Command 클래스
@@ -10,7 +10,7 @@ class FRHISetBlendStateCommand :
     public IRHICommand
 {
 public:
-    FRHISetBlendStateCommand(URHIDevice* InRHIDevice, bool bInEnableBlend)
+    FRHISetBlendStateCommand(FRHIDevice* InRHIDevice, bool bInEnableBlend)
         : RHIDevice(InRHIDevice), bEnableBlend(bInEnableBlend)
     {
     }
@@ -23,6 +23,6 @@ public:
     }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     bool bEnableBlend;
 };

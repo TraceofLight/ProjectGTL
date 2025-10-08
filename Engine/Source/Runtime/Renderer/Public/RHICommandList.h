@@ -9,7 +9,7 @@
 #include <condition_variable>
 
 class UPrimitiveComponent;
-class URHIDevice;
+class FRHIDevice;
 
 /**
  * @brief RenderCommand들을 수집하고 일괄 실행하는 클래스 (언리얼 엔진 스타일)
@@ -18,7 +18,7 @@ class URHIDevice;
 class FRHICommandList
 {
 public:
-    FRHICommandList(URHIDevice* InRHIDevice);
+    FRHICommandList(FRHIDevice* InRHIDevice);
     ~FRHICommandList();
 
     // RenderCommand 추가
@@ -54,7 +54,7 @@ public:
     bool IsEmpty() const { return PendingCommands.empty(); }
 
     // RHI Device 접근자
-    URHIDevice* GetRHIDevice() const { return RHIDevice; }
+    FRHIDevice* GetRHIDevice() const { return RHIDevice; }
 
     // 자주 사용되는 Command 래퍼들
     void SetViewport(float X, float Y, float Width, float Height, float MinDepth = 0.0f, float MaxDepth = 1.0f);
@@ -66,14 +66,14 @@ public:
     void DrawIndexedPrimitive(UPrimitiveComponent* Component, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
     void DrawIndexedPrimitiveWithColor(UPrimitiveComponent* Component, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix, const FVector& Color);
     void DrawIndexedPrimitiveWithColorAndHovering(UPrimitiveComponent* Component, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix, const FVector& Color, bool bIsHovering);
-    
+
     // Present 및 BackBuffer 접근 (언리얼 스타일)
     void Present();
     IDXGISurface* GetBackBufferSurface();
     ID3D11RenderTargetView* GetBackBufferRTV();
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     TQueue<IRHICommand*> PendingCommands;
 
     // 통계 추적

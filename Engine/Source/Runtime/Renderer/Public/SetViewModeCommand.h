@@ -2,7 +2,7 @@
 #include "RenderCommand.h"
 #include "Editor/Public/Editor.h"
 
-class URHIDevice;
+class FRHIDevice;
 
 /**
  * @brief View Mode Set Command Class
@@ -11,7 +11,7 @@ class FRHISetViewModeCommand :
     public IRHICommand
 {
 public:
-    FRHISetViewModeCommand(URHIDevice* InRHIDevice, EViewMode InViewMode)
+    FRHISetViewModeCommand(FRHIDevice* InRHIDevice, EViewMode InViewMode)
         : RHIDevice(InRHIDevice), ViewMode(InViewMode)
     {
     }
@@ -24,6 +24,6 @@ public:
     }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     EViewMode ViewMode;
 };

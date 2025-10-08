@@ -3,7 +3,7 @@
 #include "Runtime/Core/Public/EngineStatics.h"
 #include "Global/Memory.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Renderer/Public/RendererModule.h"
+// RendererModule 제거됨 - 이제 GDynamicRHI 직접 사용
 
 #include <psapi.h>
 
@@ -224,16 +224,14 @@ bool UOverlayManagerSubsystem::InitializeDirect2D()
 	}
 	UE_LOG("OverlayManagerSubsystem: D2D1Factory 생성 성공");
 
-	// RHIDevice로부터 Swapchain 가져오기
-	FRendererModule& RendererModule = FRendererModule::Get();
-	URHIDevice* RHIDevice = RendererModule.GetRHIDevice();
-	if (!RHIDevice || !RHIDevice->IsInitialized())
+	// 직접 GDynamicRHI 사용 (언리얼 스타일)
+	if (!GDynamicRHI || !GDynamicRHI->IsInitialized())
 	{
 		UE_LOG_ERROR("OverlayManagerSubsystem: RHIDevice가 초기화되지 않았습니다");
 		return false;
 	}
 
-	IDXGISwapChain* SwapChain = RHIDevice->GetSwapChain();
+	IDXGISwapChain* SwapChain = GDynamicRHI->GetSwapChain();
 	if (!SwapChain)
 	{
 		UE_LOG_ERROR("OverlayManagerSubsystem: SwapChain을 찾을 수 없습니다. RHIDevice에 SwapChain이 설정되지 않았습니다.");

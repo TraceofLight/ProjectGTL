@@ -11,7 +11,7 @@ FEditorRenderResources::~FEditorRenderResources()
     Shutdown();
 }
 
-void FEditorRenderResources::Initialize(URHIDevice* InRHIDevice)
+void FEditorRenderResources::Initialize(FRHIDevice* InRHIDevice)
 {
     if (bIsInitialized)
     {

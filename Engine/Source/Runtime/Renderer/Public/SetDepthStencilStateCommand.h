@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "RenderCommand.h"
 
-class URHIDevice;
+class FRHIDevice;
 
 /**
  * @brief Depth Stencil State 설정 Command Class
@@ -10,7 +10,7 @@ class FRHISetDepthStencilStateCommand :
     public IRHICommand
 {
 public:
-    FRHISetDepthStencilStateCommand(URHIDevice* InRHIDevice, EComparisonFunc InCompareFunc)
+    FRHISetDepthStencilStateCommand(FRHIDevice* InRHIDevice, EComparisonFunc InCompareFunc)
         : RHIDevice(InRHIDevice), CompareFunction(InCompareFunc)
     {
     }
@@ -23,6 +23,6 @@ public:
     }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
     EComparisonFunc CompareFunction;
 };

@@ -39,11 +39,9 @@ void UImGuiHelper::Initialize(HWND InWindowHandle)
 	IO.Fonts->AddFontFromFileTTF(
 		reinterpret_cast<char*>(FontFilePath.u8string().data()), 16.0f, nullptr, IO.Fonts->GetGlyphRangesKorean());
 
-	// Singleton RHIDevice 접근 (서브시스템 의존성 제거)
-	URHIDevice& RHIDevice = URHIDevice::GetInstance();
-	if (RHIDevice.IsInitialized())
+	if (GDynamicRHI->IsInitialized())
 	{
-		ImGui_ImplDX11_Init(RHIDevice.GetDevice(), RHIDevice.GetDeviceContext());
+		ImGui_ImplDX11_Init(GDynamicRHI->GetDevice(), GDynamicRHI->GetDeviceContext());
 	}
 	else
 	{

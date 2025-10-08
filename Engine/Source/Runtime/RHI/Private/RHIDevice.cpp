@@ -7,7 +7,7 @@
 #include "Asset/Public/StaticMeshData.h"
 
 // 전역 RHI 인스턴스
-URHIDevice* GDynamicRHI = nullptr;
+FRHIDevice* GDynamicRHI = nullptr;
 
 // 참고 파일에서 가져온 구조체들
 struct HighLightBufferType
@@ -54,12 +54,10 @@ struct FPixelConstBufferType
 
 static_assert(sizeof(FPixelConstBufferType) % 16 == 0, "PixelConstData size mismatch!");
 
-IMPLEMENT_SINGLETON_CLASS(URHIDevice, UObject)
+FRHIDevice::FRHIDevice() = default;
+FRHIDevice::~FRHIDevice() = default;
 
-URHIDevice::URHIDevice() = default;
-URHIDevice::~URHIDevice() = default;
-
-void URHIDevice::Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InDeviceContext)
+void FRHIDevice::Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InDeviceContext)
 {
 	if (!InDevice || !InDeviceContext)
 	{
@@ -82,7 +80,7 @@ void URHIDevice::Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InDevic
 	UE_LOG_SUCCESS("RHIDevice: 초기화 완료");
 }
 
-void URHIDevice::Shutdown()
+void FRHIDevice::Shutdown()
 {
 	// 상태 객체들 정리
 	for (auto& Pair : RasterizerStates)
@@ -153,7 +151,7 @@ void URHIDevice::Shutdown()
 	UE_LOG("RHIDevice: 종료 완료");
 }
 
-ID3D11Buffer* URHIDevice::CreateVertexBuffer(const void* InData, uint32 InByteWidth, bool bCpuAccess)
+ID3D11Buffer* FRHIDevice::CreateVertexBuffer(const void* InData, uint32 InByteWidth, bool bCpuAccess)
 {
 	if (!bIsInitialized || !Device)
 	{
@@ -182,7 +180,7 @@ ID3D11Buffer* URHIDevice::CreateVertexBuffer(const void* InData, uint32 InByteWi
 	return Buffer;
 }
 
-void URHIDevice::ReleaseVertexBuffer(ID3D11Buffer* InBuffer)
+void FRHIDevice::ReleaseVertexBuffer(ID3D11Buffer* InBuffer)
 {
 	if (InBuffer)
 	{
@@ -190,7 +188,7 @@ void URHIDevice::ReleaseVertexBuffer(ID3D11Buffer* InBuffer)
 	}
 }
 
-bool URHIDevice::UpdateVertexBuffer(ID3D11Buffer* InBuffer, const void* InData, uint32 InByteWidth)
+bool FRHIDevice::UpdateVertexBuffer(ID3D11Buffer* InBuffer, const void* InData, uint32 InByteWidth)
 {
 	if (!bIsInitialized || !DeviceContext || !InBuffer || !InData)
 	{
@@ -213,7 +211,7 @@ bool URHIDevice::UpdateVertexBuffer(ID3D11Buffer* InBuffer, const void* InData, 
 	return true;
 }
 
-ID3D11Buffer* URHIDevice::CreateIndexBuffer(const void* InData, uint32 InByteWidth)
+ID3D11Buffer* FRHIDevice::CreateIndexBuffer(const void* InData, uint32 InByteWidth)
 {
 	if (!bIsInitialized || !Device)
 	{
@@ -241,7 +239,7 @@ ID3D11Buffer* URHIDevice::CreateIndexBuffer(const void* InData, uint32 InByteWid
 	return Buffer;
 }
 
-void URHIDevice::ReleaseIndexBuffer(ID3D11Buffer* InBuffer)
+void FRHIDevice::ReleaseIndexBuffer(ID3D11Buffer* InBuffer)
 {
 	if (InBuffer)
 	{
@@ -249,7 +247,7 @@ void URHIDevice::ReleaseIndexBuffer(ID3D11Buffer* InBuffer)
 	}
 }
 
-bool URHIDevice::CreateVertexShaderAndInputLayout(
+bool FRHIDevice::CreateVertexShaderAndInputLayout(
 	const wstring& InFilePath,
 	const TArray<D3D11_INPUT_ELEMENT_DESC>& InLayoutDesc,
 	ID3D11VertexShader** OutVertexShader,
@@ -303,7 +301,7 @@ bool URHIDevice::CreateVertexShaderAndInputLayout(
 	return true;
 }
 
-bool URHIDevice::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** OutPixelShader)
+bool FRHIDevice::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** OutPixelShader)
 {
 	if (!bIsInitialized || !Device)
 	{
@@ -335,7 +333,7 @@ bool URHIDevice::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader*
 	return true;
 }
 
-void URHIDevice::ReleaseShader(IUnknown* InShader)
+void FRHIDevice::ReleaseShader(IUnknown* InShader)
 {
 	if (InShader)
 	{
@@ -343,7 +341,7 @@ void URHIDevice::ReleaseShader(IUnknown* InShader)
 	}
 }
 
-ID3D11ShaderResourceView* URHIDevice::CreateTextureFromFile(const wstring& InFilePath)
+ID3D11ShaderResourceView* FRHIDevice::CreateTextureFromFile(const wstring& InFilePath)
 {
 	if (!bIsInitialized || !Device || !DeviceContext)
 	{
@@ -415,7 +413,7 @@ ID3D11ShaderResourceView* URHIDevice::CreateTextureFromFile(const wstring& InFil
 	return SUCCEEDED(hr) ? TextureSRV : nullptr;
 }
 
-ID3D11ShaderResourceView* URHIDevice::CreateTextureFromMemory(const void* InData, size_t InDataSize)
+ID3D11ShaderResourceView* FRHIDevice::CreateTextureFromMemory(const void* InData, size_t InDataSize)
 {
 	if (!bIsInitialized || !Device || !DeviceContext)
 	{
@@ -486,7 +484,7 @@ ID3D11ShaderResourceView* URHIDevice::CreateTextureFromMemory(const void* InData
 	return SUCCEEDED(hr) ? TextureSRV : nullptr;
 }
 
-void URHIDevice::ReleaseTexture(ID3D11ShaderResourceView* InTexture)
+void FRHIDevice::ReleaseTexture(ID3D11ShaderResourceView* InTexture)
 {
 	if (InTexture)
 	{
@@ -494,7 +492,7 @@ void URHIDevice::ReleaseTexture(ID3D11ShaderResourceView* InTexture)
 	}
 }
 
-bool URHIDevice::CompileShaderFromFile(const wstring& InFilePath, const char* InEntryPoint,
+bool FRHIDevice::CompileShaderFromFile(const wstring& InFilePath, const char* InEntryPoint,
 	const char* InShaderModel, ID3DBlob** OutBlob)
 {
 	DWORD ShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
@@ -534,7 +532,7 @@ bool URHIDevice::CompileShaderFromFile(const wstring& InFilePath, const char* In
 }
 
 // 상태 객체 생성 헬퍼들
-void URHIDevice::CreateRasterizerStates()
+void FRHIDevice::CreateRasterizerStates()
 {
 	if (!Device) return;
 
@@ -584,7 +582,7 @@ void URHIDevice::CreateRasterizerStates()
 	}
 }
 
-void URHIDevice::CreateDepthStencilStates()
+void FRHIDevice::CreateDepthStencilStates()
 {
 	if (!Device) return;
 
@@ -705,7 +703,7 @@ void URHIDevice::CreateDepthStencilStates()
 	}
 }
 
-void URHIDevice::CreateBlendStates()
+void FRHIDevice::CreateBlendStates()
 {
 	if (!Device) return;
 
@@ -744,7 +742,7 @@ void URHIDevice::CreateBlendStates()
 	}
 }
 
-void URHIDevice::CreateConstantBuffer()
+void FRHIDevice::CreateConstantBuffer()
 {
 	if (!Device) return;
 
@@ -810,7 +808,7 @@ void URHIDevice::CreateConstantBuffer()
 }
 
 // 상수 버퍼 업데이트
-void URHIDevice::UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix)
+void FRHIDevice::UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix)
 {
 	if (!bIsInitialized || !DeviceContext || !ConstantBuffer)
 	{
@@ -849,7 +847,7 @@ void URHIDevice::UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix
 }
 
 // 추가 상수 버퍼 업데이트 함수들
-void URHIDevice::UpdateHighLightConstantBuffers(const uint32 InPicked, const FVector& InColor, const uint32 X, const uint32 Y, const uint32 Z, const uint32 Gizmo)
+void FRHIDevice::UpdateHighLightConstantBuffers(const uint32 InPicked, const FVector& InColor, const uint32 X, const uint32 Y, const uint32 Z, const uint32 Gizmo)
 {
 	if (!bIsInitialized || !DeviceContext || !HighLightCB)
 	{
@@ -878,7 +876,7 @@ void URHIDevice::UpdateHighLightConstantBuffers(const uint32 InPicked, const FVe
 	}
 }
 
-void URHIDevice::UpdateColorConstantBuffers(const FVector4& InColor)
+void FRHIDevice::UpdateColorConstantBuffers(const FVector4& InColor)
 {
 	if (!bIsInitialized || !DeviceContext || !ColorCB)
 	{
@@ -902,7 +900,7 @@ void URHIDevice::UpdateColorConstantBuffers(const FVector4& InColor)
 	}
 }
 
-void URHIDevice::UpdatePixelConstantBuffers(const FObjMaterialInfo& InMaterialInfo, bool bHasMaterial, bool bHasTexture)
+void FRHIDevice::UpdatePixelConstantBuffers(const FObjMaterialInfo& InMaterialInfo, bool bHasMaterial, bool bHasTexture)
 {
 	if (!bIsInitialized || !DeviceContext || !PixelConstCB)
 	{
@@ -931,7 +929,7 @@ void URHIDevice::UpdatePixelConstantBuffers(const FObjMaterialInfo& InMaterialIn
 	}
 }
 
-void URHIDevice::OMSetBlendState(bool bIsBlendMode)
+void FRHIDevice::OMSetBlendState(bool bIsBlendMode)
 {
 	if (!bIsInitialized || !DeviceContext)
 	{
@@ -955,7 +953,7 @@ void URHIDevice::OMSetBlendState(bool bIsBlendMode)
 }
 
 // 상태 설정 함수들 구현
-void URHIDevice::RSSetState(EViewMode ViewMode)
+void FRHIDevice::RSSetState(EViewMode ViewMode)
 {
 	if (!bIsInitialized || !DeviceContext)
 	{
@@ -975,7 +973,7 @@ void URHIDevice::RSSetState(EViewMode ViewMode)
 	}
 }
 
-void URHIDevice::OmSetDepthStencilState(EComparisonFunc CompareFunction)
+void FRHIDevice::OmSetDepthStencilState(EComparisonFunc CompareFunction)
 {
 	if (!bIsInitialized || !DeviceContext)
 	{
@@ -995,7 +993,7 @@ void URHIDevice::OmSetDepthStencilState(EComparisonFunc CompareFunction)
 	}
 }
 
-void URHIDevice::OmSetBlendState(bool bEnableBlending)
+void FRHIDevice::OmSetBlendState(bool bEnableBlending)
 {
 	if (!bIsInitialized || !DeviceContext)
 	{
@@ -1015,7 +1013,7 @@ void URHIDevice::OmSetBlendState(bool bEnableBlending)
 	}
 }
 
-void URHIDevice::CreateSamplerState()
+void FRHIDevice::CreateSamplerState()
 {
 	if (!Device) return;
 
@@ -1035,7 +1033,7 @@ void URHIDevice::CreateSamplerState()
 	}
 }
 
-void URHIDevice::PSSetDefaultSampler(UINT StartSlot)
+void FRHIDevice::PSSetDefaultSampler(UINT StartSlot)
 {
 	if (!bIsInitialized || !DeviceContext || !DefaultSamplerState)
 	{
@@ -1046,7 +1044,7 @@ void URHIDevice::PSSetDefaultSampler(UINT StartSlot)
 	DeviceContext->PSSetSamplers(StartSlot, 1, &DefaultSamplerState);
 }
 
-void URHIDevice::OMSetDepthWriteEnabled(bool bEnabled)
+void FRHIDevice::OMSetDepthWriteEnabled(bool bEnabled)
 {
 	if (!bIsInitialized || !DeviceContext)
 	{
@@ -1074,7 +1072,7 @@ void URHIDevice::OMSetDepthWriteEnabled(bool bEnabled)
 	}
 }
 
-void URHIDevice::OMSetColorWriteEnabled(bool bEnabled)
+void FRHIDevice::OMSetColorWriteEnabled(bool bEnabled)
 {
 	if (!bIsInitialized || !DeviceContext)
 	{

@@ -9,7 +9,7 @@ class FRHICommandList;
 enum class ERenderPassType : uint8;
 
 class UWorld;
-class URHIDevice;
+class FRHIDevice;
 
 /**
 * @brief Scene 기반 렌더링을 제공하는 클래스
@@ -28,12 +28,16 @@ public:
     // RenderCommandList 접근자
     FRHICommandList* GetCommandList() const { return CommandList; }
 
+    // 기즈모 렌더링 메서드
+    static void RenderGizmoPrimitive(const struct FEditorPrimitive& Primitive, const struct FRenderState& RenderState, 
+                                    const FVector& CameraLocation, float ViewportWidth, float ViewportHeight);
+
 private:
     const FSceneViewFamily* ViewFamily;
     TArray<IRenderPass*> RenderPasses;
     FRHICommandList* CommandList;
 
-    static URHIDevice* GlobalRHI;
+    static FRHIDevice* GlobalRHI;
 
     FSceneRenderer(const FSceneViewFamily& InViewFamily);
 

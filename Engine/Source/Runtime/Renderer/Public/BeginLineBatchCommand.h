@@ -1,7 +1,7 @@
 #pragma once
 #include "RenderCommand.h"
 
-class URHIDevice;
+class FRHIDevice;
 
 /**
 * @brief Line Batch 처리 Command Class
@@ -10,7 +10,7 @@ class FRHIBeginLineBatchCommand :
     public IRHICommand
 {
 public:
-    FRHIBeginLineBatchCommand(URHIDevice* InRHIDevice) : RHIDevice(InRHIDevice)
+    FRHIBeginLineBatchCommand(FRHIDevice* InRHIDevice) : RHIDevice(InRHIDevice)
     {
     }
 
@@ -22,5 +22,5 @@ public:
     }
 
 private:
-    URHIDevice* RHIDevice;
+    FRHIDevice* RHIDevice;
 };

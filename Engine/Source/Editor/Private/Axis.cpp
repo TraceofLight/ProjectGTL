@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Editor/Public/Axis.h"
 
-#include "Runtime/Renderer/Public/RendererModule.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 
-UAxis::UAxis(FRendererModule* InRenderModule)
+UAxis::UAxis(FD3D11RHIModule* InRenderModule)
 	: RenderModule(InRenderModule)
 {
 	// UE x(forward)

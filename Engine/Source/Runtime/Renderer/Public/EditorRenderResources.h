@@ -4,7 +4,7 @@
 #include "Source/Global/Enum.h"
 #include <d3d11.h>
 
-class URHIDevice;
+class FRHIDevice;
 class FEditorGrid;
 
 /**
@@ -17,7 +17,7 @@ public:
     FEditorRenderResources();
     ~FEditorRenderResources();
 
-    void Initialize(URHIDevice* InRHIDevice);
+    void Initialize(FRHIDevice* InRHIDevice);
     void Shutdown();
 
     // Shader 접근자들
@@ -32,40 +32,40 @@ public:
     void ReleaseIndexBuffer(ID3D11Buffer* Buffer);
 
     // Editor 전용 렌더링
-    void RenderPrimitiveIndexed(const struct FEditorPrimitive& Primitive, const struct FRenderState& RenderState, 
+    void RenderPrimitiveIndexed(const struct FEditorPrimitive& Primitive, const struct FRenderState& RenderState,
                                bool bIsBlendMode, uint32 VertexStride, uint32 IndexStride);
 
     // 버퍼 업데이트
     void UpdateVertexBuffer(ID3D11Buffer* Buffer, const TArray<FVector>& Vertices);
-    
+
     // Grid 렌더링
     void RenderGrid(float CellSize = 1.0f);
-    
+
     // Line Batching 렌더링
     void BeginLineBatch();
     void AddLine(const FVector& Start, const FVector& End, const FVector4& Color = FVector4(1,1,1,1));
     void AddLines(const TArray<FVector>& StartPoints, const TArray<FVector>& EndPoints, const TArray<FVector4>& Colors);
     void EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix);
-    
+
     // Gizmo 관련
     ID3D11Buffer* GetGizmoVertexBuffer(EPrimitiveType PrimitiveType) const;
     uint32 GetGizmoVertexCount(EPrimitiveType PrimitiveType) const;
 
 private:
-    URHIDevice* RHIDevice = nullptr;
+    FRHIDevice* RHIDevice = nullptr;
     bool bIsInitialized = false;
-    
+
     // Grid 관리
     std::unique_ptr<FEditorGrid> EditorGrid;
     ID3D11Buffer* GridVertexBuffer = nullptr;
     ID3D11Buffer* GridIndexBuffer = nullptr;
-    
+
     // Line Batching
     bool bLineBatchActive = false;
     TArray<FVector> BatchedLineStartPoints;
     TArray<FVector> BatchedLineEndPoints;
     TArray<FVector4> BatchedLineColors;
-    
+
     // Gizmo 리소스
     TMap<EPrimitiveType, ID3D11Buffer*> GizmoVertexBuffers;
     TMap<EPrimitiveType, uint32> GizmoVertexCounts;
@@ -84,10 +84,10 @@ private:
 
     void LoadEditorShaders();
     void ReleaseEditorShaders();
-    
+
     void InitializeGrid();
     void ReleaseGrid();
-    
+
     void InitializeGizmoResources();
     void ReleaseGizmoResources();
 };

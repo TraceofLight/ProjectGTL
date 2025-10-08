@@ -6,9 +6,9 @@
 #include "Runtime/Engine/Public/EditorEngine.h"
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
-#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/UI/Window/Public/ConsoleWindow.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 
 #define EDITOR_MODE 1
 
@@ -65,6 +65,9 @@ void FEngineLoop::PreInit(HINSTANCE InInstanceHandle, int InCmdShow)
 	{
 		assert(!"Window Creation Failed");
 	}
+
+	// RHI 모듈 로드
+	FModuleManager::GetInstance().LoadModuleChecked<FD3D11RHIModule>("D3D11RHI");
 
 	// Create Console
 	// #ifdef _DEBUG
@@ -176,6 +179,13 @@ void FEngineLoop::Exit() const
 #ifdef EDITOR_MODE
 	GEditor->Shutdown();
 #endif
+
+	// D3D11RHI 모듈 종료
+	FD3D11RHIModule* RHIModule = FModuleManager::GetInstance().GetModulePtr<FD3D11RHIModule>("D3D11RHI");
+	if (RHIModule)
+	{
+		RHIModule->ShutdownModule();
+	}
 
 	GEngine->Shutdown();
 
