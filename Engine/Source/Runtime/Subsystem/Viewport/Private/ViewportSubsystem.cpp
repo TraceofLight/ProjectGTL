@@ -222,6 +222,21 @@ void UViewportSubsystem::Tick(float DeltaSeconds)
 						WheelInputSubsystem->SetMouseWheelDelta(0.0f);
 					}
 				}
+				else if (Client && !Client->IsOrtho())
+				{
+					// 2.8) 원근투영: 우클릭 드래그 중에만 휠로 카메라 이동 속도 조절
+					if (WheelInputSubsystem->IsKeyDown(EKeyInput::MouseRight))
+					{
+						constexpr float SpeedStep = 5.0f;
+						constexpr float MinSpeed = 15.0f;
+						constexpr float MaxSpeed = 500.0f;
+
+						float NewSpeed = PerspectiveMoveSpeed + (WheelDelta * SpeedStep);
+						PerspectiveMoveSpeed = std::clamp(NewSpeed, MinSpeed, MaxSpeed);
+
+						WheelInputSubsystem->SetMouseWheelDelta(0.0f);
+					}
+				}
 			}
 		}
 	}
@@ -884,47 +899,59 @@ void UViewportSubsystem::UpdatePerspectiveCamera()
 	}
 
 	// 2. 이동 처리 (WASD + QE)
-	FVector MoveDelta(0.0f, 0.0f, 0.0f);
-	constexpr float MoveSpeed = 30.0f; // 튜닝 가능
+	const float MoveSpeed = PerspectiveMoveSpeed; // ViewportSubsystem의 속도 사용
+	FVector CurrentLocation = ViewportClient->GetViewLocation();
+	bool bHasMovement = false;
+
+	// WASD: 카메라 회전에 따른 이동 (로컬 공간)
+	FVector HorizontalMoveDelta(0.0f, 0.0f, 0.0f);
 
 	if (InputSubsystem->IsKeyDown(EKeyInput::W))
 	{
-		MoveDelta += FVector(1.0f, 0.0f, 0.0f); // Forward
+		HorizontalMoveDelta += FVector(1.0f, 0.0f, 0.0f); // Forward
+		bHasMovement = true;
 	}
 	if (InputSubsystem->IsKeyDown(EKeyInput::S))
 	{
-		MoveDelta += FVector(-1.0f, 0.0f, 0.0f); // Backward
+		HorizontalMoveDelta += FVector(-1.0f, 0.0f, 0.0f); // Backward
+		bHasMovement = true;
 	}
 	if (InputSubsystem->IsKeyDown(EKeyInput::D))
 	{
-		MoveDelta += FVector(0.0f, 1.0f, 0.0f); // Right
+		HorizontalMoveDelta += FVector(0.0f, 1.0f, 0.0f); // Right
+		bHasMovement = true;
 	}
 	if (InputSubsystem->IsKeyDown(EKeyInput::A))
 	{
-		MoveDelta += FVector(0.0f, -1.0f, 0.0f); // Left
+		HorizontalMoveDelta += FVector(0.0f, -1.0f, 0.0f); // Left
+		bHasMovement = true;
 	}
+
+	// WASD 이동을 카메라 회전에 맞춰 변환
+	if (HorizontalMoveDelta.LengthSquared() > 0.0f)
+	{
+		FVector Radians = FVector::GetDegreeToRadian(CurrentRotation);
+		FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, Radians.X, Radians.Z);
+		FVector WorldMoveDelta = FMatrix::VectorMultiply(HorizontalMoveDelta, RotationMatrix);
+		WorldMoveDelta.Normalize();
+		CurrentLocation += WorldMoveDelta * MoveSpeed * DT;
+	}
+
+	// QE: 절대 월드 Z축 상하 이동 (회전과 무관)
 	if (InputSubsystem->IsKeyDown(EKeyInput::E))
 	{
-		MoveDelta += FVector(0.0f, 0.0f, 1.0f); // Up
+		CurrentLocation.Z += MoveSpeed * DT; // Up
+		bHasMovement = true;
 	}
 	if (InputSubsystem->IsKeyDown(EKeyInput::Q))
 	{
-		MoveDelta += FVector(0.0f, 0.0f, -1.0f); // Down
+		CurrentLocation.Z -= MoveSpeed * DT; // Down
+		bHasMovement = true;
 	}
 
-	if (MoveDelta.LengthSquared() > 0.0f)
+	// 위치 업데이트
+	if (bHasMovement)
 	{
-		// 회전에 따른 이동 방향 처리
-		FVector Radians = FVector::GetDegreeToRadian(CurrentRotation);
-		FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, Radians.X, Radians.Z);
-
-		// 로컬 공간에서 월드 공간으로 변환
-		FVector WorldMoveDelta = FMatrix::VectorMultiply(MoveDelta, RotationMatrix);
-		WorldMoveDelta.Normalize();
-
-		// 위치 업데이트
-		FVector CurrentLocation = ViewportClient->GetViewLocation();
-		CurrentLocation += WorldMoveDelta * MoveSpeed * DT;
 		ViewportClient->SetViewLocation(CurrentLocation);
 	}
 }

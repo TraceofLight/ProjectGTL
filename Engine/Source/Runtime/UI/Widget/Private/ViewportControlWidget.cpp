@@ -245,18 +245,28 @@ void UViewportControlWidget::RenderSplitterLines()
 void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 {
 	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	const auto& Clients = ViewportManager->GetClients();
 
-	// Get the active camera for the current viewport from the subsystem
-	ACameraActor* CurrentCamera = ViewportManager->GetActiveCameraForViewport(ViewportIndex);
-
-	if (!CurrentCamera)
+	if (ViewportIndex >= Clients.Num())
 	{
 		return;
 	}
 
-	// 스피드 수치 표시
-	float CurrentSpeed = CurrentCamera->GetMoveSpeed();
-	ImGui::Text("Speed: %.0f", CurrentSpeed);
+	FViewportClient* Client = Clients[ViewportIndex];
+	if (!Client)
+	{
+		return;
+	}
+
+	// Perspective 뷰에서만 속도 컨트롤 표시
+	if (Client->GetViewType() != EViewType::Perspective)
+	{
+		return;
+	}
+
+	// ViewportSubsystem에서 Perspective 카메라 속도 가져오기
+	float CurrentSpeed = ViewportManager->GetPerspectiveMoveSpeed();
+	ImGui::Text("Speed: %.1f", CurrentSpeed);
 
 	// 드롭다운 아이콘
 	ImGui::SameLine();
@@ -272,15 +282,15 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 		ImGui::Separator();
 
 		// 미리 정의된 스피드 옵션들
-		constexpr float SpeedOptions[] = {10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f};
+		constexpr float SpeedOptions[] = {10.0f, 20.0f, 30.0f, 50.0f, 100.0f, 200.0f, 300.0f};
 		for (float Speed : SpeedOptions)
 		{
 			bool bIsSelected = (abs(CurrentSpeed - Speed) < 0.1f);
 			char SpeedText[32];
-			(void)snprintf(SpeedText, sizeof(SpeedText), "%.0f", Speed);
+			(void)snprintf(SpeedText, sizeof(SpeedText), "%.1f", Speed);
 			if (ImGui::MenuItem(SpeedText, nullptr, bIsSelected))
 			{
-				CurrentCamera->SetMoveSpeed(Speed);
+				ViewportManager->SetPerspectiveMoveSpeed(Speed);
 			}
 		}
 
@@ -288,9 +298,9 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 
 		// 슬라이더로 세밀 조정
 		float TempSpeed = CurrentSpeed;
-		if (ImGui::SliderFloat("세밀 조정", &TempSpeed, ACameraActor::MIN_SPEED, ACameraActor::MAX_SPEED, "%.0f"))
+		if (ImGui::SliderFloat("세밀 조정", &TempSpeed, 10.0f, 500.0f, "%.1f"))
 		{
-			CurrentCamera->SetMoveSpeed(TempSpeed);
+			ViewportManager->SetPerspectiveMoveSpeed(TempSpeed);
 		}
 
 		ImGui::EndPopup();

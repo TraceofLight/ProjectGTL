@@ -107,6 +107,10 @@ public:
 	ACameraActor* GetActiveCameraForViewport(int32 InViewportIndex) const;
 	TArray<ACameraActor*> GetAllCameras() const;
 	void SetViewportViewType(int32 InViewportIndex, EViewType InNewType);
+	
+	// Perspective camera speed
+	float GetPerspectiveMoveSpeed() const { return PerspectiveMoveSpeed; }
+	void SetPerspectiveMoveSpeed(float NewSpeed) { PerspectiveMoveSpeed = NewSpeed; }
 
 
 	/**
@@ -173,6 +177,9 @@ private:
 
 	float SharedFovY = 150.0f;
 	float SharedY = 0.5f;
+	
+	// Perspective 카메라 이동 속도
+	float PerspectiveMoveSpeed = 30.0f;
 
 	float IniSaveSharedV = 0.5f;
 	float IniSaveSharedH = 0.5f;
