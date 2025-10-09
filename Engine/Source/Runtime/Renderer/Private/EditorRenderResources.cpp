@@ -4,6 +4,7 @@
 #include "Runtime/Core/Public/VertexTypes.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Runtime/Renderer/Public/EditorGrid.h"
+#include "Runtime/Renderer/Public/LineBatcher.h"
 
 FEditorRenderResources::FEditorRenderResources() = default;
 
@@ -29,6 +30,11 @@ void FEditorRenderResources::Initialize(FRHIDevice* InRHIDevice)
 	LoadEditorShaders();
 	InitializeGrid();
 	InitializeGizmoResources();
+	
+	// LineBatcher 초기화
+	LineBatcher = MakeUnique<FLineBatcher>();
+	LineBatcher->Initialize(RHIDevice);
+	
 	bIsInitialized = true;
 
 	UE_LOG("FEditorRenderResources: 초기화 완료");
@@ -44,6 +50,14 @@ void FEditorRenderResources::Shutdown()
 	ReleaseEditorShaders();
 	ReleaseGrid();
 	ReleaseGizmoResources();
+	
+	// LineBatcher 종료
+	if (LineBatcher)
+	{
+		LineBatcher->Shutdown();
+		LineBatcher.Reset();
+	}
+	
 	RHIDevice = nullptr;
 	bIsInitialized = false;
 
@@ -300,177 +314,7 @@ void FEditorRenderResources::RenderGrid(const FMatrix& ViewMatrix, const FMatrix
 	}
 }
 
-void FEditorRenderResources::BeginLineBatch()
-{
-	bLineBatchActive = true;
-
-	// 배치 데이터 클리어
-	BatchedLineStartPoints.Empty();
-	BatchedLineEndPoints.Empty();
-	BatchedLineColors.Empty();
-}
-
-void FEditorRenderResources::AddLine(const FVector& Start, const FVector& End, const FVector4& Color)
-{
-	if (!bLineBatchActive)
-	{
-		return;
-	}
-
-	BatchedLineStartPoints.Add(Start);
-	BatchedLineEndPoints.Add(End);
-	BatchedLineColors.Add(Color);
-}
-
-void FEditorRenderResources::AddLines(const TArray<FVector>& StartPoints, const TArray<FVector>& EndPoints,
-                                      const TArray<FVector4>& Colors)
-{
-	if (!bLineBatchActive)
-	{
-		return;
-	}
-
-	// 배열 크기 검증
-	if (StartPoints.Num() != EndPoints.Num() || StartPoints.Num() != Colors.Num())
-	{
-		UE_LOG_ERROR("FEditorRenderResources: AddLines 배열 크기 불일치");
-		return;
-	}
-
-	// 배치에 추가
-	BatchedLineStartPoints.Append(StartPoints);
-	BatchedLineEndPoints.Append(EndPoints);
-	BatchedLineColors.Append(Colors);
-}
-
-void FEditorRenderResources::EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix,
-                                          const FMatrix& ProjectionMatrix, const FRect* ScissorRect)
-{
-	if (!bLineBatchActive || !RHIDevice || BatchedLineStartPoints.IsEmpty())
-	{
-		bLineBatchActive = false;
-		return;
-	}
-
-	// 동적으로 라인 데이터를 FVertexSimple 버퍼로 변환
-	TArray<FVertexSimple> vertices;
-	TArray<uint32> Indices;
-
-	vertices.Reserve(BatchedLineStartPoints.Num() * 2);
-	Indices.Reserve(BatchedLineStartPoints.Num() * 2);
-
-	for (int32 i = 0; i < BatchedLineStartPoints.Num(); ++i)
-	{
-		uint32 startIndex = static_cast<uint32>(vertices.Num());
-
-		// FVertexSimple로 변환 (Position + Color)
-		vertices.Add(FVertexSimple(BatchedLineStartPoints[i], BatchedLineColors[i]));
-		vertices.Add(FVertexSimple(BatchedLineEndPoints[i], BatchedLineColors[i]));
-
-		Indices.Add(startIndex);
-		Indices.Add(startIndex + 1);
-	}
-
-	// 동적 버퍼 생성 및 렌더링
-	ID3D11Buffer* tempVertexBuffer = CreateVertexBuffer(vertices.GetData(), vertices.Num() * sizeof(FVertexSimple),
-	                                                    true);
-	ID3D11Buffer* tempIndexBuffer = CreateIndexBuffer(Indices.GetData(), Indices.Num() * sizeof(uint32));
-
-	if (tempVertexBuffer && tempIndexBuffer)
-	{
-		// 상수 버퍼 업데이트
-		RHIDevice->UpdateConstantBuffers(ModelMatrix, ViewMatrix, ProjectionMatrix);
-
-		ID3D11DeviceContext* DeviceContext = RHIDevice->GetDeviceContext();
-
-		// Depth Test 비활성화 (라인은 항상 보여야 함)
-		D3D11_DEPTH_STENCIL_DESC depthDesc = {};
-		depthDesc.DepthEnable = FALSE;
-		depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depthDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-		depthDesc.StencilEnable = FALSE;
-
-		ID3D11DepthStencilState* depthState = nullptr;
-		RHIDevice->GetDevice()->CreateDepthStencilState(&depthDesc, &depthState);
-		if (depthState)
-		{
-			DeviceContext->OMSetDepthStencilState(depthState, 0);
-		}
-
-		// Blend State 설정 (색상 쓰기 활성화)
-		D3D11_BLEND_DESC blendDesc = {};
-		blendDesc.RenderTarget[0].BlendEnable = FALSE;
-		blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-		ID3D11BlendState* blendState = nullptr;
-		RHIDevice->GetDevice()->CreateBlendState(&blendDesc, &blendState);
-		if (blendState)
-		{
-			DeviceContext->OMSetBlendState(blendState, nullptr, 0xFFFFFFFF);
-		}
-
-		// Rasterizer State 설정
-		D3D11_RASTERIZER_DESC ResterizerDescription = {};
-		ResterizerDescription.FillMode = D3D11_FILL_SOLID;
-		ResterizerDescription.CullMode = D3D11_CULL_NONE; // Culling 꺼기
-		ResterizerDescription.FrontCounterClockwise = FALSE;
-		ResterizerDescription.DepthClipEnable = TRUE;
-		ResterizerDescription.ScissorEnable = TRUE;  // Scissor 테스트 활성화
-
-		ID3D11RasterizerState* rastState = nullptr;
-		RHIDevice->GetDevice()->CreateRasterizerState(&ResterizerDescription, &rastState);
-		if (rastState)
-		{
-			DeviceContext->RSSetState(rastState);
-		}
-
-		// Scissor Rect 설정 (전달받은 경우)
-		if (ScissorRect)
-		{
-			D3D11_RECT D3DScissorRect;
-			D3DScissorRect.left = static_cast<LONG>(ScissorRect->X);
-			D3DScissorRect.top = static_cast<LONG>(ScissorRect->Y);
-			D3DScissorRect.right = static_cast<LONG>(ScissorRect->X + ScissorRect->W);
-			D3DScissorRect.bottom = static_cast<LONG>(ScissorRect->Y + ScissorRect->H);
-			DeviceContext->RSSetScissorRects(1, &D3DScissorRect);
-		}
-
-		// 쉐이더 설정
-		DeviceContext->VSSetShader(GetEditorVertexShader(EShaderType::BatchLine), nullptr, 0);
-		DeviceContext->PSSetShader(GetEditorPixelShader(EShaderType::BatchLine), nullptr, 0);
-		DeviceContext->IASetInputLayout(GetEditorInputLayout(EShaderType::BatchLine));
-
-		// 버퍼 바인딩
-		UINT Stride = sizeof(FVertexSimple);
-		UINT Offset = 0;
-		DeviceContext->IASetVertexBuffers(0, 1, &tempVertexBuffer, &Stride, &Offset);
-		DeviceContext->IASetIndexBuffer(tempIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-		// 렌더링
-		DeviceContext->DrawIndexed(Indices.Num(), 0, 0);
-
-		// State 해제
-		if (depthState)
-		{
-			depthState->Release();
-		}
-		if (blendState)
-		{
-			blendState->Release();
-		}
-		if (rastState)
-		{
-			rastState->Release();
-		}
-
-		// 임시 버퍼 정리
-		ReleaseVertexBuffer(tempVertexBuffer);
-		ReleaseIndexBuffer(tempIndexBuffer);
-	}
-
-	bLineBatchActive = false;
-}
+// Line batch methods removed - now using FLineBatcher class
 
 // Gizmo 관련 메서드 구현
 ID3D11Buffer* FEditorRenderResources::GetGizmoVertexBuffer(EPrimitiveType PrimitiveType) const

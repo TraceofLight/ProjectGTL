@@ -138,16 +138,24 @@ const FViewProjConstants UCameraComponent::GetFViewProjConstantsInverse() const
 		const float FovRadian = FVector::GetDegreeToRadian(FovY);
 		const float F = 1.0f / std::tanf(FovRadian * 0.5f);
 		FMatrix P = FMatrix::Identity();
-		// | aspect/F   0      0         0 |
-		// |    0      1/F     0         0 |
-		// |    0       0      0   -(zf-zn)/(zn*zf) |
-		// |    0       0      1        zf/(zn*zf)  |
+		// Inverse of perspective projection matrix:
+		// Original:
+		// | f/aspect   0        0              0          |
+		// |    0       f        0              0          |
+		// |    0       0   zf/(zf-zn)         1          |
+		// |    0       0  -zn*zf/(zf-zn)      0          |
+		// 
+		// Inverse:
+		// | aspect/f   0        0              0          |
+		// |    0      1/f       0              0          |
+		// |    0       0        0              1          |
+		// |    0       0   (zf-zn)/(zn*zf)   -zf/(zn*zf) |
 		P.Data[0][0] = Aspect / F;
 		P.Data[1][1] = 1.0f / F;
 		P.Data[2][2] = 0.0f;
-		P.Data[2][3] = -(FarZ - NearZ) / (NearZ * FarZ);
-		P.Data[3][2] = 1.0f;
-		P.Data[3][3] = FarZ / (NearZ * FarZ);
+		P.Data[2][3] = 1.0f;
+		P.Data[3][2] = (FarZ - NearZ) / (NearZ * FarZ);
+		P.Data[3][3] = -FarZ / (NearZ * FarZ);
 		Result.Projection = P;
 	}
 

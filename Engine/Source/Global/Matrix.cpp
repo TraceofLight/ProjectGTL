@@ -320,7 +320,7 @@ FMatrix FMatrix::MatrixOrthoLH(float ViewWidth, float ViewHeight, float NearZ, f
 
 FMatrix FMatrix::MatrixPerspectiveFovLH(float FovAngleY, float AspectRatio, float NearZ, float FarZ)
 {
-    FMatrix Result = FMatrix();
+    FMatrix Result = FMatrix::Identity();
     float SinFov = sinf(0.5f * FovAngleY);
     float CosFov = cosf(0.5f * FovAngleY);
     float Height = CosFov / SinFov;
@@ -329,6 +329,7 @@ FMatrix FMatrix::MatrixPerspectiveFovLH(float FovAngleY, float AspectRatio, floa
     Result.Data[2][2] = FarZ / (FarZ - NearZ);
     Result.Data[2][3] = 1.0f;
     Result.Data[3][2] = -NearZ * FarZ / (FarZ - NearZ);
+    Result.Data[3][3] = 0.0f;  // Perspective projection의 w 성분
     return Result;
 }
 

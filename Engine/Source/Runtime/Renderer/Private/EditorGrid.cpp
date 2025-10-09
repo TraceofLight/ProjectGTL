@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Runtime/Renderer/Public/EditorGrid.h"
-
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
+#include "Runtime/Renderer/Public/LineBatcher.h"
 
 float FEditorGrid::CellSize = 5.0f;
 
@@ -90,6 +90,12 @@ void FEditorGrid::AddGridLinesToBatch(
 		return;
 	}
 
+	FLineBatcher* LineBatcher = EditorResources->GetLineBatcher();
+	if (!LineBatcher)
+	{
+		return;
+	}
+
 	const float LineLength = CellSize * static_cast<float>(NumLines) / 2.0f;
 	const int32 HalfLines = NumLines / 2;
 
@@ -99,7 +105,7 @@ void FEditorGrid::AddGridLinesToBatch(
 		if (LineCount == 0)
 		{
 			// X=0 라인: 음수 방향만 (양수는 Y축 Axis와 겹침)
-			EditorResources->AddLine(
+			LineBatcher->AddLine(
 				FVector(0.0f, -LineLength, 0.0f),
 				FVector(0.0f, 0.0f, 0.0f),
 				Color
@@ -109,7 +115,7 @@ void FEditorGrid::AddGridLinesToBatch(
 		{
 			// X!=0 라인: 전체 길이
 			float xPos = static_cast<float>(LineCount) * CellSize;
-			EditorResources->AddLine(
+			LineBatcher->AddLine(
 				FVector(xPos, -LineLength, 0.0f),
 				FVector(xPos, LineLength, 0.0f),
 				Color
@@ -123,7 +129,7 @@ void FEditorGrid::AddGridLinesToBatch(
 		if (LineCount == 0)
 		{
 			// Y=0 라인: 음수 방향만 (양수는 X축 Axis와 겹침)
-			EditorResources->AddLine(
+			LineBatcher->AddLine(
 				FVector(-LineLength, 0.0f, 0.0f),
 				FVector(0.0f, 0.0f, 0.0f),
 				Color
@@ -133,7 +139,7 @@ void FEditorGrid::AddGridLinesToBatch(
 		{
 			// Y!=0 라인: 전체 길이
 			float yPos = static_cast<float>(LineCount) * CellSize;
-			EditorResources->AddLine(
+			LineBatcher->AddLine(
 				FVector(-LineLength, yPos, 0.0f),
 				FVector(LineLength, yPos, 0.0f),
 				Color

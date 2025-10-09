@@ -1,8 +1,9 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Runtime/Renderer/Public/RHICommandList.h"
 
 #include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Renderer/Public/DrawIndexedPrimitivesCommand.h"
+#include "Runtime/Renderer/Public/DrawLineBatchCommand.h"
 #include "Runtime/Renderer/Public/SetBlendStateCommand.h"
 #include "Runtime/Renderer/Public/SetDepthStencilStateCommand.h"
 #include "Runtime/Renderer/Public/UpdateConstantBufferCommand.h"
@@ -281,6 +282,13 @@ void FRHICommandList::DrawIndexedPrimitiveWithColorAndHovering(
 {
     EnqueueCommand<FRHIDrawIndexedPrimitivesCommand>(Component, ViewMatrix, ProjMatrix, Color,
                                                      bIsHovering);
+}
+
+void FRHICommandList::DrawLineBatch(ID3D11Buffer* VertexBuffer, ID3D11Buffer* IndexBuffer, uint32 IndexCount,
+                                    const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix,
+                                    const FRect* ScissorRect)
+{
+    EnqueueCommand<FRHIDrawLineBatchCommand>(VertexBuffer, IndexBuffer, IndexCount, ModelMatrix, ViewMatrix, ProjMatrix, ScissorRect);
 }
 
 void FRHICommandList::SetViewport(float X, float Y, float Width, float Height, float MinDepth,

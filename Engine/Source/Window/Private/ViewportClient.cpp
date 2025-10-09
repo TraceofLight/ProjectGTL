@@ -81,10 +81,12 @@ FMatrix FViewportClient::GetViewMatrix() const
             FVector Radians = FVector::GetDegreeToRadian(ViewRotation);
             FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, Radians.X, Radians.Z);
             Forward = FMatrix::VectorMultiply(FVector::ForwardVector(), RotationMatrix);
+            Forward.Normalize();
             Up = FMatrix::VectorMultiply(FVector::UpVector(), RotationMatrix);
-            Right = Up.Cross(Forward);  // 왼손 좌표계: Right = Up × Forward
+            Up.Normalize();
+            Right = Forward.Cross(Up);  // 왼손 좌표계: Right = Forward × Up
             Right.Normalize();
-            Up = Right.Cross(Forward);  // Up = Right × Forward (재계산)
+            Up = Right.Cross(Forward);  // Up = Right × Forward (재계산하여 직교성 보장)
             Up.Normalize();
         }
         break;

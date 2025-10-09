@@ -167,11 +167,13 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="Source\Global\FString.h" />
     <ClInclude Include="Source\Global\Paths.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\DrawLineBatchCommand.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\EditorGrid.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\EditorRenderResources.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\BeginLineBatchCommand.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\DrawIndexedPrimitivesCommand.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\EndLineBatchCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\LineBatcher.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\PresentCommands.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\RenderCommand.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\RHICommandList.h" />
@@ -332,11 +334,13 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Global\Paths.cpp" />
     <ClCompile Include="Source\Material\Private\Material.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\DrawLineBatchCommand.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\EditorGrid.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\EditorRenderResources.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\BeginLineBatchCommand.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\DrawIndexedPrimitivesCommand.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\EndLineBatchCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\LineBatcher.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\PresentCommands.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\RHICommandList.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\SetBlendStateCommand.cpp" />

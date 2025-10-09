@@ -6,6 +6,7 @@
 
 class FRHIDevice;
 class FEditorGrid;
+class FLineBatcher;
 
 /**
  * @brief Editor에 특화된 렌더링 리소스들을 관리하는 클래스
@@ -41,11 +42,8 @@ public:
     // Grid 렌더링
     void RenderGrid(const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix, float CellSize = 10.0f);
 
-    // Line Batching 렌더링
-	void BeginLineBatch();
-	void AddLine(const FVector& Start, const FVector& End, const FVector4& Color = FVector4(1,1,1,1));
-	void AddLines(const TArray<FVector>& StartPoints, const TArray<FVector>& EndPoints, const TArray<FVector4>& Colors);
-	void EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix, const FRect* ScissorRect = nullptr);
+    // LineBatcher 접근자
+    FLineBatcher* GetLineBatcher() const { return LineBatcher.Get(); }
 
     // Gizmo 관련
     ID3D11Buffer* GetGizmoVertexBuffer(EPrimitiveType PrimitiveType) const;
@@ -64,10 +62,7 @@ private:
     ID3D11Buffer* GridIndexBuffer = nullptr;
 
     // Line Batching
-    bool bLineBatchActive = false;
-    TArray<FVector> BatchedLineStartPoints;
-    TArray<FVector> BatchedLineEndPoints;
-    TArray<FVector4> BatchedLineColors;
+    TUniquePtr<FLineBatcher> LineBatcher;
 
     // Gizmo 리소스
     TMap<EPrimitiveType, ID3D11Buffer*> GizmoVertexBuffers;

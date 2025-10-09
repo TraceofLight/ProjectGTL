@@ -13,6 +13,7 @@
 #include "Editor/Public/Axis.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
 #include "Runtime/Renderer/Public/EditorGrid.h"
+#include "Runtime/Renderer/Public/LineBatcher.h"
 #include "Runtime/RHI/Public/D3D11RHIModule.h"
 #include "Runtime/Component/Public/CameraComponent.h"
 #include "Runtime/Level/Public/Level.h"
@@ -119,8 +120,15 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 		return;
 	}
 
+	// LineBatcher 가져오기
+	FLineBatcher* LineBatcher = EditorResources->GetLineBatcher();
+	if (!LineBatcher)
+	{
+		return;
+	}
+
 	// Line Batching 시작
-	EditorResources->BeginLineBatch();
+	LineBatcher->BeginBatch();
 
 	// UAxis를 사용하여 좌표축 라인 추가
 	UAxis::AddAxisLinesToBatch(EditorResources);
@@ -150,11 +158,15 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 		}
 	}
 
-	// Line Batching 종료 - 항상 호출
-	FMatrix ViewMatrix = View->GetViewMatrix();
-	FMatrix ProjectionMatrix = View->GetProjectionMatrix();
-	const FRect& ViewRect = View->GetViewRect();
-	EditorResources->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix, &ViewRect);
+	// Line Batching 종료 - CommandList를 통해 렌더링
+	FRHICommandList* RHICmdList = SceneRenderer->GetCommandList();
+	if (RHICmdList)
+	{
+		FMatrix ViewMatrix = View->GetViewMatrix();
+		FMatrix ProjectionMatrix = View->GetProjectionMatrix();
+		const FRect& ViewRect = View->GetViewRect();
+		LineBatcher->EndBatch(RHICmdList, FMatrix::Identity(), ViewMatrix, ProjectionMatrix, &ViewRect);
+	}
 }
 
 void FDebugPass::RenderGizmos(const FSceneView* View, FSceneRenderer* SceneRenderer, UEditor* Editor)
@@ -177,6 +189,9 @@ void FDebugPass::RenderGizmos(const FSceneView* View, FSceneRenderer* SceneRende
 void FDebugPass::RenderActorLines(AActor* Actor, const FSceneView* View, FSceneRenderer* SceneRenderer, FEditorRenderResources* EditorResources, UEditor* Editor)
 {
 	if (!Actor || !View || !SceneRenderer || !EditorResources || !Editor) return;
+
+	FLineBatcher* LineBatcher = EditorResources->GetLineBatcher();
+	if (!LineBatcher) return;
 
 	// 액터의 Component들을 찾아서 렌더링
 	for (USceneComponent* Component : Actor->GetComponents<USceneComponent>())
@@ -242,7 +257,7 @@ void FDebugPass::RenderActorLines(AActor* Actor, const FSceneView* View, FSceneR
 						BoxColor.Add(BBoxColor);
 					}
 
-					EditorResources->AddLines(BoxStart, BoxEnd, BoxColor);
+					LineBatcher->AddLines(BoxStart, BoxEnd, BoxColor);
 				}
 			}
 		}

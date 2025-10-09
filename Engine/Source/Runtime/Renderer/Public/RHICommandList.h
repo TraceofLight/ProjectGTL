@@ -63,6 +63,9 @@ public:
 	                                   const FMatrix& ProjMatrix, const FVector& Color);
 	void DrawIndexedPrimitiveWithColorAndHovering(UPrimitiveComponent* Component, const FMatrix& ViewMatrix,
 	                                              const FMatrix& ProjMatrix, const FVector& Color, bool bIsHovering);
+	void DrawLineBatch(ID3D11Buffer* VertexBuffer, ID3D11Buffer* IndexBuffer, uint32 IndexCount,
+	                   const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix,
+	                   const FRect* ScissorRect = nullptr);
 
 	// Present 및 BackBuffer 접근
 	void Present();
