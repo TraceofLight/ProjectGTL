@@ -77,8 +77,8 @@ private:
 	// Camera Parameters
 	float FovY = 90.0f;
 	float OrthoWidth = 100.0f;
-	float NearZ = 0.1f;
-	float FarZ = 10000.0f;
+	float NearZ = 0.01f;  // Near clipping plane - 더 가까운 것도 보이도록
+	float FarZ = 100000.0f;  // Far clipping plane - 더 먼 것도 보이도록
 
 	// 뷰/입력 상태
 	FPoint ViewSize{0, 0};

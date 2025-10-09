@@ -39,7 +39,7 @@ void FLineBatcher::Shutdown()
 	BatchedLineStartPoints.Empty();
 	BatchedLineEndPoints.Empty();
 	BatchedLineColors.Empty();
-	
+
 	RHIDevice = nullptr;
 	bIsInitialized = false;
 	bIsBatchActive = false;
@@ -135,7 +135,7 @@ void FLineBatcher::EndBatch(FRHICommandList* CommandList, const FMatrix& ModelMa
 	else
 	{
 		UE_LOG_ERROR("FLineBatcher::EndBatch - Failed to create vertex/index buffers");
-		
+
 		// 버퍼 생성 실패 시 정리
 		if (VertexBuffer)
 		{

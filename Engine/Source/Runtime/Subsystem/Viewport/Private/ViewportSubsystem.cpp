@@ -599,8 +599,9 @@ void UViewportSubsystem::InitializeViewportAndClient()
     // [0] Perspective view (좌상)
     Clients[0]->SetViewType(EViewType::Perspective);
     Clients[0]->SetViewMode(EViewMode::Unlit);
-    Clients[0]->SetViewLocation(FVector(-25.0f, -20.0f, 18.0f));
-    Clients[0]->SetViewRotation(FVector(35.0f, 45.0f, 0.0f));
+    Clients[0]->SetViewLocation(FVector(-30.0f, 30.0f, 30.0f));
+    // Pitch 이제 음수 = 아래를 봄 (언리얼 표준)
+    Clients[0]->SetViewRotation(FVector(-40.0f, -45.0f, 0.0f));
     Clients[0]->SetFovY(90.0f);
 
     // [1] Front view - X축 방향을 봄 (+X 방향) (좌하)
@@ -874,7 +875,7 @@ void UViewportSubsystem::UpdatePerspectiveCamera()
 	{
 		constexpr float RotationSpeed = 0.25f;
 		CurrentRotation.Y += MouseDelta.X * RotationSpeed; // Yaw
-		CurrentRotation.X -= MouseDelta.Y * RotationSpeed; // Pitch
+		CurrentRotation.X -= MouseDelta.Y * RotationSpeed; // Pitch (마우스 위 = 카메라 위)
 
 		// Pitch 제한 (-89 ~ 89도)
 		CurrentRotation.X = max(-89.0f, min(89.0f, CurrentRotation.X));
@@ -1724,12 +1725,12 @@ void UViewportSubsystem::SetViewportViewType(int32 InViewportIndex, EViewType In
     {
         EViewType OldType = Client->GetViewType();
         Client->SetViewType(InNewType);
-        
+
         // 뷰 타입 변경 후 즉시 카메라 상태 강제 업데이트
         // Ortho ↔ Perspective 변환 시 화면이 즉시 동일하게 보이도록
         bool bWasOrtho = (OldType >= EViewType::OrthoTop && OldType <= EViewType::OrthoBack);
         bool bIsOrtho = (InNewType >= EViewType::OrthoTop && InNewType <= EViewType::OrthoBack);
-        
+
         if (bWasOrtho != bIsOrtho)
         {
             // Perspective → Ortho 또는 Ortho → Perspective 변환 시
@@ -1747,7 +1748,7 @@ void UViewportSubsystem::SetViewportViewType(int32 InViewportIndex, EViewType In
                 case EViewType::OrthoBack: OrthoIdx = 5; break;
                 default: break;
                 }
-                
+
                 if (OrthoIdx >= 0 && OrthoIdx < static_cast<int32>(InitialOffsets.Num()))
                 {
                     FVector NewLocation = OrthoGraphicCamerapoint + InitialOffsets[OrthoIdx];
@@ -1771,7 +1772,7 @@ void UViewportSubsystem::SetViewportViewType(int32 InViewportIndex, EViewType In
             case EViewType::OrthoBack: OrthoIdx = 5; break;
             default: break;
             }
-            
+
             if (OrthoIdx >= 0 && OrthoIdx < static_cast<int32>(InitialOffsets.Num()))
             {
                 FVector NewLocation = OrthoGraphicCamerapoint + InitialOffsets[OrthoIdx];
@@ -1779,7 +1780,7 @@ void UViewportSubsystem::SetViewportViewType(int32 InViewportIndex, EViewType In
                 Client->SetOrthoWidth(SharedFovY);
             }
         }
-        
+
         UE_LOG("ViewportSubsystem: Viewport %d type changed to %d", InViewportIndex, (int32)InNewType);
     }
 }

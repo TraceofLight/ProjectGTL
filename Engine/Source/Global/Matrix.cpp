@@ -310,6 +310,8 @@ FMatrix FMatrix::MatrixLookAtLH(const FVector& EyePosition, const FVector& Focus
 
 FMatrix FMatrix::MatrixOrthoLH(float ViewWidth, float ViewHeight, float NearZ, float FarZ)
 {
+    // Orthographic Projection
+    // Ortho는 원래 작동했으므로 원래대로 유지
     FMatrix Result = FMatrix::Identity();
     Result.Data[0][0] = 2.0f / ViewWidth;
     Result.Data[1][1] = 2.0f / ViewHeight;
@@ -320,17 +322,23 @@ FMatrix FMatrix::MatrixOrthoLH(float ViewWidth, float ViewHeight, float NearZ, f
 
 FMatrix FMatrix::MatrixPerspectiveFovLH(float FovAngleY, float AspectRatio, float NearZ, float FarZ)
 {
-    FMatrix Result = FMatrix::Identity();
+    // DirectX 표준 Projection은 column-vector용 (M*v)
+    // HLSL에서 mul(vector, matrix)는 row-vector 연산 (v*M)이므로 Transpose 필요
+    
     float SinFov = sinf(0.5f * FovAngleY);
     float CosFov = cosf(0.5f * FovAngleY);
-    float Height = CosFov / SinFov;
-    Result.Data[0][0] = Height / AspectRatio;
-    Result.Data[1][1] = Height;
-    Result.Data[2][2] = FarZ / (FarZ - NearZ);
-    Result.Data[2][3] = 1.0f;
-    Result.Data[3][2] = -NearZ * FarZ / (FarZ - NearZ);
-    Result.Data[3][3] = 0.0f;  // Perspective projection의 w 성분
-    return Result;
+    float Height = CosFov / SinFov; // cot(fovY/2)
+    
+    // 표준 column-vector용 Projection
+    FMatrix Standard = {};
+    Standard.Data[0][0] = Height / AspectRatio;
+    Standard.Data[1][1] = -Height;  // Y축 반전 (DX NDC는 Y+가 위지만 렌더링 보정 필요)
+    Standard.Data[2][2] = FarZ / (FarZ - NearZ);
+    Standard.Data[2][3] = 1.0f;  // perspective divide: w' = z
+    Standard.Data[3][2] = -NearZ * FarZ / (FarZ - NearZ);
+    
+    // row-vector 연산을 위해 Transpose
+    return Standard.Transpose();
 }
 
 

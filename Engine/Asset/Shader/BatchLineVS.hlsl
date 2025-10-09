@@ -21,6 +21,9 @@ PS_INPUT VSMain(VS_INPUT input)
 {
 	PS_INPUT output;
 	float4 tmp = float4(input.position, 1.0f);
+	
+	// Model is Identity for debug lines, so skip it
+	// tmp = mul(tmp, Model);
 	tmp = mul(tmp, View);
 	tmp = mul(tmp, Projection);
 

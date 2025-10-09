@@ -124,8 +124,10 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 	FLineBatcher* LineBatcher = EditorResources->GetLineBatcher();
 	if (!LineBatcher)
 	{
+		UE_LOG_ERROR("DebugPass::RenderGrid - LineBatcher is null!");
 		return;
 	}
+
 
 	// Line Batching 시작
 	LineBatcher->BeginBatch();
@@ -165,6 +167,7 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 		FMatrix ViewMatrix = View->GetViewMatrix();
 		FMatrix ProjectionMatrix = View->GetProjectionMatrix();
 		const FRect& ViewRect = View->GetViewRect();
+		
 		LineBatcher->EndBatch(RHICmdList, FMatrix::Identity(), ViewMatrix, ProjectionMatrix, &ViewRect);
 	}
 }

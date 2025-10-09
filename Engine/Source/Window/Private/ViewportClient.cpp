@@ -79,33 +79,36 @@ FMatrix FViewportClient::GetViewMatrix() const
         // Perspective는 ViewRotation 사용
         {
             FVector Radians = FVector::GetDegreeToRadian(ViewRotation);
-            FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, Radians.X, Radians.Z);
+            // Pitch 부호 반전 (언리얼 표준: 양수 = 위를 봄)
+            FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, -Radians.X, Radians.Z);
             Forward = FMatrix::VectorMultiply(FVector::ForwardVector(), RotationMatrix);
             Forward.Normalize();
             Up = FMatrix::VectorMultiply(FVector::UpVector(), RotationMatrix);
             Up.Normalize();
             Right = Forward.Cross(Up);  // 왼손 좌표계: Right = Forward × Up
             Right.Normalize();
-            Up = Right.Cross(Forward);  // Up = Right × Forward (재계산하여 직교성 보장)
+            Up = Forward.Cross(Right);  // Up = Forward × Right (재계산하여 직교성 보장)
             Up.Normalize();
         }
         break;
     }
 
-    // View 행렬 직접 구성 (Row-major)
-    // Row 0: Right
+    // View 행렬 직접 구성 (Row-major, 원래대로)
+    // UE: X=Forward, Y=Right, Z=Up
+    // DirectX View Space: X=Right, Y=Up, Z=Forward
+    // Row 0: Right (DirectX X 축)
     ViewMatrix.Data[0][0] = Right.X;
     ViewMatrix.Data[0][1] = Right.Y;
     ViewMatrix.Data[0][2] = Right.Z;
     ViewMatrix.Data[0][3] = -Right.Dot(ViewLocation);
 
-    // Row 1: Up
+    // Row 1: Up (DirectX Y 축)
     ViewMatrix.Data[1][0] = Up.X;
     ViewMatrix.Data[1][1] = Up.Y;
     ViewMatrix.Data[1][2] = Up.Z;
     ViewMatrix.Data[1][3] = -Up.Dot(ViewLocation);
 
-    // Row 2: Forward
+    // Row 2: Forward (DirectX Z 축)
     ViewMatrix.Data[2][0] = Forward.X;
     ViewMatrix.Data[2][1] = Forward.Y;
     ViewMatrix.Data[2][2] = Forward.Z;
@@ -129,15 +132,14 @@ FMatrix FViewportClient::GetProjectionMatrix() const
     {
         // 직교 투영 행렬: 언리얼 방식 - 고정된 월드 단위 크기 유지
         // OrthoWidth는 "기준 폭"이고, 픽셀 크기에 비례하여 실제 보이는 면적 결정
-        // 뷰포트가 좌우로 줄어들면 보이는 폭도 줄어듦 (AspectRatio에 따른 보정 제거)
-        // 뷰포트가 상하로 줄어들면 보이는 높이도 줄어듦
+        // 뷰포트가 좌우로 줄어들면 보이는 폭도 줄어듬 (AspectRatio에 따른 보정 제거)
+        // 뷰포트가 상하로 줄어들면 보이는 높이도 줄어듬
         const float EffectiveWidth = OrthoWidth * AspectRatio;   // 폭은 AspectRatio에 비례
         const float EffectiveHeight = OrthoWidth;                 // 높이는 기준값 사용
         return FMatrix::MatrixOrthoLH(EffectiveWidth, EffectiveHeight, NearZ, FarZ);
     }
     else
     {
-        // 원근 투영 행렬 생성 (이 함수는 Matrix.cpp에 추가 필요)
         return FMatrix::MatrixPerspectiveFovLH(FVector::GetDegreeToRadian(FovY), AspectRatio, NearZ, FarZ);
     }}
 
