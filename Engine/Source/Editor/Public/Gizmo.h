@@ -73,6 +73,7 @@ public:
 	float GetRotateOuterRadius() const { return RotateCollisionConfig.OuterRadius * GetCurrentRenderScale(); }
 	float GetRotateInnerRadius() const { return RotateCollisionConfig.InnerRadius * GetCurrentRenderScale(); }
 	AActor* GetSelectedActor() const { return TargetActor; }
+	void SetSelectedActor(TObjectPtr<AActor> InActor) { TargetActor = InActor; }
 	bool IsInRadius(float InRadius) const;
 
 	float GetRotateThickness() const

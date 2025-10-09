@@ -118,7 +118,7 @@ D3D11_PRIMITIVE_TOPOLOGY UPrimitiveComponent::GetTopology() const
 // 공통 렌더링 인터페이스 기본 구현
 bool UPrimitiveComponent::HasRenderData() const
 {
-	return GetVerticesData() != nullptr && !GetVerticesData()->empty();
+	return GetVerticesData() != nullptr && !GetVerticesData()->IsEmpty();
 }
 
 ID3D11Buffer* UPrimitiveComponent::GetRenderVertexBuffer() const
@@ -135,7 +135,7 @@ ID3D11Buffer* UPrimitiveComponent::GetRenderIndexBuffer() const
 uint32 UPrimitiveComponent::GetRenderVertexCount() const
 {
 	const TArray<FVertex>* VerticesData = GetVerticesData();
-	return VerticesData ? static_cast<uint32>(VerticesData->size()) : 0;
+	return VerticesData ? static_cast<uint32>(VerticesData->Num()) : 0;
 }
 
 uint32 UPrimitiveComponent::GetRenderIndexCount() const
@@ -155,12 +155,6 @@ bool UPrimitiveComponent::UseIndexedRendering() const
 	return false;
 }
 
-EShaderType UPrimitiveComponent::GetShaderType() const
-{
-	// 기본 프리미티브는 기본 셰이더 사용
-	return EShaderType::Default;
-}
-
 void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax) const
 {
 	// 기본 구현: AABB가 없으면 빈 박스 반환
@@ -175,6 +169,12 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax) const
 		OutMin = FVector(0.0f, 0.0f, 0.0f);
 		OutMax = FVector(0.0f, 0.0f, 0.0f);
 	}
+}
+
+FMatrix UPrimitiveComponent::GetWorldMatrix() const
+{
+	// USceneComponent에서 상속하므로 GetWorldTransformMatrix() 사용
+	return GetWorldTransformMatrix();
 }
 
 /*

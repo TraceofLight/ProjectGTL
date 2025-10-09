@@ -14,8 +14,8 @@ UObject::UObject()
 	UUID = UEngineStatics::GenUUID();
 	Name = FName("Object_" + to_string(UUID));
 
-	GUObjectArray.emplace_back(this);
-	InternalIndex = static_cast<uint32>(GUObjectArray.size()) - 1;
+	GUObjectArray.Add(TObjectPtr(this));
+	InternalIndex = static_cast<uint32>(GUObjectArray.Num()) - 1;
 }
 
 UObject::UObject(const FName& InName)
@@ -24,22 +24,23 @@ UObject::UObject(const FName& InName)
 {
 	UUID = UEngineStatics::GenUUID();
 
-	GUObjectArray.emplace_back(this);
-	InternalIndex = static_cast<uint32>(GUObjectArray.size()) - 1;
+	GUObjectArray.Add(TObjectPtr(this));
+	InternalIndex = GUObjectArray.Num() - 1;
 }
 
 UObject::~UObject()
 {
 	// GUObjectArray에서 이 오브젝트 제거
-	if (InternalIndex < GUObjectArray.size() && GUObjectArray[InternalIndex].Get() == this)
+	if (static_cast<int32>(InternalIndex) < GUObjectArray.Num() &&
+		GUObjectArray[static_cast<int32>(InternalIndex)].Get() == this)
 	{
 		// 현재 위치의 포인터를 nullptr로 설정 (배열 크기는 유지)
-		GUObjectArray[InternalIndex] = nullptr;
+		GUObjectArray[static_cast<int32>(InternalIndex)] = nullptr;
 	}
 	else
 	{
 		// InternalIndex가 유효하지 않은 경우, 전체 배열에서 검색하여 제거
-		for (size_t i = 0; i < GUObjectArray.size(); ++i)
+		for (int32 i = 0; i < GUObjectArray.Num(); ++i)
 		{
 			if (GUObjectArray[i].Get() == this)
 			{
@@ -47,12 +48,6 @@ UObject::~UObject()
 				break;
 			}
 		}
-	}
-
-	// Outer에서 메모리 사용량 제거
-	if (Outer)
-	{
-		Outer->PropagateMemoryChange(-static_cast<int64>(AllocatedBytes), -static_cast<int32>(AllocatedCounts));
 	}
 
 	CheckAndCleanupGUObjectArray();
@@ -65,50 +60,7 @@ void UObject::SetOuter(UObject* InObject)
 		return;
 	}
 
-	// 기존 Outer가 있었다면, 나의 전체 메모리 사용량을 빼달라고 전파
-	// 새로운 Outer가 있다면, 나의 전체 메모리 사용량을 더해달라고 전파
-	if (Outer)
-	{
-		Outer->PropagateMemoryChange(-static_cast<int64>(AllocatedBytes), -static_cast<int32>(AllocatedCounts));
-	}
-
 	Outer = InObject;
-
-	if (Outer)
-	{
-		Outer->PropagateMemoryChange(AllocatedBytes, AllocatedCounts);
-	}
-}
-
-void UObject::AddMemoryUsage(uint64 InBytes, uint32 InCount)
-{
-	uint64 BytesToAdd = InBytes;
-
-	if (!BytesToAdd)
-	{
-		BytesToAdd = GetClass()->GetClassSize();
-	}
-
-	// 메모리 변경 전파
-	PropagateMemoryChange(BytesToAdd, InCount);
-}
-
-void UObject::RemoveMemoryUsage(uint64 InBytes, uint32 InCount)
-{
-	PropagateMemoryChange(-static_cast<int64>(InBytes), -static_cast<int32>(InCount));
-}
-
-void UObject::PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta)
-{
-	// 자신의 값에 변화량을 더함
-	AllocatedBytes += InBytesDelta;
-	AllocatedCounts += InCountDelta;
-
-	// Outer가 있다면, 동일한 변화량을 그대로 전파
-	if (Outer)
-	{
-		Outer->PropagateMemoryChange(InBytesDelta, InCountDelta);
-	}
 }
 
 /**
@@ -132,35 +84,30 @@ bool UObject::IsA(TObjectPtr<UClass> InClass) const
  */
 void UObject::CleanupGUObjectArray()
 {
-	size_t OriginalSize = GUObjectArray.size();
+	size_t OriginalSize = GUObjectArray.Num();
 	uint32 NullCount = 0;
 
 	// nullptr이 아닌 요소들만 보존
-	auto NewEnd = std::remove_if(
-		GUObjectArray.begin(), GUObjectArray.end(), [&NullCount](const TObjectPtr<UObject>& Pointer)
+	int32 RemovedCount = GUObjectArray.RemoveAll(
+		[](const TObjectPtr<UObject>& Pointer)
 		{
-			if (!Pointer || Pointer.Get() == nullptr)
-			{
-				++NullCount;
-				return true;
-			}
-
-			return false;
-		});
-
-	GUObjectArray.erase(NewEnd, GUObjectArray.end());
+			// 유효하지 않거나 nullptr인 경우 true를 반환하여 제거 대상임을 알림
+			// TObjectPtr<UObject>는 Get() 없이 바로 포인터 비교가 가능합니다.
+			return !Pointer;
+		}
+	);
 
 	// 모든 유효한 객체들의 InternalIndex 재설정
-	for (size_t i = 0; i < GUObjectArray.size(); ++i)
+	for (int32 i = 0; i < GUObjectArray.Num(); ++i)
 	{
-		if (GUObjectArray[i] && GUObjectArray[i].Get())
+		if (GUObjectArray[i])
 		{
-			GUObjectArray[i]->SetInternalIndex(static_cast<uint32>(i));
+			GUObjectArray[i]->SetInternalIndex(i);
 		}
 	}
 
-	UE_LOG_SYSTEM("GUObjectArray: Compaction 완료 | 기존: %zu, 정리후: %zu, 제거된 nullptr: %u",
-	              OriginalSize, GUObjectArray.size(), NullCount);
+	UE_LOG_SYSTEM("GUObjectArray: Compaction 완료 | 기존: %zu, 정리후: %d, 제거된 nullptr: %u",
+	              OriginalSize, GUObjectArray.Num(), NullCount);
 }
 
 /**
@@ -182,6 +129,19 @@ uint32 UObject::GetNullObjectCount()
 }
 
 /**
+ * @brief 현재 UObject를 복제하여 새로운 인스턴스를 생성하는 함수
+ * 얕은 복사를 통해 NewObject를 생성, 이후 깊은 복사가 필요한 서브오브젝트들은 재귀적으로 처리
+ * @return 복제된 새로운 UObject 인스턴스에 대한 포인터
+ */
+UObject* UObject::Duplicate()
+{
+	UObject* NewObject = new UObject(*this);
+	NewObject->DuplicateSubObjects();
+
+	return NewObject;
+}
+
+/**
  * @brief 임계치 기반 GUObjectArray의 자동 정리 함수
  * 기준에 해당하는 nullptr 갯수라면 자동 정리 (nullptr이 너무 많거나, 일정 갯수 이상에서 일정 비율이 nullptr)
  */
@@ -193,7 +153,7 @@ void UObject::CheckAndCleanupGUObjectArray()
 	static constexpr uint32 CLEANUP_MIN = 20;
 
 	uint32 NullCount = GetNullObjectCount();
-	size_t TotalSize = GUObjectArray.size();
+	size_t TotalSize = GUObjectArray.Num();
 
 	// 임계치 체크: 절대값 또는 비율
 	if (NullCount >= CLEANUP_THRESHOLD ||

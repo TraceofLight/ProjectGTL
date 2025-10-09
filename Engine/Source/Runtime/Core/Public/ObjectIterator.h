@@ -9,7 +9,7 @@ public:
 
 	TObjectIterator()
 		: Index(0)
-		, EndIndex(GUObjectArray.size())
+		, EndIndex(GUObjectArray.Num())
 	{
 		AdvanceToValid();
 	}
@@ -45,7 +45,7 @@ private:
 	void AdvanceToValid()
 	{
 		Current = nullptr;
-		for (size_t i = Index; i < EndIndex; ++i)
+		for (uint32 i = static_cast<uint32>(Index); i < EndIndex; ++i)
 		{
 			UObject* Obj = GUObjectArray[i];
 			if (Obj)

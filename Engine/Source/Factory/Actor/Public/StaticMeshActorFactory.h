@@ -20,7 +20,7 @@ public:
 
 	// StaticMesh를 사용하여 Actor 생성
 	TObjectPtr<AStaticMeshActor> CreateStaticMeshActor(
-		TObjectPtr<UObject> InWorld,
+		TObjectPtr<UWorld> InWorld,
 		TObjectPtr<ULevel> InLevel,
 		UStaticMesh* InStaticMesh,
 		const FTransform& InTransform = FTransform(),
@@ -28,7 +28,7 @@ public:
 
 	// OBJ 파일 경로를 사용하여 Actor 생성
 	TObjectPtr<AStaticMeshActor> CreateStaticMeshActorFromFile(
-		TObjectPtr<UObject> InWorld,
+		TObjectPtr<UWorld> InWorld,
 		TObjectPtr<ULevel> InLevel,
 		const FString& InObjFilePath,
 		const FTransform& InTransform = FTransform(),

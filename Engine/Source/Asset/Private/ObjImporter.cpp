@@ -11,7 +11,7 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 		return false;
 	}
 
-	OutObjectInfos.clear();
+	OutObjectInfos.IsEmpty();
 
 	// 전역 데이터 배열 (OBJ 파일은 전역 정점/UV/노멀 목록을 가짐)
 	TArray<FVector> GlobalVertices;
@@ -58,19 +58,19 @@ bool FObjImporter::ImportObjFile(const FString& InFilePath, TArray<FObjInfo>& Ou
 	// TODO: 이렇게 하면 처음엔 머티리얼 섹션 없이 f 나오다가 중간부터 usemtl 나오는 경우 처리 안 되는 섹션 발생
 	// 렌더링을 섹션 단위로 돌 것이기 때문에 섹션들을 전부 모았을 때 모든 인덱스 범위가 커버되어야 함.
 	// 파싱 시작 때 머티리얼 네임 없는 섹션 하나 만들어두고 시작하도록 수정 필요
-	if (SingleObject.Sections.empty() && !SingleObject.VertexIndexList.empty())
+	if (SingleObject.Sections.IsEmpty() && !SingleObject.VertexIndexList.IsEmpty())
 	{
 		FObjSectionInfo DefaultSection("", 0);
-		DefaultSection.IndexCount = static_cast<int32>(SingleObject.VertexIndexList.size());
-		SingleObject.Sections.push_back(DefaultSection);
+		DefaultSection.IndexCount = static_cast<int32>(SingleObject.VertexIndexList.Num());
+		SingleObject.Sections.Add(DefaultSection);
 	}
 
 	// 이 OBJ에서 참조한 머티리얼들 기록
 	SingleObject.MaterialInfos = MaterialLibrary;
 
 	// 결과: 단 하나의 FObjInfo만 반환
-	OutObjectInfos.clear();
-	OutObjectInfos.push_back(std::move(SingleObject));
+	OutObjectInfos.IsEmpty();
+	OutObjectInfos.Add(std::move(SingleObject));
 	return true;
 }
 
@@ -98,12 +98,12 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath,
 		TArray<FString> Tokens;
 		SplitString(MTLLine, ' ', Tokens);
 
-		if (Tokens.empty())
+		if (Tokens.IsEmpty())
 		{
 			continue;
 		}
 
-		if (Tokens[0] == "newmtl" && Tokens.size() > 1)
+		if (Tokens[0] == "newmtl" && Tokens.Num() > 1)
 		{
 			// 새 재질
 			OutMaterialLibrary[Tokens[1]] = FObjMaterialInfo(Tokens[1]);
@@ -111,19 +111,19 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath,
 		}
 		else if (CurrentMaterial != nullptr)
 		{
-			if (Tokens[0] == "map_Kd" && Tokens.size() > 1)
+			if (Tokens[0] == "map_Kd" && Tokens.Num() > 1)
 			{
 				CurrentMaterial->DiffuseTexturePath = Tokens[1];
 			}
-			else if (Tokens[0] == "map_Kn" && Tokens.size() > 1)
+			else if (Tokens[0] == "map_Kn" && Tokens.Num() > 1)
 			{
 				CurrentMaterial->NormalTexturePath = Tokens[1];
 			}
-			else if (Tokens[0] == "map_Ks" && Tokens.size() > 1)
+			else if (Tokens[0] == "map_Ks" && Tokens.Num() > 1)
 			{
 				CurrentMaterial->SpecularTexturePath = Tokens[1];
 			}
-			else if (Tokens[0] == "Ka" && Tokens.size() > 3)
+			else if (Tokens[0] == "Ka" && Tokens.Num() > 3)
 			{
 				CurrentMaterial->AmbientColorScalar = FVector(
 					std::stof(Tokens[1]),
@@ -131,7 +131,7 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath,
 					std::stof(Tokens[3])
 				);
 			}
-			else if (Tokens[0] == "Kd" && Tokens.size() > 3)
+			else if (Tokens[0] == "Kd" && Tokens.Num() > 3)
 			{
 				CurrentMaterial->DiffuseColorScalar = FVector(
 					std::stof(Tokens[1]),
@@ -139,7 +139,7 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath,
 					std::stof(Tokens[3])
 				);
 			}
-			else if (Tokens[0] == "Ks" && Tokens.size() > 3)
+			else if (Tokens[0] == "Ks" && Tokens.Num() > 3)
 			{
 				CurrentMaterial->SpecularColorScalar = FVector(
 					std::stof(Tokens[1]),
@@ -147,11 +147,11 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath,
 					std::stof(Tokens[3])
 				);
 			}
-			else if (Tokens[0] == "Ns" && Tokens.size() > 1)
+			else if (Tokens[0] == "Ns" && Tokens.Num() > 1)
 			{
 				CurrentMaterial->ShininessScalar = std::stof(Tokens[1]);
 			}
-			else if (Tokens[0] == "d" && Tokens.size() > 1)
+			else if (Tokens[0] == "d" && Tokens.Num() > 1)
 			{
 				CurrentMaterial->TransparencyScalar = std::stof(Tokens[1]);
 			}
@@ -164,14 +164,14 @@ bool FObjImporter::ParseMaterialLibrary(const FString& InMTLFilePath,
 
 bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FStaticMesh& OutStaticMesh)
 {
-	if (InObjectInfos.empty())
+	if (InObjectInfos.IsEmpty())
 	{
 		return false;
 	}
 
-	OutStaticMesh.Vertices.clear();
-	OutStaticMesh.Indices.clear();
-	OutStaticMesh.Sections.clear();
+	OutStaticMesh.Vertices.Empty();
+	OutStaticMesh.Indices.Empty();
+	OutStaticMesh.Sections.Empty();
 
 	// 모든 객체를 하나의 스태틱 메시로 결합
 	for (const FObjInfo& ObjectInfo : InObjectInfos)
@@ -182,16 +182,16 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 		ConvertToTriangleList(ObjectInfo, ObjectVertices, ObjectIndices);
 
 		// 결합된 메시에 맞게 인덱스 조정
-		uint32 VertexOffset = static_cast<uint32>(OutStaticMesh.Vertices.size());
-		uint32 IndexOffset = static_cast<uint32>(OutStaticMesh.Indices.size());
+		uint32 VertexOffset = static_cast<uint32>(OutStaticMesh.Vertices.Num());
+		uint32 IndexOffset = static_cast<uint32>(OutStaticMesh.Indices.Num());
 		for (uint32& Index : ObjectIndices)
 		{
 			Index += VertexOffset;
 		}
 
 		// 최종 메시에 추가
-		OutStaticMesh.Vertices.insert(OutStaticMesh.Vertices.end(), ObjectVertices.begin(), ObjectVertices.end());
-		OutStaticMesh.Indices.insert(OutStaticMesh.Indices.end(), ObjectIndices.begin(), ObjectIndices.end());
+		OutStaticMesh.Vertices.Append(ObjectVertices);
+		OutStaticMesh.Indices.Append(ObjectIndices);
 
 		for (const FObjSectionInfo& SectionInfo : ObjectInfo.Sections)
 		{
@@ -200,7 +200,7 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 				continue;
 			}
 
-			int32 MaxCount = static_cast<int32>(ObjectIndices.size());
+			int32 MaxCount = static_cast<int32>(ObjectIndices.Num());
 			if (SectionInfo.StartIndex < 0 || SectionInfo.StartIndex >= MaxCount)
 			{
 				continue;
@@ -217,20 +217,20 @@ bool FObjImporter::ConvertToStaticMesh(const TArray<FObjInfo>& InObjectInfos, FS
 			MeshSection.IndexCount = ClampedCount;
 			MeshSection.MaterialSlotIndex = -1;
 			MeshSection.MaterialName = SectionInfo.MaterialName;
-			OutStaticMesh.Sections.push_back(MeshSection);
+			OutStaticMesh.Sections.Add(MeshSection);
 		}
 	}
 
-	if (OutStaticMesh.Sections.empty() && !OutStaticMesh.Indices.empty())
+	if (OutStaticMesh.Sections.IsEmpty() && !OutStaticMesh.Indices.IsEmpty())
 	{
 		FStaticMeshSection DefaultSection;
 		DefaultSection.StartIndex = 0;
-		DefaultSection.IndexCount = static_cast<int32>(OutStaticMesh.Indices.size());
+		DefaultSection.IndexCount = static_cast<int32>(OutStaticMesh.Indices.Num());
 		DefaultSection.MaterialSlotIndex = -1;
-		OutStaticMesh.Sections.push_back(DefaultSection);
+		OutStaticMesh.Sections.Add(DefaultSection);
 	}
 
-	return !OutStaticMesh.Vertices.empty() && !OutStaticMesh.Indices.empty();
+	return !OutStaticMesh.Vertices.IsEmpty() && !OutStaticMesh.Indices.IsEmpty();
 }
 
 
@@ -269,13 +269,13 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 
 	TArray<FString> Tokens;
 	SplitString(TrimmedLine, ' ', Tokens);
-	if (Tokens.empty())
+	if (Tokens.IsEmpty())
 	{
 		return;
 	}
 
 	// --- Geometry Data ---
-	if (Tokens[0] == "v" && Tokens.size() >= 4)
+	if (Tokens[0] == "v" && Tokens.Num() >= 4)
 	{
 		// 정점 위치 - UE 좌표계로 변환
 		FVector ObjPosition(
@@ -283,18 +283,18 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 			std::stof(Tokens[2]),
 			std::stof(Tokens[3])
 		);
-		GlobalVertices.push_back(PositionToUEBasis(ObjPosition));
+		GlobalVertices.Add(PositionToUEBasis(ObjPosition));
 	}
-	else if (Tokens[0] == "vt" && Tokens.size() >= 3)
+	else if (Tokens[0] == "vt" && Tokens.Num() >= 3)
 	{
 		// 텍스처 좌표 - UE 좌표계로 변환
 		FVector2 ObjUV(
 			std::stof(Tokens[1]),
 			std::stof(Tokens[2])
 		);
-		GlobalUVs.push_back(UVToUEBasis(ObjUV));
+		GlobalUVs.Add(UVToUEBasis(ObjUV));
 	}
-	else if (Tokens[0] == "vn" && Tokens.size() >= 4)
+	else if (Tokens[0] == "vn" && Tokens.Num() >= 4)
 	{
 		// 정점 노멀 - UE 좌표계로 변환
 		FVector ObjNormal(
@@ -302,14 +302,14 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 			std::stof(Tokens[2]),
 			std::stof(Tokens[3])
 		);
-		GlobalNormals.push_back(PositionToUEBasis(ObjNormal));
+		GlobalNormals.Add(PositionToUEBasis(ObjNormal));
 	}
 
 	// --- Face Data ---
-	else if (Tokens[0] == "f" && Tokens.size() >= 4)
+	else if (Tokens[0] == "f" && Tokens.Num() >= 4)
 	{
 		FString FaceData;
-		for (size_t i = 1; i < Tokens.size(); ++i)
+		for (int32 i = 1; i < Tokens.Num(); ++i)
 		{
 			if (i > 1)
 			{
@@ -318,7 +318,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 			FaceData += Tokens[i];
 		}
 
-		int32 PreviousIndexCount = static_cast<int32>(ObjectInfo.VertexIndexList.size());
+		int32 PreviousIndexCount = static_cast<int32>(ObjectInfo.VertexIndexList.Num());
 		int32 AddedIndices = ParseFaceData(FaceData, ObjectInfo);
 		if (AddedIndices > 0)
 		{
@@ -328,12 +328,12 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 				// 디폴트 섹션 (MaterialName = "")
 				FObjSectionInfo DefaultSection("", PreviousIndexCount);
 				DefaultSection.IndexCount = 0; // 누적 방식
-				ObjectInfo.Sections.push_back(DefaultSection);
-				CurrentSectionIndex = static_cast<int32>(ObjectInfo.Sections.size()) - 1;
+				ObjectInfo.Sections.Add(DefaultSection);
+				CurrentSectionIndex = static_cast<int32>(ObjectInfo.Sections.Num()) - 1;
 			}
 
 			// 활성 섹션에 인덱스 개수 누적 (디폴트 섹션이든 usemtl 섹션이든 상관없이)
-			if (CurrentSectionIndex >= 0 && CurrentSectionIndex < std::ssize(ObjectInfo.Sections))
+			if (CurrentSectionIndex >= 0 && CurrentSectionIndex < ObjectInfo.Sections.Num())
 			{
 				ObjectInfo.Sections[CurrentSectionIndex].IndexCount += AddedIndices;
 			}
@@ -341,7 +341,7 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 	}
 
 	// --- Material Data ---
-	else if ((Tokens[0] == "mtllib" || Tokens[0] == "matlib") && Tokens.size() > 1)
+	else if ((Tokens[0] == "mtllib" || Tokens[0] == "matlib") && Tokens.Num() > 1)
 	{
 		const FString& LibraryName = Tokens[1];
 		FString LibraryPath = LibraryName;
@@ -353,27 +353,27 @@ void FObjImporter::ParseOBJLine(const FString& Line,
 		}
 		ParseMaterialLibrary(LibraryPath, MaterialLibrary);
 	}
-	else if (Tokens[0] == "usemtl" && Tokens.size() > 1)
+	else if (Tokens[0] == "usemtl" && Tokens.Num() > 1)
 	{
 		CurrentMaterialName = Tokens[1];
 
-		// MaterialInfos에 등록(있으면 갱신, 없으면 기본 생성)
-		auto it = MaterialLibrary.find(CurrentMaterialName);
-		if (it != MaterialLibrary.end())
+		FObjMaterialInfo* FoundMaterialInfo = MaterialLibrary.Find(CurrentMaterialName);
+
+		if (FoundMaterialInfo)
 		{
-			ObjectInfo.MaterialInfos[CurrentMaterialName] = it->second;
+			ObjectInfo.MaterialInfos.Add(CurrentMaterialName, *FoundMaterialInfo);
 		}
 		else
 		{
-			ObjectInfo.MaterialInfos[CurrentMaterialName] = FObjMaterialInfo(CurrentMaterialName);
+			ObjectInfo.MaterialInfos.Add(CurrentMaterialName, FObjMaterialInfo(CurrentMaterialName));
 		}
 
 		// 새 섹션 시작: 이후 f 인덱스가 여기에 누적됨
-		const int32 start = static_cast<int32>(ObjectInfo.VertexIndexList.size());
+		const int32 start = ObjectInfo.VertexIndexList.Num();
 		FObjSectionInfo NewSec(CurrentMaterialName, start);
 		NewSec.IndexCount = 0;
-		ObjectInfo.Sections.push_back(NewSec);
-		CurrentSectionIndex = static_cast<int32>(ObjectInfo.Sections.size()) - 1;
+		ObjectInfo.Sections.Add(NewSec);
+		CurrentSectionIndex = ObjectInfo.Sections.Num() - 1;
 	}
 }
 
@@ -383,10 +383,10 @@ int32 FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObje
 	TArray<FString> FaceVertices;
 	SplitString(FaceData, ' ', FaceVertices);
 
-	size_t VertexCountBefore = CurrentObject.VertexIndexList.size();
+	size_t VertexCountBefore = CurrentObject.VertexIndexList.Num();
 
 	// 면을 삼각형으로 변환 (면이 최소 삼각형이라고 가정)
-	for (size_t i = 1; i < FaceVertices.size() - 1; ++i)
+	for (int32 i = 1; i < FaceVertices.Num() - 1; ++i)
 	{
 		// 삼각형의 각 정점을 파싱
 		TArray<FString> VertexComponents[3];
@@ -397,24 +397,24 @@ int32 FObjImporter::ParseFaceData(const FString& FaceData, FObjInfo& CurrentObje
 		for (int j = 0; j < 3; ++j)
 		{
 			// 삼각형의 각 정점에 대한 인덱스 추가
-			if (!VertexComponents[j].empty() && !VertexComponents[j][0].empty())
+			if (!VertexComponents[j].IsEmpty() && !VertexComponents[j][0].empty())
 			{
-				CurrentObject.VertexIndexList.push_back(std::stoi(VertexComponents[j][0]) - 1); // OBJ 인덱스는 1부터 시작
+				CurrentObject.VertexIndexList.Add(std::stoi(VertexComponents[j][0]) - 1); // OBJ 인덱스는 1부터 시작
 			}
 
-			if (VertexComponents[j].size() > 1 && !VertexComponents[j][1].empty())
+			if (VertexComponents[j].Num() > 1 && !VertexComponents[j][1].empty())
 			{
-				CurrentObject.UVIndexList.push_back(std::stoi(VertexComponents[j][1]) - 1);
+				CurrentObject.UVIndexList.Add(std::stoi(VertexComponents[j][1]) - 1);
 			}
 
-			if (VertexComponents[j].size() > 2 && !VertexComponents[j][2].empty())
+			if (VertexComponents[j].Num() > 2 && !VertexComponents[j][2].empty())
 			{
-				CurrentObject.NormalIndexList.push_back(std::stoi(VertexComponents[j][2]) - 1);
+				CurrentObject.NormalIndexList.Add(std::stoi(VertexComponents[j][2]) - 1);
 			}
 		}
 	}
 
-	size_t VertexCountAfter = CurrentObject.VertexIndexList.size();
+	size_t VertexCountAfter = CurrentObject.VertexIndexList.Num();
 	return static_cast<int32>(VertexCountAfter - VertexCountBefore);
 }
 
@@ -423,8 +423,8 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
                                          TArray<FVertex>& OutVertices,
                                          TArray<uint32>& OutIndices)
 {
-	OutVertices.clear();
-	OutIndices.clear();
+	OutVertices.Empty();
+	OutIndices.Empty();
 
 	// 커스텀 해시 함수 정의
 	struct VertexHash
@@ -474,40 +474,40 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 	// 고유 정점을 추적하기 위한 맵 (정점 데이터 → 인덱스)
 	std::unordered_map<std::tuple<FVector, FVector2, FVector>, uint32, VertexHash, VertexEqual> VertexMap;
 
-	size_t NumTriangles = ObjectInfo.VertexIndexList.size() / 3;
+	int32 NumTriangles = ObjectInfo.VertexIndexList.Num() / 3;
 
-	for (size_t i = 0; i < NumTriangles; ++i)
+	for (int32 i = 0; i < NumTriangles; ++i)
 	{
 		for (int j = 0; j < 3; ++j)
 		{
-			size_t Index = i * 3 + j;
+			int32 Index = i * 3 + j;
 			FVertex Vertex;
 
 			// 위치
-			if (Index < ObjectInfo.VertexIndexList.size())
+			if (Index < ObjectInfo.VertexIndexList.Num())
 			{
-				uint32 VertexIndex = ObjectInfo.VertexIndexList[Index];
-				if (VertexIndex < ObjectInfo.VertexList.size())
+				int32 VertexIndex = static_cast<int32>(ObjectInfo.VertexIndexList[Index]);
+				if (VertexIndex < ObjectInfo.VertexList.Num())
 				{
 					Vertex.Position = ObjectInfo.VertexList[VertexIndex];
 				}
 			}
 
 			// UV
-			if (Index < ObjectInfo.UVIndexList.size())
+			if (Index < ObjectInfo.UVIndexList.Num())
 			{
-				uint32 UVIndex = ObjectInfo.UVIndexList[Index];
-				if (UVIndex < ObjectInfo.UVList.size())
+				int32 UVIndex = static_cast<int32>(ObjectInfo.UVIndexList[Index]);
+				if (UVIndex < ObjectInfo.UVList.Num())
 				{
 					Vertex.TextureCoord = ObjectInfo.UVList[UVIndex];
 				}
 			}
 
 			// 노멀
-			if (Index < ObjectInfo.NormalIndexList.size())
+			if (Index < ObjectInfo.NormalIndexList.Num())
 			{
-				uint32 NormalIndex = ObjectInfo.NormalIndexList[Index];
-				if (NormalIndex < ObjectInfo.NormalList.size())
+				int32 NormalIndex = static_cast<int32>(ObjectInfo.NormalIndexList[Index]);
+				if (NormalIndex < ObjectInfo.NormalList.Num())
 				{
 					Vertex.Normal = ObjectInfo.NormalList[NormalIndex];
 				}
@@ -521,15 +521,15 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 			if (It != VertexMap.end())
 			{
 				// 기존 정점 인덱스 사용
-				OutIndices.push_back(It->second);
+				OutIndices.Add(It->second);
 			}
 			else
 			{
 				// 새로운 정점 추가
-				uint32 NewVertexIndex = static_cast<uint32>(OutVertices.size());
-				OutVertices.push_back(Vertex);
+				uint32 NewVertexIndex = static_cast<uint32>(OutVertices.Num());
+				OutVertices.Add(Vertex);
 				VertexMap[VertexKey] = NewVertexIndex;
-				OutIndices.push_back(NewVertexIndex);
+				OutIndices.Add(NewVertexIndex);
 			}
 		}
 	}
@@ -561,7 +561,7 @@ FString FObjImporter::TrimString(const FString& String)
 
 void FObjImporter::SplitString(const FString& String, char Delimiter, TArray<FString>& OutTokens)
 {
-	OutTokens.clear();
+	OutTokens.Empty();
 	std::stringstream StringStream(String);
 	std::string Token;
 
@@ -570,7 +570,7 @@ void FObjImporter::SplitString(const FString& String, char Delimiter, TArray<FSt
 		FString TrimmedToken = TrimString(FString(Token));
 		if (!TrimmedToken.empty())
 		{
-			OutTokens.push_back(TrimmedToken);
+			OutTokens.Add(TrimmedToken);
 		}
 	}
 }

@@ -3,7 +3,6 @@
 #include <d2d1.h>
 #include <dwrite.h>
 
-class URenderer;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 
@@ -33,7 +32,7 @@ public:
 	// USubsystem interface
 	void Initialize() override;
 	void Deinitialize() override;
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 	bool IsTickable() const override { return true; }
 
 	// Overlay control

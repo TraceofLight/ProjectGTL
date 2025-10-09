@@ -1,5 +1,6 @@
 #pragma once
 #include "Runtime/Core/Public/Object.h"
+#include "Runtime/Core/Public/Containers/TMap.h"
 #include "Subsystem.h"
 #include "EngineSubsystem.h"
 #include "EditorSubsystem.h"
@@ -36,10 +37,10 @@ public:
 		static_assert(std::is_base_of_v<TBaseSubsystem, T>, "T는 TBaseSubsystem을 반드시 상속 받아야 한다");
 
 		FName ClassName = T::StaticClass()->GetClassTypeName();
-		auto Iter = SubsystemInstances.find(ClassName);
-		if (Iter != SubsystemInstances.end())
+		const TObjectPtr<TBaseSubsystem>* Found = SubsystemInstances.Find(ClassName);
+		if (Found && *Found)
 		{
-			return Cast<T>(Iter->second);
+			return Cast<T>(*Found);
 		}
 		return nullptr;
 	}
@@ -72,7 +73,7 @@ public:
 	}
 
 	// Getter
-	int32 GetSubsystemCount() const { return static_cast<int32>(SubsystemInstances.size()); }
+	int32 GetSubsystemCount() const { return static_cast<int32>(SubsystemInstances.Num()); }
 
 private:
 	TMap<FName, UClass*> SubsystemClasses;
@@ -97,16 +98,16 @@ using FLocalPlayerSubsystemCollection = FSubsystemCollection<ULocalPlayerSubsyst
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOuter)
 {
-	// 1. 의존성 순서 계산
+	// 의존성 순서 계산
 	CalculateInitializationOrder();
 
-	// 2. 모든 서브시스템 인스턴스 생성
+	// 모든 서브시스템 인스턴스 생성
 	for (const FName& ClassName : InitializationOrder)
 	{
-		auto Iter = SubsystemClasses.find(ClassName);
-		if (Iter != SubsystemClasses.end() && Iter->second)
+		UClass** Found = SubsystemClasses.Find(ClassName);
+		if (Found && *Found)
 		{
-			UClass* SubsystemClass = Iter->second;
+			UClass* SubsystemClass = *Found;
 			TObjectPtr<UObject> NewObject = SubsystemClass->CreateDefaultObject();
 
 			if (NewObject)
@@ -121,24 +122,24 @@ void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOute
 		}
 	}
 
-	// 3. 모든 서브시스템 1단계 초기화
+	// 모든 서브시스템 1단계 초기화
 	for (const FName& ClassName : InitializationOrder)
 	{
-		auto Iter = SubsystemInstances.find(ClassName);
-		if (Iter != SubsystemInstances.end() && Iter->second)
+		TObjectPtr<TBaseSubsystem>* Found = SubsystemInstances.Find(ClassName);
+		if (Found && *Found)
 		{
-			Iter->second->Initialize();
+			(*Found)->Initialize();
 			UE_LOG("SubsystemCollection: %s 1단계 초기화 완료", ClassName.ToString().data());
 		}
 	}
 
-	// 4. 모든 서브시스템 2단계 초기화
+	// 모든 서브시스템 2단계 초기화
 	for (const FName& ClassName : InitializationOrder)
 	{
-		auto Iter = SubsystemInstances.find(ClassName);
-		if (Iter != SubsystemInstances.end() && Iter->second)
+		TObjectPtr<TBaseSubsystem>* Found = SubsystemInstances.Find(ClassName);
+		if (Found && *Found)
 		{
-			Iter->second->PostInitialize();
+			(*Found)->PostInitialize();
 			UE_LOG("SubsystemCollection: %s 2단계 초기화 완료", ClassName.ToString().data());
 		}
 	}
@@ -151,22 +152,19 @@ void FSubsystemCollection<TBaseSubsystem>::Initialize(TObjectPtr<UObject> InOute
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::Deinitialize()
 {
-	for (int32 i = static_cast<int32>(InitializationOrder.size()) - 1; i >= 0; --i)
+	for (int32 i = InitializationOrder.Num() - 1; i >= 0; --i)
 	{
 		FName ClassName = InitializationOrder[i];
-		auto it = SubsystemInstances.find(ClassName);
+		TObjectPtr<TBaseSubsystem>* Found = SubsystemInstances.Find(ClassName);
 
-		if (it != SubsystemInstances.end())
+		if (Found && *Found)
 		{
-			if (it->second)
-			{
-				it->second->Deinitialize();
-			}
+			(*Found)->Deinitialize();
 		}
 	}
 
-	SubsystemInstances.clear();
-	InitializationOrder.clear();
+	SubsystemInstances.Empty();
+	InitializationOrder.Empty();
 }
 
 
@@ -177,11 +175,11 @@ void FSubsystemCollection<TBaseSubsystem>::Deinitialize()
 template <typename TBaseSubsystem>
 void FSubsystemCollection<TBaseSubsystem>::CalculateInitializationOrder()
 {
-	InitializationOrder.clear();
+	InitializationOrder.Empty();
 
 	for (const auto& Pair : SubsystemClasses)
 	{
-		InitializationOrder.push_back(Pair.first);
+		InitializationOrder.Add(Pair.first);
 	}
 }
 

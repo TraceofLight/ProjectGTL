@@ -20,7 +20,7 @@ public:
 	void PostInitialize() override;
 	void Deinitialize() override;
 	bool IsTickable() const override;
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 
 	void CreateAndRegisterLevel();
 	void RegisterLevel(const FName& InName, TObjectPtr<ULevel> InLevel);

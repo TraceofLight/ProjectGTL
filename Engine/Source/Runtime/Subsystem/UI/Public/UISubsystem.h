@@ -28,9 +28,10 @@ public:
 	void Initialize() override;
 	void Deinitialize() override;
 	bool IsTickable() const override { return true; }
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 
 	void Render();
+	void RenderWithCommandList(class FRHICommandList* CommandList);
 	bool RegisterUIWindow(TObjectPtr<UUIWindow> InWindow);
 	bool UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow);
 	void PrintDebugInfo() const;
@@ -45,7 +46,7 @@ public:
 	void OnWindowRestored();
 
 	// Getter & Setter
-	size_t GetUIWindowCount() const { return UIWindows.size(); }
+	size_t GetUIWindowCount() const { return UIWindows.Num(); }
 	const TArray<TObjectPtr<UUIWindow>>& GetAllUIWindows() const { return UIWindows; }
 	TObjectPtr<UUIWindow> GetFocusedWindow() const { return FocusedWindow; }
 
@@ -65,6 +66,9 @@ public:
 	void ArrangeRightPanels();
 	void ForceArrangeRightPanels();
 	void OnPanelVisibilityChanged();
+
+	// 그래픽 디바이스가 재생성되었을 때(ImGui DX11 백엔드만 재바인딩)
+	void OnGraphicsDeviceRecreated();
 
 	// Console 패널 레이아웃 함수
 	void ArrangeConsolePanel();

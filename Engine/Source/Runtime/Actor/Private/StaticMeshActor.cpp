@@ -48,9 +48,9 @@ void AStaticMeshActor::EndPlay()
 	Super::EndPlay();
 }
 
-void AStaticMeshActor::Tick()
+void AStaticMeshActor::Tick(float DeltaSeconds)
 {
-	Super::Tick();
+	Super::Tick(DeltaSeconds);
 
 	// StaticMeshActor는 일반적으로 정적이므로 특별한 업데이트 로직이 필요하지 않음
 	// 필요시 여기에 추가

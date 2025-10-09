@@ -1,9 +1,15 @@
 #include "pch.h"
 #include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
 #include "Runtime/Core/Public/EngineStatics.h"
-#include "Render/Renderer/Public/Renderer.h"
 #include "Global/Memory.h"
+#include "Runtime/Engine/Public/Engine.h"
+// RendererModule 제거됨 - 이제 GDynamicRHI 직접 사용
+
 #include <psapi.h>
+
+#include "Runtime/RHI/Public/RHIDevice.h"
+#include "Runtime/Renderer/Public/SceneRenderer.h"
+#include "Runtime/Renderer/Public/SceneView.h"
 
 // memory update
 static constexpr float MEMORY_UPDATE_INTERVAL = 1.0f;
@@ -54,9 +60,9 @@ void UOverlayManagerSubsystem::Deinitialize()
 /**
  * @brief 매 프레임 업데이트 함수
  */
-void UOverlayManagerSubsystem::Tick()
+void UOverlayManagerSubsystem::Tick(float DeltaSeconds)
 {
-	Super::Tick();
+	Super::Tick(DeltaSeconds);
 
 	UpdateFPS();
 	UpdateMemoryInfo();
@@ -209,16 +215,6 @@ bool UOverlayManagerSubsystem::InitializeDirect2D()
 {
 	UE_LOG("OverlayManagerSubsystem: Direct2D 초기화 시작 (DXGI Surface 상호운용)");
 
-	// Renderer에서 DeviceResources 가져오기
-	auto& Renderer = URenderer::GetInstance();
-
-	auto* DeviceResources = Renderer.GetDeviceResources();
-	if (!DeviceResources)
-	{
-		UE_LOG("OverlayManagerSubsystem: DeviceResources를 찾을 수 없습니다");
-		return false;
-	}
-
 	// Direct2D Factory 생성
 	HRESULT ResultHandle = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &D2DFactory);
 	if (FAILED(ResultHandle))
@@ -228,11 +224,17 @@ bool UOverlayManagerSubsystem::InitializeDirect2D()
 	}
 	UE_LOG("OverlayManagerSubsystem: D2D1Factory 생성 성공");
 
-	// Swapchain 가져오기
-	IDXGISwapChain* SwapChain = Renderer.GetSwapChain();
+	// 직접 GDynamicRHI 사용 (언리얼 스타일)
+	if (!GDynamicRHI || !GDynamicRHI->IsInitialized())
+	{
+		UE_LOG_ERROR("OverlayManagerSubsystem: RHIDevice가 초기화되지 않았습니다");
+		return false;
+	}
+
+	IDXGISwapChain* SwapChain = GDynamicRHI->GetSwapChain();
 	if (!SwapChain)
 	{
-		UE_LOG("OverlayManagerSubsystem: SwapChain을 찾을 수 없습니다");
+		UE_LOG_ERROR("OverlayManagerSubsystem: SwapChain을 찾을 수 없습니다. RHIDevice에 SwapChain이 설정되지 않았습니다.");
 		return false;
 	}
 
@@ -241,7 +243,7 @@ bool UOverlayManagerSubsystem::InitializeDirect2D()
 	ResultHandle = SwapChain->GetBuffer(0, IID_PPV_ARGS(&DxgiBackBuffer));
 	if (FAILED(ResultHandle))
 	{
-		UE_LOG("OverlayManagerSubsystem: DXGI 백버퍼 가져오기 실패: 0x%08X", ResultHandle);
+		UE_LOG("OverlayManagerSubsystem: DXGI 백버퍼 가져오기 실패: 0x%08lX", ResultHandle);
 		return false;
 	}
 	UE_LOG("OverlayManagerSubsystem: DXGI 백버퍼 얻기 성공");

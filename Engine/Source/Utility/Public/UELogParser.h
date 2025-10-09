@@ -434,6 +434,13 @@ public:
 UELogParser::ParseResult ParseUELogFromString(const FString& InString);
 
 /**
+ * @brief std::string 버전의 외부 인터페이스 함수 선언
+ * @param InString std::string UE_LOG 문자열
+ * @return 파싱 결과
+ */
+UELogParser::ParseResult ParseUELogFromString(const std::string& InString);
+
+/**
  * @brief 다양한 타입을 문자열로 변환하는 범용 함수
  */
 template <typename T>

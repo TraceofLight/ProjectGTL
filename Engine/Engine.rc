@@ -32,12 +32,12 @@ BEGIN
         BLOCK "041204B0" // 한국어, 유니코드
         BEGIN
             VALUE "CompanyName", "GTL Project"
-            VALUE "FileDescription", "GTL Engine"
+            VALUE "FileDescription", "BrandNew Engine"
             VALUE "FileVersion", "1.0.0.1"
             VALUE "InternalName", "Engine.exe"
             VALUE "LegalCopyright", "Copyright (C) 2025"
             VALUE "OriginalFilename", "Engine.exe"
-            VALUE "ProductName", "GTL Engine"
+            VALUE "ProductName", "BrandNew Engine"
             VALUE "ProductVersion", "1.0.0.1"
         END
     END

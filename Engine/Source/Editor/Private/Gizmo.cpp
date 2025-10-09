@@ -1,21 +1,23 @@
 #include "pch.h"
 #include "Editor/Public/Gizmo.h"
 
-#include "Render/Renderer/Public/Renderer.h"
-#include "Render/Renderer/Public/EditorRenderResources.h"
 #include "Runtime/Actor/Public/Actor.h"
 #include "Global/Quaternion.h"
+#include "Runtime/Renderer/Public/EditorRenderResources.h"
 #include "Runtime/Actor/Public/CameraActor.h"
+#include "Runtime/Renderer/Public/SceneRenderer.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 
 IMPLEMENT_CLASS(UGizmo, UObject)
 
 UGizmo::UGizmo()
 {
-	URenderer& Renderer = URenderer::GetInstance();
-	FEditorRenderResources* EditorResources = Renderer.GetEditorResources();
+	// D3D11RHIModule에서 EditorRenderResources 가져오기
+	FD3D11RHIModule& RHIModule = FD3D11RHIModule::GetInstance();
+	FEditorRenderResources* EditorResources = RHIModule.GetEditorResources();
 
-	Primitives.resize(3);
-	GizmoColor.resize(3);
+	Primitives.SetNum(3);
+	GizmoColor.SetNum(3);
 
 	/* *
 	* @brief 0: Forward(x), 1: Right(y), 2: Up(z)
@@ -70,7 +72,6 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
 		return;
 	}
 
-	URenderer& Renderer = URenderer::GetInstance();
 	const int Mode = static_cast<int>(GizmoMode);
 	auto& P = Primitives[Mode];
 	P.Location = TargetActor->GetActorLocation();
@@ -108,19 +109,19 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
 	FQuaternion RotationX = LocalRotation * FQuaternion::Identity();
 	P.Rotation = RotationX.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Forward, ViewportIndex);
-	Renderer.RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
 	// Y축 (Right) - 초록색 (Z축 주위로 90도 회전)
 	FQuaternion RotY = LocalRotation * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
 	P.Rotation = RotY.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Right, ViewportIndex);
-	Renderer.RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
 	// Z축 (Up) - 파란색 (Y축 주위로 -90도 회전)
 	FQuaternion RotZ = LocalRotation * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
 	P.Rotation = RotZ.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Up, ViewportIndex);
-	Renderer.RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 }
 
 void UGizmo::ChangeGizmoMode()
@@ -177,10 +178,10 @@ FVector4 UGizmo::ColorFor(EGizmoDirection InAxis, int32 ViewportIndex) const
 
 	// 뷰포트별 기즈모 선택 상태 확인
 	EGizmoDirection ViewportGizmoDirection = EGizmoDirection::None;
-	auto it = ViewportGizmoDirections.find(ViewportIndex);
-	if (it != ViewportGizmoDirections.end())
+	const EGizmoDirection* FoundDirectionPtr = ViewportGizmoDirections.Find(ViewportIndex);
+	if (FoundDirectionPtr)
 	{
-		ViewportGizmoDirection = it->second;
+		ViewportGizmoDirection = *FoundDirectionPtr;
 	}
 
 	const bool bIsHighlight = (InAxis == ViewportGizmoDirection);
@@ -220,13 +221,7 @@ void UGizmo::SetGizmoDirectionForViewport(int32 InViewportIndex, EGizmoDirection
  */
 EGizmoDirection UGizmo::GetGizmoDirectionForViewport(int32 InViewportIndex) const
 {
-	auto Iter = ViewportGizmoDirections.find(InViewportIndex);
-	if (Iter != ViewportGizmoDirections.end())
-	{
-		return Iter->second;
-	}
-
-	return EGizmoDirection::None;
+	return ViewportGizmoDirections.FindRef(InViewportIndex);
 }
 
 /**
@@ -262,7 +257,7 @@ float UGizmo::CalculateScreenSpaceScale(const FVector& InCameraLocation, const A
 	{
 		// 직교 투영에서는 GetOrthographicHeight() 사용
 		float OrthographicHeight = InCamera->GetCameraComponent()->GetOrthographicHeight();
-		
+
 		if (OrthographicHeight <= 0.0f)
 		{
 			return 1.0f;

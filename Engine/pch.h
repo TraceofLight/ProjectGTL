@@ -26,16 +26,19 @@
 #include <mutex>
 
 // Global Included
-#include "Source/Global/Types.h"
-#include "Source/Global/Memory.h"
-#include "Source/Global/Constant.h"
-#include "Source/Global/Enum.h"
-#include "Source/Global/Matrix.h"
-#include "Source/Global/Quaternion.h"
-#include "Source/Global/Vector.h"
-#include "Source/Global/CoreTypes.h"
-#include "Source/Global/Macro.h"
-#include "Source/Global/Function.h"
+#include "Global/Types.h"
+#include "Global/Memory.h"
+#include "Global/Constant.h"
+#include "Global/Enum.h"
+#include "Global/Matrix.h"
+#include "Global/Quaternion.h"
+#include "Global/Vector.h"
+#include "Global/CoreTypes.h"
+#include "Global/Macro.h"
+#include "Global/Function.h"
+#include "Global/Paths.h"
+
+// Pointer
 #include "Source/Runtime/Core/Public/Templates/SharedPtr.h"
 #include "Source/Runtime/Core/Public/Templates/UniquePtr.h"
 #include "Source/Runtime/Core/Public/Templates/WeakPtr.h"
@@ -57,6 +60,7 @@ using std::setw;
 using std::sort;
 using std::mutex;
 using std::lock_guard;
+using std::atomic;
 using std::queue;
 using std::shared_ptr;
 using std::unique_ptr;
@@ -70,14 +74,12 @@ using filesystem::exists;
 using filesystem::create_directories;
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "Source/Render/UI/Window/Public/ConsoleWindow.h"
+#include "Runtime/UI/Window/Public/ConsoleWindow.h"
 
 #include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Engine/Public/EngineEditor.h"
+#include "Runtime/Engine/Public/EditorEngine.h"
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
-
-#include "Factory/Public/NewObject.h"
 
 // DT Include - 전역 DeltaTime 접근을 위한 extern 선언
 extern float GDeltaTime;
@@ -97,3 +99,5 @@ extern float GDeltaTime;
 #pragma comment(lib, "dwrite")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, DIRECTX_TOOL_KIT)
+
+#define EDITOR_MODE 1

@@ -3,16 +3,13 @@
 
 #include "Runtime/Core/Public/AppWindow.h"
 #include "Runtime/Engine/Public/Engine.h"
-#include "Runtime/Engine/Public/EngineEditor.h"
+#include "Runtime/Engine/Public/EditorEngine.h"
 #include "Runtime/Engine/Public/GameInstance.h"
 #include "Runtime/Engine/Public/LocalPlayer.h"
-#include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
-#include "Runtime/Subsystem/Public/OverlayManagerSubsystem.h"
-#include "Render/Renderer/Public/Renderer.h"
-#include "Render/UI/Window/Public/ConsoleWindow.h"
-
-#define EDITOR_MODE 1
+#include "Runtime/UI/Window/Public/ConsoleWindow.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 // 전역 DeltaTime 변수 정의
 float GDeltaTime = 0.0f;
@@ -68,6 +65,9 @@ void FEngineLoop::PreInit(HINSTANCE InInstanceHandle, int InCmdShow)
 		assert(!"Window Creation Failed");
 	}
 
+	// RHI 모듈 로드
+	FModuleManager::GetInstance().LoadModuleChecked<FD3D11RHIModule>("D3D11RHI");
+
 	// Create Console
 	// #ifdef _DEBUG
 	// 	Window->InitializeConsole();
@@ -90,15 +90,10 @@ void FEngineLoop::Init() const
 	UEngine::GetInstance();
 	GEngine->SetAppWindow(Window);
 
-	// CRITICAL: 렌더러는 서브시스템들이 초기화되기 전에 먼저 준비되어야 함
-	// TODO(KHJ): 렌더러 제거
-	auto& Renderer = URenderer::GetInstance();
-	Renderer.Init(Window->GetWindowHandle());
-
 	GEngine->Initialize();
 
 #ifdef EDITOR_MODE
-	UEngineEditor::GetInstance();
+	UEditorEngine::GetInstance();
 	GEditor->Initialize();
 #endif
 
@@ -153,29 +148,25 @@ void FEngineLoop::MainLoop()
  */
 void FEngineLoop::Tick()
 {
-    UpdateDeltaTime();
+	UpdateDeltaTime();
 
 	// Process input task
-    if (auto* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>())
-    {
-        InputSubsystem->PrepareNewFrame();
-    	Window->ProcessPendingInputMessages();
-    }
+	if (auto* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>())
+	{
+		InputSubsystem->PrepareNewFrame();
+		Window->ProcessPendingInputMessages();
+	}
 
 	// Engine tick
-    GEngine->TickEngineSubsystems();
+	GEngine->TickEngineSubsystems();
 
 	// Editor tick
 #ifdef EDITOR_MODE
-    GEditor->EditorUpdate();
+	GEditor->EditorUpdate();
 #endif
 
-	if (auto* UISubsystem = GEngine->GetEngineSubsystem<UUISubsystem>())
-	{
-		UISubsystem->Render();
-	}
-
-    URenderer::GetInstance().Update();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	ViewportSS->RenderViewports();
 }
 
 /**
@@ -191,9 +182,14 @@ void FEngineLoop::Exit() const
 	GEditor->Shutdown();
 #endif
 
-	GEngine->Shutdown();
+	// D3D11RHI 모듈 종료
+	FD3D11RHIModule* RHIModule = FModuleManager::GetInstance().GetModulePtr<FD3D11RHIModule>("D3D11RHI");
+	if (RHIModule)
+	{
+		RHIModule->ShutdownModule();
+	}
 
-	URenderer::GetInstance().Release();
+	GEngine->Shutdown();
 
 	// Release되지 않은 UObject의 메모리 할당 해제
 	// TODO(KHJ): 추후 GC가 처리할 것

@@ -5,6 +5,7 @@
 #include "Runtime/Component/Public/SceneComponent.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
+#include "Runtime/Level/Public/Level.h"
 
 IMPLEMENT_CLASS(AActor, UObject)
 
@@ -34,7 +35,7 @@ AActor::~AActor()
 		SafeDelete(Component);
 	}
 	SetOuter(nullptr);
-	OwnedComponents.clear();
+	OwnedComponents.Empty();
 }
 
 void AActor::SetActorLocation(const FVector& InLocation) const
@@ -111,7 +112,7 @@ const FVector& AActor::GetActorScale3D() const
 	return RootComponent->GetRelativeScale3D();
 }
 
-void AActor::Tick()
+void AActor::Tick(float DeltaSeconds)
 {
 	for (auto& Component : OwnedComponents)
 	{
@@ -142,10 +143,26 @@ TArray<UPrimitiveComponent*> AActor::GetPrimitiveComponents() const
 			UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>(Component.Get());
 			if (PrimitiveComp)
 			{
-				PrimitiveComponents.push_back(PrimitiveComp);
+				PrimitiveComponents.Add(PrimitiveComp);
 			}
 		}
 	}
 
 	return PrimitiveComponents;
+}
+
+TObjectPtr<UWorld> AActor::GetWorld() const
+{
+	const TObjectPtr<ULevel> Level = GetLevel();
+	if (Level)
+	{
+		return Level->GetWorld();
+	}
+
+	return nullptr;
+}
+
+TObjectPtr<ULevel> AActor::GetLevel() const
+{
+	return TObjectPtr(GetTypedOuter<ULevel>(this));
 }

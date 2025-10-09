@@ -9,11 +9,9 @@
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Asset/Public/StaticMesh.h"
-#include "Render/Renderer/Public/Renderer.h"
-#include "Window/Public/Viewport.h"
 #include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Engine/Public/World.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
-#include "Runtime/Subsystem/Public/PathSubsystem.h"
 
 IMPLEMENT_CLASS(UWorldSubsystem, UEngineSubsystem)
 
@@ -35,6 +33,39 @@ void UWorldSubsystem::PostInitialize()
 		Editor->Initialize();
 	}
 
+	// EDITOR_MODE에 따라 월드 타입 결정 및 월드 생성
+	EWorldType WorldType;
+#ifdef EDITOR_MODE
+	WorldType = EWorldType::Editor;
+#else
+	WorldType = EWorldType::Game;
+#endif
+
+	// 새로운 World 생성
+	TObjectPtr<UWorld> NewWorld = NewObject<UWorld>();
+	if (!NewWorld)
+	{
+		assert(!"UWorld 생성 실패");
+		return;
+	}
+
+	// World 타입 설정
+	NewWorld->SetWorldType(WorldType);
+
+	// World를 적절한 위치에 설정
+	if (WorldType == EWorldType::Editor)
+	{
+		GEngine->SetEditorWorld(NewWorld);
+	}
+	else if (WorldType == EWorldType::PIE)
+	{
+		GEngine->SetPlayWorld(NewWorld);
+	}
+
+	// GWorld도 설정
+	GWorld = NewWorld;
+
+	// 월드에 레벨 생성 및 등록
 	CreateAndRegisterLevel();
 }
 
@@ -54,12 +85,8 @@ bool UWorldSubsystem::IsTickable() const
 	return true; // 매 프레임 업데이트가 필요하므로 true
 }
 
-void UWorldSubsystem::Tick()
+void UWorldSubsystem::Tick(float DeltaSeconds)
 {
-	if (CurrentLevel)
-	{
-		CurrentLevel->Update();
-	}
 	if (Editor)
 	{
 		Editor->Update();
@@ -77,9 +104,13 @@ void UWorldSubsystem::RegisterLevel(const FName& InName, TObjectPtr<ULevel> InLe
 
 void UWorldSubsystem::LoadLevel(const FName& InName)
 {
-	if (Levels.find(InName) == Levels.end())
+	TObjectPtr<ULevel>* FoundLevelPtr = Levels.Find(InName);
+
+	if (!FoundLevelPtr)
 	{
 		assert(!"Load할 레벨을 탐색하지 못함");
+
+		return;
 	}
 
 	if (CurrentLevel)
@@ -87,7 +118,7 @@ void UWorldSubsystem::LoadLevel(const FName& InName)
 		CurrentLevel->Cleanup();
 	}
 
-	CurrentLevel = Levels[InName];
+	CurrentLevel = *FoundLevelPtr;
 
 	CurrentLevel->Init();
 }
@@ -107,7 +138,7 @@ void UWorldSubsystem::Shutdown()
 		}
 	}
 
-	Levels.clear();
+	Levels.Empty();
 	CurrentLevel = nullptr;
 }
 
@@ -117,12 +148,20 @@ void UWorldSubsystem::Shutdown()
 void UWorldSubsystem::CreateAndRegisterLevel()
 {
 	TObjectPtr<ULevel> Level = NewObject<ULevel>();
-	FName InternalName = "Level_" + to_string(Level->GetClass()->GetNextGenNumber());
+	FName InternalName("Level_" + to_string(Level->GetClass()->GetNextGenNumber()));
 	Level->SetName(InternalName);
 	Level->SetDisplayName("New Level");
 
-	// WorldSubsystem을 Outer로 설정하여 생명주기 관리
-	Level->SetOuter(this);
+	if (GWorld)
+	{
+		Level->SetOuter(GWorld);
+		Level->SetOwningWorld(GWorld);
+		GWorld->SetLevel(Level);
+	}
+	else
+	{
+		assert(!"GWorld가 존재하지 않음");
+	}
 
 	RegisterLevel(InternalName, Level);
 
@@ -142,7 +181,7 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 	}
 
 	// 기본 파일 경로 생성
-	path FilePath = InFilePath;
+	path FilePath(static_cast<const std::string&>(InFilePath));
 	if (FilePath.empty())
 	{
 		// 기본 파일명은 Level 이름으로 세팅
@@ -161,12 +200,11 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 
 		// 0번 ViewPort의 PerspectiveCamera 세팅을 Metadata에 포함
 		UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-		TArray<FViewportClient*>& Clients = ViewportSS->GetClients();
-		UE_LOG("WorldSubsystem: SaveCurrentLevel - Saving camera from Client[0]");
-		if (!Clients.empty() && Clients[0])
+		UE_LOG("WorldSubsystem: SaveCurrentLevel - Saving camera from Viewport 0");
+		if (ViewportSS)
 		{
-			ACameraActor* PerspectiveCamera = Clients[0]->GetPerspectiveCamera();
-			if (PerspectiveCamera)
+			ACameraActor* PerspectiveCamera = ViewportSS->GetActiveCameraForViewport(0);
+			if (PerspectiveCamera && PerspectiveCamera->GetCameraComponent()->GetCameraType() == ECameraType::ECT_Perspective)
 			{
 				UCameraComponent* CamComp = PerspectiveCamera->GetCameraComponent();
 				if (CamComp)
@@ -193,12 +231,12 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 			}
 			else
 			{
-				UE_LOG("WorldSubsystem: WARNING - Client[0] has no PerspectiveCamera, camera data not saved!");
+				UE_LOG("WorldSubsystem: WARNING - Viewport 0 has no PerspectiveCamera, camera data not saved!");
 			}
 		}
 		else
 		{
-			UE_LOG("WorldSubsystem: WARNING - No clients available, camera data not saved!");
+			UE_LOG("WorldSubsystem: WARNING - No ViewportSubsystem available, camera data not saved!");
 		}
 
 		bool bSuccess = FJsonSerializer::SaveLevelToFile(Metadata, FilePath.string());
@@ -336,8 +374,7 @@ bool UWorldSubsystem::CreateNewLevel()
  */
 path UWorldSubsystem::GetLevelDirectory()
 {
-	UPathSubsystem* PathSubsystem = GEngine->GetEngineSubsystem<UPathSubsystem>();
-	return PathSubsystem->GetWorldPath();
+	return FPaths::GetContentPath() / "Scene" / "";
 }
 
 /**
@@ -403,7 +440,7 @@ FLevelMetadata UWorldSubsystem::ConvertLevelToMetadata(TObjectPtr<ULevel> InLeve
 
 	Metadata.NextUUID = CurrentID;
 
-	UE_LOG("WorldSubsystem: Converted %zu Actors To Metadata", Metadata.Primitives.size());
+	UE_LOG("WorldSubsystem: Converted %d Actors To Metadata", Metadata.Primitives.Num());
 	return Metadata;
 }
 
@@ -418,7 +455,7 @@ bool UWorldSubsystem::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FL
 		return false;
 	}
 
-	UE_LOG("WorldSubsystem: Loading %zu Primitives From Metadata", InMetadata.Primitives.size());
+	UE_LOG("WorldSubsystem: Loading %d Primitives From Metadata", InMetadata.Primitives.Num());
 
 	// Metadata의 각 Primitive를 Actor로 생성
 	for (const auto& [ID, PrimitiveMeta] : InMetadata.Primitives)
@@ -429,7 +466,7 @@ bool UWorldSubsystem::LoadLevelFromMetadata(TObjectPtr<ULevel> InLevel, const FL
 		switch (PrimitiveMeta.Type)
 		{
 		case EPrimitiveType::StaticMeshComp:
-			NewActor = InLevel->SpawnActor<AStaticMeshActor>("StaticMeshActor");
+			NewActor = InLevel->SpawnActor<AStaticMeshActor>();
 			break;
 		default:
 			UE_LOG("WorldSubsystem: Unknown Primitive Type: %d", static_cast<int32>(PrimitiveMeta.Type));
@@ -498,97 +535,40 @@ void UWorldSubsystem::ClearCurrentLevel()
  */
 void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMetadata)
 {
-	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	TArray<FViewportClient*>& Clients = ViewportSS->GetClients();
+	// Camera deprecated - 더 이상 카메라를 복원하지 않음
+	// UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	// if (!ViewportSS) return;
 
 	// FOV/Near/Far가 0이면 저장된 데이터가 손상되었으므로 기본값 사용
-	bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
-		InCameraMetadata.FarClip <= 0.0f);
-	if (bUseDefaults)
-	{
-		UE_LOG_WARNING("WorldSubsystem: 경고: 카메라 메타데이터 손상, 기본값을 사용합니다");
-	}
+	// bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
+	// 	InCameraMetadata.FarClip <= 0.0f);
+	// if (bUseDefaults)
+	// {
+	// 	UE_LOG_WARNING("월드Subsystem: 경고: 카메라 메타데이터 손상, 기본값을 사용합니다");
+	// }
 
 	// 모든 Perspective 카메라에 동일한 설정 적용
-	// 각 Viewport의 실제 크기를 기반으로 Aspect 설정
-	TArray<FViewport*>& Viewports = ViewportSS->GetViewports();
+	// const auto& PerspectiveCameras = ViewportSS->GetPerspectiveCameras();
+	// for (ACameraActor* PerspectiveCamera : PerspectiveCameras)
+	// {
+	// 	if (!PerspectiveCamera || !PerspectiveCamera->GetCameraComponent()) continue;
 
-	for (size_t i = 0; i < Clients.size(); ++i)
-	{
-		UE_LOG("WorldSubsystem: Processing Client[%d]", static_cast<int>(i));
+	// 	UCameraComponent* CameraComponent = PerspectiveCamera->GetCameraComponent();
 
-		FViewportClient* Client = Clients[i];
-		if (!Client)
-		{
-			UE_LOG("WorldSubsystem: Client[%d] is NULL", static_cast<int>(i));
-			continue;
-		}
+	// 	// 카메라 설정 복원
+	// 	PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
+	// 	PerspectiveCamera->SetActorRotation(InCameraMetadata.Rotation);
 
-		ACameraActor* PerspectiveCamera = Client->GetPerspectiveCamera();
-		if (!PerspectiveCamera)
-		{
-			UE_LOG("WorldSubsystem: Client[%d]는 PerspectiveCamera가 없습니다", static_cast<int>(i));
-			continue;
-		}
+	// 	// FOV/Near/Far는 유효성 검사 후 설정
+	// 	if (!bUseDefaults)
+	// 	{
+	// 		CameraComponent->SetFovY(InCameraMetadata.FOV);
+	// 		CameraComponent->SetNearZ(InCameraMetadata.NearClip);
+	// 		CameraComponent->SetFarZ(InCameraMetadata.FarClip);
+	// 	}
+	// }
 
-		UCameraComponent* CameraComponent = PerspectiveCamera->GetCameraComponent();
-		if (!CameraComponent)
-		{
-			UE_LOG_WARNING("WorldSubsystem: Client[%d]의 PerspectiveCamera가 CameraComponent가 없습니다", static_cast<int>(i));
-			continue;
-		}
+	// Ortho 카메라들도 업데이트가 필요하다면 여기에 로직 추가
 
-		UE_LOG("WorldSubsystem: Client[%d]: 카메라 속성을 설정합니다", static_cast<int>(i));
-
-		// 카메라 설정 복원
-		PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
-		PerspectiveCamera->SetActorRotation(InCameraMetadata.Rotation);
-
-		// FOV/Near/Far는 유효성 검사 후 설정
-		if (!bUseDefaults)
-		{
-			CameraComponent->SetFovY(InCameraMetadata.FOV);
-			CameraComponent->SetNearZ(InCameraMetadata.NearClip);
-			CameraComponent->SetFarZ(InCameraMetadata.FarClip);
-		}
-		else
-		{
-			UE_LOG("WorldSubsystem: Client[%d]: FOV/Near/Far 기본값을 사용합니다", static_cast<int>(i));
-		}
-
-		UE_LOG("WorldSubsystem: Client[%d] - Camera set to Location:(%.2f,%.2f,%.2f) Rotation:(%.2f,%.2f,%.2f)",
-		       static_cast<int>(i),
-		       InCameraMetadata.Location.X, InCameraMetadata.Location.Y, InCameraMetadata.Location.Z,
-		       InCameraMetadata.Rotation.X, InCameraMetadata.Rotation.Y, InCameraMetadata.Rotation.Z);
-
-		// 각 Viewport의 실제 크기를 기반으로 Aspect 계산
-		if (i < Viewports.size() && Viewports[i])
-		{
-			const FRect& ViewportRect = Viewports[i]->GetRect();
-			const int32 ToolbarHeight = Viewports[i]->GetToolbarHeight();
-			const float ViewportWidth = static_cast<float>(ViewportRect.W);
-			const float ViewportHeight = static_cast<float>(max<LONG>(0, ViewportRect.H - ToolbarHeight));
-
-			UE_LOG("WorldSubsystem: Client[%d] Viewport: Rect:(%ld,%ld,%ld,%ld) Toolbar:%d RenderSize:(%.2fx%.2f)",
-			       static_cast<int>(i),
-			       ViewportRect.X, ViewportRect.Y, ViewportRect.W, ViewportRect.H,
-			       ToolbarHeight, ViewportWidth, ViewportHeight);
-
-			if (ViewportHeight > 0.0f && ViewportWidth > 0.0f)
-			{
-				float Aspect = ViewportWidth / ViewportHeight;
-				CameraComponent->SetAspect(Aspect);
-				UE_LOG("WorldSubsystem: Client[%d]: Aspect 설정: %.4f", static_cast<int>(i), Aspect);
-			}
-			else
-			{
-				UE_LOG("WorldSubsystem: Client[%d]: 비정상적인 viewport size, aspect를 스킵합니다", static_cast<int>(i));
-			}
-		}
-		else
-		{
-			UE_LOG("WorldSubsystem: Client[%d]: Viewport[%d]이 NULL이거나 범위 바깥입니다",
-			       static_cast<int>(i), static_cast<int>(i));
-		}
-	}
+	UE_LOG("월드Subsystem: Camera restore deprecated - no longer using cameras.");
 }

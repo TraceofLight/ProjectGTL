@@ -12,10 +12,7 @@ class UActorComponent : public UObject
 public:
 	UActorComponent();
 	~UActorComponent();
-	/*virtual void Render(const URenderer& Renderer) const
-	{
-
-	}*/
+	// Legacy render function removed
 
 	virtual void BeginPlay();
 	virtual void TickComponent();
@@ -28,9 +25,16 @@ public:
 
 	EComponentType GetComponentType() const { return ComponentType; }
 
+	// Component Active State
+	bool IsActive() const { return bIsActive; }
+	void SetActive(bool bInActive) { bIsActive = bInActive; }
+	virtual void Activate() { bIsActive = true; }
+	virtual void Deactivate() { bIsActive = false; }
+
 protected:
 	EComponentType ComponentType;
 
 private:
 	AActor* Owner;
+	bool bIsActive = true; // 기본값으로 활성 상태
 };

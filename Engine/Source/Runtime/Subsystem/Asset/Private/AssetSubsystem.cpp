@@ -128,13 +128,13 @@ TObjectPtr<UStaticMesh> UAssetSubsystem::LoadStaticMesh(const FString& InFilePat
 		BuildMaterialSlots(ObjInfos, MaterialSlots, MaterialNameToSlot);
 		AssignSectionMaterialSlots(StaticMeshData, MaterialNameToSlot);
 
-		if(CheckEmptyMaterialSlots(StaticMeshData.Sections))
-		{
-			InsertDefaultMaterial(StaticMeshData, MaterialSlots);
-		}
-
 		NewStaticMesh->SetStaticMeshData(StaticMeshData);
 		NewStaticMesh->SetMaterialSlots(MaterialSlots);
+
+		if (CheckEmptyMaterialSlots(NewStaticMesh->GetMeshGroupInfo()))
+		{
+			InsertDefaultMaterial(*NewStaticMesh, MaterialSlots);
+		}
 
 		// OBJ 파싱 성공 시 바이너리 캐시로 저장
 		FString BinaryPath = UStaticMesh::GetBinaryFilePath(InFilePath);
@@ -200,11 +200,12 @@ bool UAssetSubsystem::HasStaticMesh(const FString& InFilePath) const
 	return false;
 }
 
-void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInfos, TArray<FString>& OutMaterialNames) const
+void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInfos,
+                                                  TArray<FString>& OutMaterialNames) const
 {
-	OutMaterialNames.clear();
+	OutMaterialNames.Empty();
 
-	TMap<FString, bool> RegisteredNames;
+	TSet<FString> RegisteredNames;
 
 	for (const FObjInfo& ObjInfo : ObjInfos)
 	{
@@ -215,33 +216,37 @@ void UAssetSubsystem::CollectSectionMaterialNames(const TArray<FObjInfo>& ObjInf
 				continue;
 			}
 
-			if (Section.MaterialName.empty())
+			if (Section.MaterialName.IsEmpty())
 			{
 				continue;
 			}
 
-			if (RegisteredNames.find(Section.MaterialName) != RegisteredNames.end())
+			if (RegisteredNames.Contains(Section.MaterialName))
 			{
 				continue;
 			}
 
-			RegisteredNames.emplace(Section.MaterialName, true);
-			OutMaterialNames.push_back(Section.MaterialName);
+			RegisteredNames.Add(Section.MaterialName); // TSet에 키 추가
+
+			OutMaterialNames.Add(Section.MaterialName);
 		}
 	}
 }
 
-const FObjMaterialInfo* UAssetSubsystem::FindMaterialInfoByName(const TArray<FObjInfo>& ObjInfos, const FString& MaterialName) const
+const FObjMaterialInfo* UAssetSubsystem::FindMaterialInfoByName(const TArray<FObjInfo>& ObjInfos,
+                                                                const FString& MaterialName) const
 {
 	for (const FObjInfo& Info : ObjInfos)
 	{
-		auto MaterialIt = Info.MaterialInfos.find(MaterialName);
-		if (MaterialIt != Info.MaterialInfos.end())
+		const FObjMaterialInfo* FoundInfoPtr = Info.MaterialInfos.Find(MaterialName);
+
+		if (FoundInfoPtr)
 		{
-			return &MaterialIt->second;
+			return FoundInfoPtr;
 		}
 	}
 
+	// 전체 순회 후 찾지 못했으면 nullptr을 반환합니다.
 	return nullptr;
 }
 
@@ -259,10 +264,12 @@ UMaterialInterface* UAssetSubsystem::CreateMaterial(const FObjMaterialInfo& Mate
 	return MaterialAsset;
 }
 
-void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArray<UMaterialInterface*>& OutMaterialSlots, TMap<FString, int32>& OutMaterialNameToSlot)
+void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos,
+                                         TArray<UMaterialInterface*>& OutMaterialSlots,
+                                         TMap<FString, int32>& OutMaterialNameToSlot)
 {
-	OutMaterialSlots.clear();
-	OutMaterialNameToSlot.clear();
+	OutMaterialSlots.Empty();
+	OutMaterialNameToSlot.Empty();
 
 	// ObjInfos를 이루는 각 FObjInfo 객체에 명시된 머티리얼 전부 모아 저장
 	TArray<FString> MaterialNames;
@@ -271,41 +278,52 @@ void UAssetSubsystem::BuildMaterialSlots(const TArray<FObjInfo>& ObjInfos, TArra
 	for (const FString& MaterialName : MaterialNames)
 	{
 		// 이미 등록된 머티리얼인지 확인
-		if (OutMaterialNameToSlot.find(MaterialName) != OutMaterialNameToSlot.end())
+		if (OutMaterialNameToSlot.Contains(MaterialName))
 		{
 			continue;
 		}
 
-		// 아직 등록 안 된 머티리얼이면 새로 생성
+		// MaterialInfo 찾기 및 생성
 		const FObjMaterialInfo* MaterialInfoPtr = FindMaterialInfoByName(ObjInfos, MaterialName);
 		FObjMaterialInfo MaterialInfo = MaterialInfoPtr ? *MaterialInfoPtr : FObjMaterialInfo(MaterialName);
 
+		// 머티리얼 에셋 생성 및 등록
 		if (UMaterialInterface* MaterialAsset = CreateMaterial(MaterialInfo))
 		{
-			int32 SlotIndex = static_cast<int32>(OutMaterialSlots.size());
-			OutMaterialSlots.push_back(MaterialAsset);
-			OutMaterialNameToSlot.emplace(MaterialName, SlotIndex);
+			int32 SlotIndex = OutMaterialSlots.Num();
+
+			OutMaterialSlots.Add(MaterialAsset);
+			OutMaterialNameToSlot.Emplace(MaterialName, SlotIndex);
 		}
 	}
 }
 
-void UAssetSubsystem::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, const TMap<FString, int32>& MaterialNameToSlot) const
+void UAssetSubsystem::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData,
+                                                 const TMap<FString, int32>& MaterialNameToSlot) const
 {
 	TArray<FStaticMeshSection>& Sections = StaticMeshData.Sections;
+
 	for (FStaticMeshSection& Section : Sections)
 	{
-		if (!Section.MaterialName.empty())
+		// FString 유효성 검사
+		if (!Section.MaterialName.IsEmpty())
 		{
-			auto SlotIt = MaterialNameToSlot.find(Section.MaterialName);
-			if (SlotIt != MaterialNameToSlot.end())
+			// 슬롯 인덱스 포인터를 탐색
+			const int32* FoundSlotIndexPtr = MaterialNameToSlot.Find(Section.MaterialName);
+
+			// 포인터 유효성 검사
+			if (FoundSlotIndexPtr)
 			{
-				Section.MaterialSlotIndex = SlotIt->second;
+				// 찾은 경우 찾은 값을 할당
+				Section.MaterialSlotIndex = *FoundSlotIndexPtr;
 			}
 			else
 			{
+				// 찾지 못한 경우 -1 할당
 				Section.MaterialSlotIndex = -1;
 			}
 		}
+		// MaterialName이 비어있는 경우
 		else
 		{
 			Section.MaterialSlotIndex = -1;
@@ -315,7 +333,7 @@ void UAssetSubsystem::AssignSectionMaterialSlots(FStaticMesh& StaticMeshData, co
 
 bool UAssetSubsystem::CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& Sections) const
 {
-	for(const FStaticMeshSection& Section : Sections)
+	for (const FStaticMeshSection& Section : Sections)
 	{
 		if (Section.MaterialSlotIndex == -1)
 		{
@@ -325,38 +343,39 @@ bool UAssetSubsystem::CheckEmptyMaterialSlots(const TArray<FStaticMeshSection>& 
 	return false;
 }
 
-void UAssetSubsystem::InsertDefaultMaterial(FStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots)
+void UAssetSubsystem::InsertDefaultMaterial(UStaticMesh& InStaticMeshData, TArray<UMaterialInterface*>& InMaterialSlots)
 {
-	size_t MatNums = InMaterialSlots.size();
-	// 머티리얼 아예 없는 경우 -> default material 넣고 섹션에 할당
-	if (MatNums == 0)
+	// 기본 머티리얼을 슬롯에 추가하고, 해당 슬롯 인덱스를 아직 머티리얼이 없는 섹션에 할당
+	int32 DefaultMaterialSlot = InMaterialSlots.Num();
+	InMaterialSlots.Add(GetDefaultMaterial());
+
+	for (FStaticMeshSection& Section : InStaticMeshData.GetMeshGroupInfo())
 	{
-		InMaterialSlots.push_back(DefaultMaterial);
-		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
+		if (Section.MaterialSlotIndex == -1)
 		{
-			if (Section.MaterialSlotIndex == -1)
-			{
-				Section.MaterialName = DefaultMaterial->GetMaterialName();
-				Section.MaterialSlotIndex = 0;
-			}
+			Section.MaterialSlotIndex = DefaultMaterialSlot;
 		}
 	}
-	// 머티리얼에 하나 이상 있는 경우 -> 0번 머티리얼을 끝으로 보내고 0번에 default material 넣기
-	else if (MatNums > 0 && InMaterialSlots[0] != DefaultMaterial)
+}
+
+TObjectPtr<UShader> UAssetSubsystem::LoadShader(const FString& InFilePath, const TArray<D3D11_INPUT_ELEMENT_DESC>& InLayoutDesc)
+{
+	// 캐시 확인
+	if (ShaderCache.Contains(InFilePath))
 	{
-		InMaterialSlots.push_back(InMaterialSlots[0]);
-		InMaterialSlots[0] = DefaultMaterial;
-		for (FStaticMeshSection& Section : InStaticMeshData.Sections)
-		{
-			if (Section.MaterialSlotIndex == 0)
-			{
-				Section.MaterialSlotIndex = (int32)MatNums;
-			}
-			else if (Section.MaterialSlotIndex == -1)
-			{
-				Section.MaterialName = DefaultMaterial->GetMaterialName();
-				Section.MaterialSlotIndex = 0;
-			}
-		}
+		return ShaderCache[InFilePath];
 	}
+
+	// 캐시에 없으면 새로 생성
+	TObjectPtr<UShader> NewShader = NewObject<UShader>();
+	// EVertexLayoutType을 LayoutDesc로부터 추론하거나, 인자로 받아야 함. 임시로 PositionColorTextureNormal 사용.
+	if (NewShader->Initialize(InFilePath, EVertexLayoutType::PositionColorTextureNormal))
+	{
+		ShaderCache.Add(InFilePath, NewShader);
+		return NewShader;
+	}
+
+	// 3. 실패 시 null 반환
+	NewShader->Release(); // Release if creation failed
+	return nullptr;
 }

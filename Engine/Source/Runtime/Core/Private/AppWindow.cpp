@@ -7,10 +7,10 @@
 #include "ImGui/imgui.h"
 
 #include "Window/Public/Window.h"
+#include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/UI/Public/UISubsystem.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
-#include "Render/Renderer/Public/Renderer.h"
 
 FAppWindow::FAppWindow(FEngineLoop* InOwner)
 	: Owner(InOwner), InstanceHandle(nullptr), MainWindowHandle(nullptr)
@@ -168,7 +168,7 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 		{
 			// 엔진 초기화 미완료: 큐에 보관
 			lock_guard Lock(WindowInstance->WindowEventMutex);
-			WindowInstance->PendingWindowEvents.push_back({InWindowHandle, InMessage, InWParam, InLParam});
+			WindowInstance->PendingWindowEvents.Add({InWindowHandle, InMessage, InWParam, InLParam});
 		}
 		return 0;
 	}
@@ -221,7 +221,8 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 
 	// 드래그 시작
 	case WM_ENTERSIZEMOVE:
-		URenderer::GetInstance().SetIsResizing(true);
+		// TODO: 새로운 렌더링 시스템에서 Resize 처리 방식 결정 필요
+		// FRendererModule::Get().SetIsResizing(true);
 		break;
 
 	default:
@@ -299,8 +300,9 @@ void FAppWindow::ProcessWindowMessage(const FQueuedWindowEvent& Event)
 	{
 	// 드래그 종료
 	case WM_EXITSIZEMOVE:
-		URenderer::GetInstance().SetIsResizing(false);
-		URenderer::GetInstance().OnResize();
+		// TODO: 새로운 렌더링 시스템에서 Resize 처리 방식 결정 필요
+		// FRendererModule::Get().SetIsResizing(false);
+		// FRendererModule::Get().OnResize();
 		GEngine->GetEngineSubsystem<UUISubsystem>()->RepositionImGuiWindows();
 		if (auto* ViewportSubsystem = GEngine->GetEngineSubsystem<UViewportSubsystem>())
 		{
@@ -318,17 +320,22 @@ void FAppWindow::ProcessWindowMessage(const FQueuedWindowEvent& Event)
 	case WM_SIZE:
 		if (Event.WParam != SIZE_MINIMIZED)
 		{
-			if (!URenderer::GetInstance().GetIsResizing())
+			// TODO: 새로운 렌더링 시스템에서 Resize 처리 방식 결정 필요
+			/*
+			if (!GEngine->GetRenderModule()->GetIsResizing())
 			{
 				// 드래그 X 일때 추가 처리
-				URenderer::GetInstance().OnResize(LOWORD(Event.LParam), HIWORD(Event.LParam));
-				GEngine->GetEngineSubsystem<UUISubsystem>()->RepositionImGuiWindows();
-				if (auto* ViewportSubsystem = GEngine->GetEngineSubsystem<UViewportSubsystem>())
+				GEngine->GetRenderModule()->OnResize(LOWORD(Event.LParam), HIWORD(Event.LParam));
+			}
+			*/
+			GEngine->GetEngineSubsystem<UUISubsystem>()->RepositionImGuiWindows();
+			if (auto* ViewportSubsystem = GEngine->GetEngineSubsystem<UViewportSubsystem>())
+			{
+				if (auto* Root = ViewportSubsystem->GetRoot())
 				{
-					if (auto* Root = ViewportSubsystem->GetRoot())
-					{
-						Root->OnResize({0, 0, static_cast<int32>(LOWORD(Event.LParam)), static_cast<int32>(HIWORD(Event.LParam))});
-					}
+					Root->OnResize({
+						0, 0, static_cast<int32>(LOWORD(Event.LParam)), static_cast<int32>(HIWORD(Event.LParam))
+					});
 				}
 			}
 		}
@@ -365,5 +372,5 @@ void FAppWindow::ProcessPendingWindowEvents()
 		ProcessWindowMessage(Event);
 	}
 
-	PendingWindowEvents.clear();
+	PendingWindowEvents.Empty();
 }

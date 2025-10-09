@@ -30,18 +30,18 @@ class FJsonSerializer
 public:
 	static JSON VectorToJson(const FVector& InVector);
 	static FVector JsonToVector(const JSON& InJsonData);
-	static string PrimitiveTypeToWideString(EPrimitiveType InType);
-	static EPrimitiveType StringToPrimitiveType(const string& InTypeString);
+	static FString PrimitiveTypeToWideString(EPrimitiveType InType);
+	static EPrimitiveType StringToPrimitiveType(const FString& InTypeString);
 	static JSON PrimitiveMetadataToJson(const FPrimitiveMetadata& InPrimitive);
 	static FPrimitiveMetadata JsonToPrimitive(const JSON& InJsonData, uint32 InID);
 	static JSON CameraMetadataToJson(const FCameraMetadata& InCamera);
 	static FCameraMetadata JsonToCameraMetadata(const JSON& InJsonData);
 	static JSON LevelToJson(const FLevelMetadata& InLevelData);
 	static FLevelMetadata JsonToLevel(JSON& InJsonData);
-	static bool SaveLevelToFile(const FLevelMetadata& InLevelData, const string& InFilePath);
-	static bool LoadLevelFromFile(FLevelMetadata& OutLevelData, const string& InFilePath);
-	static string FormatJsonString(const JSON& JsonData, int Indent = 2);
-	static bool ValidateLevelData(const FLevelMetadata& InLevelData, string& OutErrorMessage);
+	static bool SaveLevelToFile(const FLevelMetadata& InLevelData, const FString& InFilePath);
+	static bool LoadLevelFromFile(FLevelMetadata& OutLevelData, const FString& InFilePath);
+	static FString FormatJsonString(const JSON& JsonData, int Indent = 2);
+	static bool ValidateLevelData(const FLevelMetadata& InLevelData, FString& OutErrorMessage);
 	static FLevelMetadata MergeLevelData(const FLevelMetadata& InBaseLevel,
 	                                     const FLevelMetadata& InMergeLevel);
 
@@ -66,6 +66,6 @@ public:
 	static CharacterMetric GetDefaultCharacterMetric();
 
 private:
-	static bool HandleJsonError(const exception& InException, const string& InContext,
-	                            string& OutErrorMessage);
+	static bool HandleJsonError(const exception& InException, const FString& InContext,
+	                            FString& OutErrorMessage);
 };

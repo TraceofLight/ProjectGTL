@@ -1,18 +1,11 @@
 #pragma once
 #include "Runtime/Core/Public/Object.h"
 #include "Runtime/Actor/Public/CameraActor.h"
-#include "Editor/Public/Gizmo.h"
-#include "Editor/Public/Grid.h"
-#include "Editor/public/Axis.h"
 #include "Editor/Public/ObjectPicker.h"
-#include "Editor/Public/BatchLines.h"
+#include "Editor/Public/Gizmo.h"
+#include "Runtime/Level/Public/Level.h"
 
-enum class EViewModeIndex : uint32
-{
-	VMI_Lit,
-	VMI_Unlit,
-	VMI_Wireframe,
-};
+class FEditorRenderResources;
 
 UCLASS()
 class UEditor :
@@ -29,26 +22,48 @@ public:
 	void Update();
 	void RenderEditor();
 
-	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
-	EViewModeIndex GetViewMode() const { return CurrentViewMode; }
+	void SetViewMode(EViewMode InNewViewMode) { CurrentViewMode = InNewViewMode; }
+	EViewMode GetViewMode() const { return CurrentViewMode; }
+
+	// ShowFlag 관리 함수들
+	bool IsShowFlagEnabled(EEngineShowFlags ShowFlag) const;
+	void SetShowFlag(EEngineShowFlags ShowFlag, bool bEnabled);
+	uint64 GetShowFlags() const { return ShowFlags; }
+	void SetShowFlags(uint64 InShowFlags) { ShowFlags = InShowFlags; }
 
 	FVector GetCameraLocation() { return Camera ? Camera->GetCameraComponent()->GetRelativeLocation() : FVector(); }
 	FViewProjConstants GetViewProjConstData() const { return Camera ? Camera->GetCameraComponent()->GetFViewProjConstants() : FViewProjConstants(); }
 
 	ACameraActor* GetCamera() const { return Camera.Get(); }
-	UBatchLines* GetBatchLines() const { return Grid.Get(); }
+
+	// Selection Management
+	TObjectPtr<AActor> GetSelectedActor() const { return SelectedActor; }
+	void SetSelectedActor(AActor* InActor) { SelectedActor = InActor; }
+	bool HasSelectedActor() const { return SelectedActor != nullptr; }
+
+	// Gizmo Management
 	UGizmo* GetGizmo() const { return Gizmo.Get(); }
+
+	// Editor rendering now handled through FRendererModule::GetEditorResources()
 
 private:
 	TObjectPtr<ACameraActor> Camera = nullptr;
 	UObjectPicker ObjectPicker;
+	TObjectPtr<UGizmo> Gizmo = nullptr;
+
+	// Selection Management
+	TObjectPtr<AActor> SelectedActor = nullptr;
 
 	const float MinScale = 0.01f;
-	TUniquePtr<UGizmo> Gizmo;
-	TUniquePtr<UAxis> Axis;
-	TUniquePtr<UBatchLines> Grid;
+	// Editor rendering resources moved to FRendererModule::GetEditorResources()
 
-	EViewModeIndex CurrentViewMode = EViewModeIndex::VMI_Lit;
+	EViewMode CurrentViewMode = EViewMode::Lit;
+
+	// Editor ShowFlags - 기본적으로 모든 표시 옵션 활성화
+	uint64 ShowFlags = static_cast<uint64>(EEngineShowFlags::SF_Primitives) |
+		static_cast<uint64>(EEngineShowFlags::SF_BillboardText) |
+		static_cast<uint64>(EEngineShowFlags::SF_Bounds) |
+		static_cast<uint64>(EEngineShowFlags::SF_Grid);
 
 	// Viewport Interaction
 	void HandleViewportInteraction();

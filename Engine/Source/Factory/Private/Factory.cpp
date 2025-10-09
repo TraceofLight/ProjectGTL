@@ -103,7 +103,7 @@ void UFactory::RegisterFactory(TObjectPtr<UFactory> InFactory)
 {
 	if (InFactory)
 	{
-		GetFactoryListImpl().push_back(InFactory);
+		GetFactoryListImpl().Add(InFactory);
 		UE_LOG("Factory: %s 등록 완료", InFactory->GetDescription().data());
 	}
 }

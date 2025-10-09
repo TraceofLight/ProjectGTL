@@ -3,6 +3,8 @@
 #include "Name.h"
 #include "ObjectPtr.h"
 
+class UWorld;
+
 UCLASS()
 class UObject
 {
@@ -10,31 +12,30 @@ class UObject
 	DECLARE_CLASS(UObject, UObject)
 
 public:
+	// Special Member Function
+	UObject();
+	explicit UObject(const FName& InName);
+	virtual ~UObject();
+
 	bool IsA(TObjectPtr<UClass> InClass) const;
-	void AddMemoryUsage(uint64 InBytes, uint32 InCount);
-	void RemoveMemoryUsage(uint64 InBytes, uint32 InCount);
 
 	static void CheckAndCleanupGUObjectArray();
 	static void CleanupGUObjectArray();
 	static uint32 GetNullObjectCount();
 
+	virtual UObject* Duplicate();
+	virtual void DuplicateSubObjects() {}
+
 	// Getter & Setter
 	const FName& GetName() const { return Name; }
-	UObject* GetOuter() const { return Outer.Get(); }
-
-	uint64 GetAllocatedBytes() const { return AllocatedBytes; }
-	uint32 GetAllocatedCount() const { return AllocatedCounts; }
+	TObjectPtr<UObject> GetOuter() const { return Outer; }
+	virtual TObjectPtr<UWorld> GetWorld() const { return nullptr; }
 
 	void SetName(const FName& InName) { Name = InName; }
 	void SetOuter(UObject* InObject);
 
 	// 기본적으로 외부에서는 생성자 제외 DisplayName만 변경할 수 있도록 처리
 	void SetDisplayName(const FString& InName) const { Name.SetDisplayName(InName); }
-
-	// Special Member Function
-	UObject();
-	explicit UObject(const FName& InName);
-	virtual ~UObject();
 
 	uint32 GetUUID() const { return UUID; }
 	uint32 GetInternalIndex() const { return InternalIndex; }
@@ -45,13 +46,8 @@ private:
 	FName Name;
 	TObjectPtr<UObject> Outer;
 
-	uint64 AllocatedBytes = 0;
-	uint32 AllocatedCounts = 0;
-
-	void PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta);
 	void SetInternalIndex(uint32 InNewIndex) { InternalIndex = InNewIndex; }
 };
-
 
 /**
  * @brief 안전한 타입 캐스팅 함수 (원시 포인터용)
@@ -224,6 +220,30 @@ template <typename T, typename U>
 bool IsValid(const TObjectPtr<U>& InObjectPtr)
 {
 	return InObjectPtr && IsA<T>(InObjectPtr);
+}
+
+
+template<typename T>
+T* GetTypedOuter(const UObject* InObject)
+{
+	if (!InObject)
+	{
+		return nullptr;
+	}
+
+	// Outer 체인을 따라 올라가는 루프
+	const UObject* CurrentOuter = InObject->GetOuter();
+	while (CurrentOuter != nullptr)
+	{
+	if (CurrentOuter->IsA(T::StaticClass()))
+	{
+		return static_cast<T*>(const_cast<UObject*>(CurrentOuter));
+	}
+
+		CurrentOuter = CurrentOuter->GetOuter();
+	}
+
+	return nullptr;
 }
 
 extern TArray<TObjectPtr<UObject>> GUObjectArray;

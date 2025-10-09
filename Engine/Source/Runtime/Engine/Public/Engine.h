@@ -4,6 +4,7 @@
 #include "Runtime/Subsystem/Public/EngineSubsystem.h"
 
 class FAppWindow;
+class FRHIDevice;
 
 /**
  * @brief 게임에서 가장 핵심이 되는 EngineSubsystem 클래스
@@ -32,6 +33,14 @@ public:
 	void SetAppWindow(FAppWindow* InWindow) { AppWindow = InWindow; }
 	FAppWindow* GetAppWindow() const { return AppWindow; }
 
+	UWorld* GetEditorWorld() const { return EditorWorld; }
+	void SetEditorWorld(TObjectPtr<UWorld> InWorld) { EditorWorld = InWorld; }
+
+	UWorld* GetPlayWorld() const { return PlayWorld; }
+	void SetPlayWorld(TObjectPtr<UWorld> InWorld) { PlayWorld = InWorld; }
+
+	TObjectPtr<UWorld> GetWorld() const override;
+
 	// Tick engine subsystem
 	void TickEngineSubsystems(FAppWindow* InWindow = nullptr);
 
@@ -39,6 +48,9 @@ private:
 	bool bIsInitialized = false;
 	FEngineSubsystemCollection EngineSubsystemCollection;
 	FAppWindow* AppWindow = nullptr;
+
+	TObjectPtr<UWorld> EditorWorld;
+	TObjectPtr<UWorld> PlayWorld;
 
 	void RegisterDefaultEngineSubsystems();
 };

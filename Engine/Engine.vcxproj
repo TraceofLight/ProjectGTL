@@ -165,9 +165,31 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\ToolbarWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\ViewportControlWidget.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\ViewportWindow.h" />
+    <ClInclude Include="Source\Global\FString.h" />
+    <ClInclude Include="Source\Global\Paths.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\DrawLineBatchCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\EditorGrid.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\EditorRenderResources.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\BeginLineBatchCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\DrawIndexedPrimitivesCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\EndLineBatchCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\LineBatcher.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\PresentCommands.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\RenderCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\RHICommandList.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\SetBlendStateCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\SetDepthStencilStateCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\SetRenderTargetCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\SetViewModeCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\UpdateConstantBufferCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\UpdateHighlightBufferCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\BasePass.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\DebugPass.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\DepthPrePass.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\RenderPass.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\SceneRenderer.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\SceneViewFamily.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\SceneView.h" />
     <ClInclude Include="Source\Runtime\Actor\Public\Actor.h" />
     <ClInclude Include="Source\Runtime\Actor\Public\CameraActor.h" />
     <ClInclude Include="Source\Runtime\Actor\Public\StaticMeshActor.h" />
@@ -185,6 +207,10 @@
     <ClInclude Include="Source\Runtime\Component\Mesh\Sample\Rectangle.h" />
     <ClInclude Include="Source\Runtime\Component\Mesh\Sample\Sphere.h" />
     <ClInclude Include="Source\Runtime\Component\Mesh\Sample\Triangle.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Containers\TArray.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Containers\TMap.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\Containers\TSet.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\ModuleManager.h" />
     <ClInclude Include="Source\Runtime\Core\Public\ObjectIterator.h" />
     <ClInclude Include="Source\Runtime\Component\Public\StaticMeshComponent.h" />
     <ClInclude Include="Source\Factory\Actor\Public\StaticMeshActorFactory.h" />
@@ -201,12 +227,10 @@
     <ClInclude Include="Source\Runtime\Core\Public\Object.h" />
     <ClInclude Include="Source\Runtime\Core\Public\ObjectPtr.h" />
     <ClInclude Include="Source\Editor\Public\Axis.h" />
-    <ClInclude Include="Source\Editor\Public\BatchLines.h" />
     <ClInclude Include="Source\Editor\Public\BoundingBoxLines.h" />
     <ClInclude Include="Source\Editor\Public\Editor.h" />
     <ClInclude Include="Source\Editor\Public\EditorPrimitive.h" />
     <ClInclude Include="Source\Editor\Public\Gizmo.h" />
-    <ClInclude Include="Source\Editor\Public\Grid.h" />
     <ClInclude Include="Source\Editor\Public\ObjectPicker.h" />
     <ClInclude Include="Source\Factory\Actor\Public\ActorFactory.h" />
     <ClInclude Include="Source\Factory\Component\Public\ComponentFactory.h" />
@@ -231,48 +255,50 @@
     <ClInclude Include="Source\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Source\ImGui\imstb_textedit.h" />
     <ClInclude Include="Source\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\StringTypes.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\EnableSharedFromThis.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\SharedPointerInternals.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\SharedPtr.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\TemplateUtilities.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\UniquePtr.h" />
     <ClInclude Include="Source\Runtime\Core\Public\Templates\WeakPtr.h" />
+    <ClInclude Include="Source\Runtime\Core\Public\VertexTypes.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\Engine.h" />
-    <ClInclude Include="Source\Runtime\Engine\Public\EngineEditor.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\EditorEngine.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\GameInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Public\LocalPlayer.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\World.h" />
+    <ClInclude Include="Source\Runtime\Engine\Public\WorldTypes.h" />
     <ClInclude Include="Source\Runtime\Level\Public\Level.h" />
+    <ClInclude Include="Source\Runtime\RHI\Public\D3D11RHIModule.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Asset\Public\AssetSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Config\Public\ConfigSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Input\Public\InputSubsystem.h" />
-    <ClInclude Include="Source\Runtime\Subsystem\Public\PathSubsystem.h" />
-    <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h" />
-    <ClInclude Include="Source\Render\Renderer\Public\DeviceResources.h" />
-    <ClInclude Include="Source\Render\Renderer\Public\EditorRenderResources.h" />
-    <ClInclude Include="Source\Render\Renderer\Public\Pipeline.h" />
-    <ClInclude Include="Source\Render\Renderer\Public\Renderer.h" />
-    <ClInclude Include="Source\Render\RHI\Public\RHIDevice.h" />
-    <ClInclude Include="Source\Render\UI\Factory\Public\UIWindowFactory.h" />
-    <ClInclude Include="Source\Render\UI\ImGui\Public\ImGuiHelper.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\ActorDetailWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\BottomBarWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\ActorTerminationWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\ConsoleWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\FPSWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\PrimitiveSpawnWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\SceneHierarchyWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\SceneIOWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\TargetActorTransformWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\Widget.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\ConsoleWindow.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\ControlPanelWindow.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\ExperimentalFeatureWindow.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\MainMenuWindow.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\OutlinerWindow.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\DetailWindow.h" />
-    <ClInclude Include="Source\Render\UI\Window\Public\UIWindow.h" />
+    <ClInclude Include="Source\Runtime\Subsystem\Public\DebugRenderingSubsystem.h" />
+    <ClInclude Include="Source\Runtime\RHI\Public\RHIDevice.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\ToolbarWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\ViewportControlWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Window\Public\ViewportWindow.h" />
+    <ClInclude Include="Source\Runtime\UI\Factory\Public\UIWindowFactory.h" />
+    <ClInclude Include="Source\Runtime\UI\ImGui\Public\ImGuiHelper.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\ActorDetailWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\BottomBarWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\ConsoleWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\FPSWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\InputInformationWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\MainBarWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\PrimitiveSpawnWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\SceneHierarchyWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\SceneIOWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\TargetActorTransformWidget.h" />
+    <ClInclude Include="Source\Runtime\UI\Widget\Public\Widget.h" />
+    <ClInclude Include="Source\Runtime\UI\Window\Public\ConsoleWindow.h" />
+    <ClInclude Include="Source\Runtime\UI\Window\Public\ControlPanelWindow.h" />
+    <ClInclude Include="Source\Runtime\UI\Window\Public\ExperimentalFeatureWindow.h" />
+    <ClInclude Include="Source\Runtime\UI\Window\Public\MainMenuWindow.h" />
+    <ClInclude Include="Source\Runtime\UI\Window\Public\OutlinerWindow.h" />
+    <ClInclude Include="Source\Runtime\UI\Window\Public\DetailWindow.h" />
+    <ClInclude Include="Source\Runtime\UI\Window\Public\UIWindow.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\EditorSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\GameInstanceSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Public\LocalPlayerSubsystem.h" />
@@ -287,6 +313,7 @@
     <ClInclude Include="Source\Runtime\Subsystem\UI\Public\UISubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\Viewport\Public\ViewportSubsystem.h" />
     <ClInclude Include="Source\Runtime\Subsystem\World\Public\WorldSubsystem.h" />
+    <ClInclude Include="Source\Shader\Public\Shader.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
     <ClInclude Include="Source\Utility\Public\Archive.h" />
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
@@ -305,9 +332,29 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source\Global\Paths.cpp" />
     <ClCompile Include="Source\Material\Private\Material.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\ToolbarWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\ViewportControlWidget.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\DrawLineBatchCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\EditorGrid.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\EditorRenderResources.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\BeginLineBatchCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\DrawIndexedPrimitivesCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\EndLineBatchCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\LineBatcher.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\PresentCommands.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\RHICommandList.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\SetBlendStateCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\SetDepthStencilStateCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\SetRenderTargetCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\SetViewModeCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\UpdateConstantBufferCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\UpdateHighlightBufferCommand.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\BasePass.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\DebugPass.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\DepthPrePass.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\SceneRenderer.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\SceneViewFamily.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\SceneView.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\Actor.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\CameraActor.cpp" />
     <ClCompile Include="Source\Runtime\Actor\Private\StaticMeshActor.cpp" />
@@ -316,7 +363,6 @@
     <ClCompile Include="Source\Runtime\Component\Private\ActorComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\BillBoardComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\CameraComponent.cpp" />
-    <ClCompile Include="Source\Runtime\Component\Private\LineComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\MeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Runtime\Component\Private\SceneComponent.cpp" />
@@ -329,14 +375,13 @@
     <ClCompile Include="Source\Runtime\Core\Private\AppWindow.cpp" />
     <ClCompile Include="Source\Runtime\Core\Private\Class.cpp" />
     <ClCompile Include="Source\Runtime\Core\Private\EngineLoop.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Private\ModuleManager.cpp" />
     <ClCompile Include="Source\Runtime\Core\Private\Name.cpp" />
     <ClCompile Include="Source\Runtime\Core\Private\Object.cpp" />
     <ClCompile Include="Source\Editor\Private\Axis.cpp" />
-    <ClCompile Include="Source\Editor\Private\BatchLines.cpp" />
     <ClCompile Include="Source\Editor\Private\BoundingBoxLines.cpp" />
     <ClCompile Include="Source\Editor\Private\Editor.cpp" />
     <ClCompile Include="Source\Editor\Private\Gizmo.cpp" />
-    <ClCompile Include="Source\Editor\Private\Grid.cpp" />
     <ClCompile Include="Source\Editor\Private\ObjectPicker.cpp" />
     <ClCompile Include="Source\Factory\Actor\Private\ActorFactory.cpp" />
     <ClCompile Include="Source\Factory\Component\Private\ComponentFactories.cpp" />
@@ -353,39 +398,38 @@
     <ClCompile Include="Source\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\World.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\WorldTypes.cpp" />
     <ClCompile Include="Source\Runtime\Level\Private\Level.cpp" />
+    <ClCompile Include="Source\Runtime\RHI\Private\D3D11RHIModule.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Asset\Private\AssetSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Config\Private\ConfigSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Input\Private\InputSubsystem.cpp" />
-    <ClCompile Include="Source\Runtime\Subsystem\Private\PathSubsystem.cpp" />
+    <ClCompile Include="Source\Runtime\Subsystem\Private\DebugRenderingSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\OverlayManagerSubsystem.cpp" />
-    <ClCompile Include="Source\Render\Renderer\Private\DeviceResources.cpp" />
-    <ClCompile Include="Source\Render\Renderer\Private\EditorRenderResources.cpp" />
-    <ClCompile Include="Source\Render\Renderer\Private\Pipeline.cpp" />
-    <ClCompile Include="Source\Render\Renderer\Private\Renderer.cpp" />
-    <ClCompile Include="Source\Render\RHI\Private\RHIDevice.cpp" />
-    <ClCompile Include="Source\Render\FontRenderer\Private\FontRenderer.cpp" />
-    <ClCompile Include="Source\Render\UI\Factory\Private\UIWindowFactory.cpp" />
-    <ClCompile Include="Source\Render\UI\ImGui\Private\ImGuiHelper.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\ActorDetailWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\BottomBarWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\ActorTerminationWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\ConsoleWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\FPSWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\PrimitiveSpawnWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\SceneHierarchyWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\SceneIOWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\TargetActorTransformWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\Widget.cpp" />
-    <ClCompile Include="Source\Render\UI\Window\Private\ConsoleWindow.cpp" />
-    <ClCompile Include="Source\Render\UI\Window\Private\ControlPanelWindow.cpp" />
-    <ClCompile Include="Source\Render\UI\Window\Private\ExperimentalFeatureWindow.cpp" />
-    <ClCompile Include="Source\Render\UI\Window\Private\MainMenuWindow.cpp" />
-    <ClCompile Include="Source\Render\UI\Window\Private\OutlinerWindow.cpp" />
-    <ClCompile Include="Source\Render\UI\Window\Private\DetailWindow.cpp" />
-    <ClCompile Include="Source\Render\UI\Window\Private\UIWindow.cpp" />
+    <ClCompile Include="Source\Runtime\RHI\Private\RHIDevice.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Factory\Private\UIWindowFactory.cpp" />
+    <ClCompile Include="Source\Runtime\UI\ImGui\Private\ImGuiHelper.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\ActorDetailWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\BottomBarWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\ConsoleWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\FPSWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\InputInformationWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\MainBarWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\PrimitiveSpawnWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\SceneHierarchyWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\SceneIOWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\TargetActorTransformWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\ToolbarWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\ViewportControlWidget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Widget\Private\Widget.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Window\Private\ConsoleWindow.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Window\Private\ControlPanelWindow.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Window\Private\ExperimentalFeatureWindow.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Window\Private\MainMenuWindow.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Window\Private\OutlinerWindow.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Window\Private\DetailWindow.cpp" />
+    <ClCompile Include="Source\Runtime\UI\Window\Private\UIWindow.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\Subsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\EditorSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\EngineSubsystem.cpp" />
@@ -393,12 +437,13 @@
     <ClCompile Include="Source\Runtime\Subsystem\Private\SubsystemCollection.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Private\GameInstanceSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\Engine.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\Private\EngineEditor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Private\EditorEngine.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\GameInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Private\LocalPlayer.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\UI\Private\UISubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\Viewport\Private\ViewportSubsystem.cpp" />
     <ClCompile Include="Source\Runtime\Subsystem\World\Private\WorldSubsystem.cpp" />
+    <ClCompile Include="Source\Shader\Private\Shader.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\Archive.cpp" />
     <ClCompile Include="Source\Utility\Private\JsonSerializer.cpp" />
@@ -419,29 +464,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="editor.ini" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Asset\Shader\SampleShader.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">mainVS</EntryPointName>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\BatchLinePS.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\BatchLineVS.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\ShaderFont.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\StaticMeshShader.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Engine.rc" />

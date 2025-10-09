@@ -19,24 +19,25 @@ FName::FName(const FString& InString)
 	               [](unsigned char InChar) { return std::tolower(InChar); });
 
 	// 동일 이름 탐색
-	auto FindResult = NameMap.find(LowerString);
+	uint32* FoundIndexPtr = NameMap.Find(LowerString);
 
 	// 동일 이름이 존재하지 않는 경우
-	if (FindResult == NameMap.end())
+	if (FoundIndexPtr)
 	{
-		// NameMap에 추가하고 이름 TArray에 각각 추가
-		NameMap.insert({LowerString, NextIndex});
-		DisplayNames.push_back(InString);
-
-		// 인덱스 제공
-		ComparisonIndex = NextIndex++;
+		ComparisonIndex = *FoundIndexPtr;
 		DisplayIndex = ComparisonIndex;
 	}
 	// 이미 존재하는 경우
 	else
 	{
-		ComparisonIndex = FindResult->second;
+
+		DisplayNames.Add(InString);
+		NameMap.Add(LowerString, NextIndex);
+
+		ComparisonIndex = NextIndex;
 		DisplayIndex = ComparisonIndex;
+
+		++NextIndex;
 	}
 }
 

@@ -128,7 +128,7 @@ struct FLevelMetadata
 	 */
 	bool RemovePrimitive(uint32 InID)
 	{
-		return Primitives.erase(InID) > 0;
+		return Primitives.Remove(InID) > 0;
 	}
 
 	/**
@@ -136,16 +136,7 @@ struct FLevelMetadata
 	 */
 	FPrimitiveMetadata* FindPrimitive(uint32 InID)
 	{
-		auto Iter = Primitives.find(InID);
-
-		if (Iter != Primitives.end())
-		{
-			return &Iter->second;
-		}
-		else
-		{
-			return nullptr;
-		}
+		return Primitives.Find(InID);
 	}
 
 	/**
@@ -153,7 +144,7 @@ struct FLevelMetadata
 	 */
 	void ClearPrimitives()
 	{
-		Primitives.clear();
+		Primitives.Empty();
 		NextUUID = 0;
 	}
 };

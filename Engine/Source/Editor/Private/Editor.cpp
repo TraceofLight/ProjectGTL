@@ -3,27 +3,33 @@
 
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Renderer/Public/EditorRenderResources.h"
+#include "Runtime/RHI/Public/D3D11RHIModule.h"
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Window/Public/ViewportClient.h"
 #include "Window/Public/Viewport.h"
-#include "Render/Renderer/Public/Renderer.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
-#include "Render/UI/Factory/Public/UIWindowFactory.h"
+#include "Runtime/UI/Factory/Public/UIWindowFactory.h"
 
 IMPLEMENT_CLASS(UEditor, UObject)
 
-UEditor::UEditor() = default;
+UEditor::UEditor()
+{
+}
 
 UEditor::~UEditor() = default;
 
 void UEditor::Initialize()
 {
-	// 렌더링 리소스가 필요한 모든 멤버를 여기서 초기화
-	Gizmo = MakeUnique<UGizmo>();
-	Axis = MakeUnique<UAxis>();
-	Grid = MakeUnique<UBatchLines>();
+	// Gizmo 초기화
+	Gizmo = NewObject<UGizmo>();
+	if (Gizmo)
+	{
+		Gizmo = NewObject<UGizmo>();
+		UE_LOG("UEditor: Gizmo가 초기화되었습니다");
+	}
 
 	// UI 레이아웃 생성
 	UUIWindowFactory::CreateDefaultUILayout();
@@ -35,22 +41,11 @@ void UEditor::Initialize()
  */
 void UEditor::Update()
 {
-	if (!Gizmo)
-	{
-		return;
-	}
-
 	// Viewport 내 마우스 상호 작용 처리
 	HandleViewportInteraction();
 
-	// 그리드 정점 데이터 업데이트
-	Grid->UpdateUGridVertices(Grid->GetCellSize());
-
-	// Actor 바운딩 박스 업데이트
-	UpdateSelectionBounds();
-
-	// 외각선 Render에 사용할 버퍼 최종 업데이트
-	Grid->UpdateVertexBuffer();
+	// Editor 렌더링 리소스 업데이트는 이제 FEditorRenderResources를 통해 처리됨
+	// 그리드 및 바운딩 박스 업데이트는 렌더링 시점에서 처리
 }
 
 /**
@@ -58,76 +53,51 @@ void UEditor::Update()
  */
 void UEditor::RenderEditor()
 {
-	if (!Gizmo)
+	// FD3D11RHIModule을 통해 Editor 렌더링 리소스 얻기
+	FD3D11RHIModule& RHIModule = FD3D11RHIModule::GetInstance();
+	FEditorRenderResources* EditorResources = RHIModule.GetEditorResources();
+	if (!EditorResources)
 	{
 		return;
 	}
 
-	Grid->Render();
-	Axis->Render();
-
 	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
 	ULevel* CurrentLevel = WorldSS ? WorldSS->GetCurrentLevel() : nullptr;
-	AActor* SelectedActor = CurrentLevel ? CurrentLevel->GetSelectedActor() : nullptr;
+	// Editor에서 선택된 Actor 가져오기
+	AActor* SelectedActor = GetSelectedActor();
 
 	// 렌더러에서 현재 렌더링 중인 뷰포트 인덱스를 가져와서 기즈모 크기 계산
 	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	auto& Renderer = URenderer::GetInstance();
 	const auto& Viewports = ViewportSS->GetViewports();
 	const auto& Clients = ViewportSS->GetClients();
 
-	// 렌더러에서 현재 렌더링 중인 뷰포트 인덱스 가져오기
-	int32 CurrentViewportIndex = Renderer.GetViewportIdx();
+	// TODO: Gizmo 및 Axis 렌더링 기능을 FEditorRenderResources로 이전 필요
+	// 임시로 주석 처리하여 컴파일 오류 방지
 
-	if (CurrentViewportIndex >= 0 && CurrentViewportIndex < static_cast<int32>(Viewports.size()) &&
-		CurrentViewportIndex < static_cast<int32>(Clients.size()) &&
-		Viewports[CurrentViewportIndex] && Clients[CurrentViewportIndex])
+	// Bounding box rendering using line batching
+	if (SelectedActor && CurrentLevel)
 	{
-		// 현재 렌더링 중인 뷰포트의 카메라와 크기 정보 가져오기
-		FViewportClient* CurrentClient = Clients[CurrentViewportIndex];
-		FViewport* CurrentViewport = Viewports[CurrentViewportIndex];
-
-		ACameraActor* ViewportCamera = CurrentClient->IsOrtho()
-			                               ? CurrentClient->GetOrthoCamera()
-			                               : CurrentClient->GetPerspectiveCamera();
-
-		if (ViewportCamera && ViewportCamera->GetCameraComponent())
+		const auto& Components = SelectedActor->GetOwnedComponents();
+		for (const auto& Component : Components)
 		{
-			const FRect& ViewportRect = CurrentViewport->GetRect();
-			float ViewportWidth = static_cast<float>(ViewportRect.W);
-			float ViewportHeight = static_cast<float>(ViewportRect.H - CurrentViewport->GetToolbarHeight());
-
-			// 뷰포트별로 카메라 정보를 이용해 기즈모 크기 계산
-			Gizmo->RenderGizmo(SelectedActor, ViewportCamera->GetCameraComponent()->GetRelativeLocation(),
-			                   ViewportCamera, ViewportWidth,
-			                   ViewportHeight, CurrentViewportIndex);
-		}
-		else
-		{
-			// 카메라 정보가 없으면 기본 방식 사용
-			if (Camera && Camera->GetCameraComponent())
+			if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 			{
-				Gizmo->RenderGizmo(SelectedActor, Camera->GetCameraComponent()->GetRelativeLocation());
+				FVector WorldMin, WorldMax;
+				PrimitiveComponent->GetWorldAABB(WorldMin, WorldMax);
+
+				// 프리미티브와 바운딩박스 플래그가 모두 켜져있을 때만 바운딩박스 표시
+				uint64 ShowFlags = CurrentLevel->GetShowFlags();
+				if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
+				{
+					// TODO: Use EditorResources line batching for bounding box
+					// EditorResources->BeginLineBatch();
+					// Add bounding box lines
+					// EditorResources->EndLineBatch();
+				}
 			}
-		}
-	}
-	else
-	{
-		// 뷰포트 인덱스가 유효하지 않으면 기본 방식 사용
-		if (ACameraActor* ActiveCam = GetActivePickingCamera())
-		{
-			if (ActiveCam->GetCameraComponent())
-			{
-				Gizmo->RenderGizmo(SelectedActor, ActiveCam->GetCameraComponent()->GetRelativeLocation(), ActiveCam);
-			}
-		}
-		else if (Camera && Camera->GetCameraComponent())
-		{
-			Gizmo->RenderGizmo(SelectedActor, Camera->GetCameraComponent()->GetRelativeLocation(), Camera.Get());
 		}
 	}
 }
-
 /**
  * @brief Viewport와 상호작용하는 부분들에 대한 에디터 처리를 진행하는 전반적인 흐름을 담당하는 함수
  * Prepare: 기본적인 객체를 준비
@@ -137,10 +107,8 @@ void UEditor::RenderEditor()
  */
 void UEditor::HandleViewportInteraction()
 {
-	if (!Gizmo)
-	{
-		return;
-	}
+	// TODO: Gizmo 상호작용 기능을 FEditorRenderResources로 이전 필요
+	// 임시로 비활성화
 
 	// Prepare
 	ACameraActor* PickingCamera = GetActivePickingCamera();
@@ -156,17 +124,8 @@ void UEditor::HandleViewportInteraction()
 	FRay WorldRay = CreateWorldRayFromMouse(PickingCamera);
 	ObjectPicker.SetCamera(PickingCamera);
 
-	// Gizmo Interaction
-	if (Gizmo->IsDragging())
-	{
-		// 이미 드래그 중이라면, 기즈모의 트랜스폼만 계속 업데이트
-		UpdateGizmoDrag(WorldRay, *PickingCamera);
-	}
-	else
-	{
-		// 드래그 중이 아니라면, 새로운 상호작용을 처리 (Hover, Pick, DragStart)
-		HandleNewInteraction(WorldRay);
-	}
+	// TODO: Gizmo Interaction - temporarily disabled
+	// Gizmo 상호작용 임시 비활성화
 }
 
 /**
@@ -174,6 +133,10 @@ void UEditor::HandleViewportInteraction()
  */
 void UEditor::UpdateSelectionBounds()
 {
+	// TODO: 바운딩 박스 기능을 FEditorRenderResources로 이전 필요
+	// 임시로 비활성화
+
+	/*
 	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
 	ULevel* CurrentLevel = WorldSS ? WorldSS->GetCurrentLevel() : nullptr;
 	AActor* SelectedActor = CurrentLevel ? CurrentLevel->GetSelectedActor() : nullptr;
@@ -189,24 +152,16 @@ void UEditor::UpdateSelectionBounds()
 				FVector WorldMin, WorldMax;
 				PrimitiveComponent->GetWorldAABB(WorldMin, WorldMax);
 
-				// 프리미티브와 바운딩박스 플래그가 모두 켜져있을 때만 바운딩박스 표시
+				// Use FEditorRenderResources line batching for bounding box
 				uint64 ShowFlags = CurrentLevel->GetShowFlags();
 				if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
 				{
-					Grid->UpdateBoundingBoxVertices(FAABB(WorldMin, WorldMax));
-				}
-				else
-				{
-					Grid->UpdateBoundingBoxVertices({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}});
+					// TODO: Implement bounding box rendering with EditorResources
 				}
 			}
 		}
 	}
-	else
-	{
-		// 선택된 Actor가 없으면 바운딩박스 비활성화
-		Grid->DisableRenderBoundingBox();
-	}
+	*/
 }
 
 /**
@@ -214,48 +169,18 @@ void UEditor::UpdateSelectionBounds()
  */
 void UEditor::HandleGlobalShortcuts()
 {
-	if (!Gizmo)
-	{
-		return;
-	}
+	// TODO: Gizmo 상호작용 기능을 FEditorRenderResources로 이전 필요
+	// 임시로 비활성화
 
+	/*
 	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
 	if (!InputSubsystem)
 	{
 		return;
 	}
 
-	// 로컬 & 월드 변환
-	if (InputSubsystem->IsKeyDown(EKeyInput::Ctrl) && InputSubsystem->IsKeyPressed(EKeyInput::Backquote))
-	{
-		Gizmo->IsWorldMode() ? Gizmo->SetLocal() : Gizmo->SetWorld();
-	}
-
-	// 기즈모 전체 순회로 모드 변경
-	if (InputSubsystem->IsKeyPressed(EKeyInput::Space))
-	{
-		Gizmo->ChangeGizmoMode();
-	}
-
-	// 단축키로 기즈모 모드 변경
-	if (!InputSubsystem->IsKeyDown(EKeyInput::MouseRight) && InputSubsystem->IsKeyPressed(EKeyInput::W))
-	{
-		Gizmo->ChangeGizmoMode(EGizmoMode::Translate);
-	}
-	if (!InputSubsystem->IsKeyDown(EKeyInput::MouseRight) && InputSubsystem->IsKeyPressed(EKeyInput::E))
-	{
-		Gizmo->ChangeGizmoMode(EGizmoMode::Rotate);
-	}
-	if (!InputSubsystem->IsKeyDown(EKeyInput::MouseRight) && InputSubsystem->IsKeyPressed(EKeyInput::R))
-	{
-		Gizmo->ChangeGizmoMode(EGizmoMode::Scale);
-	}
-
-	// 마우스 버튼을 놓으면 무조건 드래그 종료
-	if (InputSubsystem->IsKeyReleased(EKeyInput::MouseLeft))
-	{
-		Gizmo->EndDrag();
-	}
+	// TODO: Gizmo shortcuts will be reimplemented with new architecture
+	*/
 }
 
 /**
@@ -296,23 +221,8 @@ FRay UEditor::CreateWorldRayFromMouse(const ACameraActor* InPickingCamera)
  */
 void UEditor::UpdateGizmoDrag(const FRay& InWorldRay, ACameraActor& InPickingCamera)
 {
-	if (!Gizmo || !Gizmo->GetSelectedActor())
-	{
-		return;
-	}
-
-	switch (Gizmo->GetGizmoMode())
-	{
-	case EGizmoMode::Translate:
-		Gizmo->SetLocation(GetGizmoDragLocation(InWorldRay, InPickingCamera));
-		break;
-	case EGizmoMode::Rotate:
-		Gizmo->SetActorRotation(GetGizmoDragRotation(InWorldRay));
-		break;
-	case EGizmoMode::Scale:
-		Gizmo->SetActorScale(GetGizmoDragScale(InWorldRay, InPickingCamera));
-		break;
-	}
+	// TODO: Gizmo drag functionality to be reimplemented with FEditorRenderResources
+	// Temporarily disabled for compilation
 }
 
 /**
@@ -321,18 +231,17 @@ void UEditor::UpdateGizmoDrag(const FRay& InWorldRay, ACameraActor& InPickingCam
  */
 void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 {
-	if (!Gizmo)
-	{
-		return;
-	}
+	// TODO: Gizmo interaction to be reimplemented with FEditorRenderResources
+	// Temporarily disabled for compilation
 
+	/*
 	// ImGui UI가 마우스 입력을 사용 중이면 에디터 내 상호작용을 무시 및 초기화 진행
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
 		// 모든 뷰포트의 기즈모 상태 초기화
 		auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 		const auto& Viewports = ViewportSS->GetViewports();
-		for (int32 i = 0; i < static_cast<int32>(Viewports.size()); ++i)
+		for (int32 i = 0; i < Viewports.Num(); ++i)
 		{
 			Gizmo->SetGizmoDirectionForViewport(i, EGizmoDirection::None);
 		}
@@ -360,7 +269,7 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 	int32 ViewportIndex = max(0, static_cast<int32>(ViewportSS->GetViewportIndexUnderMouse()));
 	float ViewportWidth = 0.0f, ViewportHeight = 0.0f;
 
-	if (ViewportIndex >= 0 && ViewportIndex < static_cast<int32>(ViewportSS->GetViewports().size()))
+	if (ViewportIndex >= 0 && ViewportIndex < ViewportSS->GetViewports().Num())
 	{
 		const auto& Viewports = ViewportSS->GetViewports();
 		if (Viewports[ViewportIndex])
@@ -408,8 +317,10 @@ void UEditor::HandleNewInteraction(const FRay& InWorldRay)
 			CurrentLevel->SetSelectedActor(PickedActor);
 		}
 	}
+	*/
 }
 
+/*
 /**
  * @brief 충돌할만한 Actor들을 탐색하는 과정
  * @param InLevel 현재 Level
@@ -426,7 +337,7 @@ TArray<UPrimitiveComponent*> UEditor::FindCandidateActors(const ULevel* InLevel)
 			TObjectPtr<UPrimitiveComponent> Primitive = Cast<UPrimitiveComponent>(ActorComponent);
 			if (Primitive)
 			{
-				Candidate.push_back(Primitive);
+				Candidate.Add(Primitive);
 			}
 		}
 	}
@@ -535,7 +446,7 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const ACameraActor& InCamer
 		return Gizmo->GetGizmoLocation();
 	}
 	const auto& Clients = ViewportSS->GetClients();
-	if (ViewportIndex >= static_cast<int32>(Clients.size()))
+	if (ViewportIndex >= Clients.Num())
 	{
 		return Gizmo->GetGizmoLocation();
 	}
@@ -552,7 +463,7 @@ FVector UEditor::GetGizmoDragLocationForOrthographic(const ACameraActor& InCamer
 
 	// 뷰포트 크기 정보 가져오기
 	const auto& Viewports = ViewportSS->GetViewports();
-	if (ViewportIndex >= static_cast<int32>(Viewports.size()))
+	if (ViewportIndex >= Viewports.Num())
 	{
 		return Gizmo->GetGizmoLocation();
 	}
@@ -880,27 +791,27 @@ ACameraActor* UEditor::GetActivePickingCamera()
 		return nullptr;
 	}
 
-	const auto& Clients = ViewportManager->GetClients();
-
+	// Get the viewport index under the mouse, default to 0 if none.
 	int32 Index = ViewportManager->GetViewportIndexUnderMouse();
 	Index = max(Index, 0);
 
-	if (Index >= static_cast<int32>(Clients.size()))
-	{
-		return nullptr;
-	}
+	// Get the active camera for that viewport directly from the subsystem.
+	return ViewportManager->GetActiveCameraForViewport(Index);
+}
 
-	FViewportClient* ViewportClient = Clients[Index];
-	if (!ViewportClient)
+bool UEditor::IsShowFlagEnabled(EEngineShowFlags ShowFlag) const
+{
+	return (ShowFlags & static_cast<uint64>(ShowFlag)) != 0;
+}
+
+void UEditor::SetShowFlag(EEngineShowFlags ShowFlag, bool bEnabled)
+{
+	if (bEnabled)
 	{
-		return nullptr;
-	}
-	if (ViewportClient->GetViewType() == EViewType::Perspective)
-	{
-		return ViewportClient->GetPerspectiveCamera();
+		ShowFlags |= static_cast<uint64>(ShowFlag);
 	}
 	else
 	{
-		return ViewportClient->GetOrthoCamera();
+		ShowFlags &= ~static_cast<uint64>(ShowFlag);
 	}
 }

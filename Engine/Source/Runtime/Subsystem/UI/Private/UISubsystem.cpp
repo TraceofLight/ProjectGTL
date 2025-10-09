@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "Runtime/Subsystem/UI/Public/UISubsystem.h"
-#include "Render/UI/Window/Public/UIWindow.h"
-#include "Render/UI/ImGui/Public/ImGuiHelper.h"
-#include "Render/UI/Widget/Public/Widget.h"
-#include "Render/UI/Window/Public/MainMenuWindow.h"
+#include "Runtime/UI/Window/Public/UIWindow.h"
+#include "Runtime/UI/ImGui/Public/ImGuiHelper.h"
+#include "Runtime/UI/Widget/Public/Widget.h"
+#include "Runtime/UI/Window/Public/MainMenuWindow.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Core/Public/AppWindow.h"
 
 // For overlay rendering after ImGui::NewFrame()
+#include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 // 이전 사이즈 추적을 위한 정적 변수
@@ -38,7 +39,7 @@ void UUISubsystem::Initialize()
 {
 	UE_LOG("UISubsystem: UI System 초기화 진행 중...");
 
-	UIWindows.clear();
+	UIWindows.Empty();
 	FocusedWindow = nullptr;
 	TotalTime = 0.0f;
 
@@ -79,7 +80,7 @@ void UUISubsystem::Deinitialize()
 		}
 	}
 
-	UIWindows.clear();
+	UIWindows.Empty();
 	FocusedWindow = nullptr;
 
 	UE_LOG("UISubsystem: UI 시스템 종료 완료");
@@ -88,9 +89,9 @@ void UUISubsystem::Deinitialize()
 /**
  * @brief 모든 UI 윈도우 업데이트 (매 프레임 호출)
  */
-void UUISubsystem::Tick()
+void UUISubsystem::Tick(float DeltaSeconds)
 {
-	TotalTime += DT;
+	TotalTime += DeltaSeconds;
 
 	// 모든 UI 윈도우 업데이트
 	for (auto Window : UIWindows)
@@ -111,6 +112,14 @@ void UUISubsystem::Tick()
 /**
  * @brief 모든 UI 윈도우 렌더링
  */
+void UUISubsystem::OnGraphicsDeviceRecreated()
+{
+	if (ImGuiHelper && GDynamicRHI && GDynamicRHI->IsInitialized())
+	{
+		ImGuiHelper->RebindDevice(GDynamicRHI->GetDevice(), GDynamicRHI->GetDeviceContext());
+	}
+}
+
 void UUISubsystem::Render()
 {
 	if (!ImGuiHelper)
@@ -124,7 +133,7 @@ void UUISubsystem::Render()
 	// 뷰포트 자동 조정을 위해 메인 메뉴바를 가장 먼저 렌더링
 	if (MainMenuWindow && MainMenuWindow->IsVisible())
 	{
-		MainMenuWindow->RenderWidget();
+		MainMenuWindow->RenderWindow();
 	}
 
 	// 우선순위에 따라 정렬
@@ -181,10 +190,10 @@ bool UUISubsystem::RegisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 		return false;
 	}
 
-	UIWindows.push_back(InWindow);
+	UIWindows.Add(InWindow);
 
 	UE_LOG("UISubsystem: UI Window 등록: %s", InWindow->GetWindowTitle().ToString().data());
-	UE_LOG("UISubsystem: 전체 등록된 Window 갯수: %zu", UIWindows.size());
+	UE_LOG("UISubsystem: 전체 등록된 Window 갯수: %d", UIWindows.Num());
 
 	// 오른쪽 패널 윈도우가 등록되면 레이아웃 정리 호출
 	const FString& WindowTitle = InWindow->GetWindowTitle().ToString();
@@ -210,8 +219,10 @@ bool UUISubsystem::UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 		return false;
 	}
 
-	auto It = std::find(UIWindows.begin(), UIWindows.end(), InWindow);
-	if (It == UIWindows.end())
+	const int32 FoundIndex = UIWindows.Find(InWindow);
+
+	// 검색 실패 여부를 확인
+	if (FoundIndex == -1)
 	{
 		UE_LOG("UISubsystem: Warning: Attempted to unregister non-existent window: %u", InWindow->GetWindowID());
 		return false;
@@ -226,10 +237,10 @@ bool UUISubsystem::UnregisterUIWindow(TObjectPtr<UUIWindow> InWindow)
 	// 윈도우 정리
 	InWindow->Cleanup();
 
-	UIWindows.erase(It);
+	UIWindows.RemoveAt(FoundIndex);
 
 	UE_LOG("UISubsystem: UI Window 등록 해제: %u", InWindow->GetWindowID());
-	UE_LOG("UISubsystem: 전체 등록된 Window 갯수: %zu", UIWindows.size());
+	UE_LOG("UISubsystem: 전체 등록된 Window 갯수: %d", UIWindows.Num());
 
 	return true;
 }
@@ -326,17 +337,17 @@ void UUISubsystem::PrintDebugInfo() const
 	UE_LOG("");
 	UE_LOG("=== UI Subsystem Debug Info ===");
 	UE_LOG("Total Time: %.2fs", TotalTime);
-	UE_LOG("Registered Windows: %zu", UIWindows.size());
+	UE_LOG("Registered Windows: %d", UIWindows.Num());
 	UE_LOG("Focused Window: %s", (FocusedWindow ? to_string(FocusedWindow->GetWindowID()).c_str() : "None"));
 
 	UE_LOG("UISubsystem: All ImGui windows hidden due to minimization.");
 	UE_LOG("--- Window List ---");
-	for (size_t i = 0; i < UIWindows.size(); ++i)
+	for (int32 i = 0; i < UIWindows.Num(); ++i)
 	{
 		auto Window = UIWindows[i];
 		if (Window)
 		{
-			UE_LOG("[%zu] %u (%s)", i, Window->GetWindowID(), Window->GetWindowTitle().ToString().data());
+			UE_LOG("[%d] %u (%s)", i, Window->GetWindowID(), Window->GetWindowTitle().ToString().data());
 			UE_LOG("    State: %s", (Window->IsVisible() ? "Visible" : "Hidden"));
 			UE_LOG("    Priority: %d", Window->GetPriority());
 			UE_LOG("    Focused: %s", (Window->IsFocused() ? "Yes" : "No"));
@@ -422,8 +433,8 @@ void UUISubsystem::OnWindowMinimized()
 	}
 
 	bIsMinimized = true;
-	SavedWindowStates.clear();
-	UE_LOG("UISubsystem: %zu개의 윈도우에 대해 상태 저장 시도", UIWindows.size());
+	SavedWindowStates.Empty();
+	UE_LOG("UISubsystem: %d개의 윈도우에 대해 상태 저장 시도", UIWindows.Num());
 
 	// 모든 UI 윈도우의 현재 상태 저장
 	for (auto Window : UIWindows)
@@ -442,11 +453,11 @@ void UUISubsystem::OnWindowMinimized()
 			       SavedState.SavedSize.x, SavedState.SavedSize.y,
 			       (SavedState.bWasVisible ? "true" : "false"));
 
-			SavedWindowStates.push_back(SavedState);
+			SavedWindowStates.Add(SavedState);
 		}
 	}
 
-	UE_LOG("UISubsystem: 최소화로 인한 %zu개의 윈도우 상태 저장 완료", SavedWindowStates.size());
+	UE_LOG("UISubsystem: 최소화로 인한 %d개의 윈도우 상태 저장 완료", SavedWindowStates.Num());
 }
 
 /**
@@ -463,7 +474,7 @@ void UUISubsystem::OnWindowRestored()
 	}
 
 	bIsMinimized = false;
-	UE_LOG("UISubsystem: %zu개의 윈도우에 대해 상태 복원 시도", SavedWindowStates.size());
+	UE_LOG("UISubsystem: %d개의 윈도우에 대해 상태 복원 시도", SavedWindowStates.Num());
 
 	// 저장된 상태로 모든 UI 윈도우 복원
 	for (auto Window : UIWindows)
@@ -518,8 +529,8 @@ void UUISubsystem::OnWindowRestored()
 		}
 	}
 
-	UE_LOG("UISubsystem: %zu개의 윈도우 상태가 복원되었습니다", SavedWindowStates.size());
-	SavedWindowStates.clear();
+	UE_LOG("UISubsystem: %d개의 윈도우 상태가 복원되었습니다", SavedWindowStates.Num());
+	SavedWindowStates.Empty();
 }
 
 /**

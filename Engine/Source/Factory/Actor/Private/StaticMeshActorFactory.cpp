@@ -23,7 +23,7 @@ UStaticMeshActorFactory::UStaticMeshActorFactory()
 }
 
 TObjectPtr<AStaticMeshActor> UStaticMeshActorFactory::CreateStaticMeshActor(
-	TObjectPtr<UObject> InWorld,
+	TObjectPtr<UWorld> InWorld,
 	TObjectPtr<ULevel> InLevel,
 	UStaticMesh* InStaticMesh,
 	const FTransform& InTransform,
@@ -60,7 +60,7 @@ TObjectPtr<AStaticMeshActor> UStaticMeshActorFactory::CreateStaticMeshActor(
 }
 
 TObjectPtr<AStaticMeshActor> UStaticMeshActorFactory::CreateStaticMeshActorFromFile(
-	TObjectPtr<UObject> InWorld,
+	TObjectPtr<UWorld> InWorld,
 	TObjectPtr<ULevel> InLevel,
 	const FString& InObjFilePath,
 	const FTransform& InTransform,

@@ -200,7 +200,7 @@ bool UObjectPicker::IsRayPrimitiveCollided(const FRay& InModelRay, UPrimitiveCom
 
 	float Distance = D3D11_FLOAT32_MAX; //Distance 초기화
 	bool bIsHit = false;
-	for (int32 a = 0; a + 2 < Vertices->size(); a = a + 3) //삼각형 단위로 Vertex 위치정보 읽음
+	for (int32 a = 0; a + 2 < Vertices->Num(); a = a + 3) //삼각형 단위로 Vertex 위치정보 읽음
 	{
 		const FVector& Vertex1 = (*Vertices)[a].Position;
 		const FVector& Vertex2 = (*Vertices)[a + 1].Position;

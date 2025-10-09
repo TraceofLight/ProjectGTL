@@ -32,7 +32,7 @@ public:
 	void PostInitialize() override;
 	void Deinitialize() override;
 	bool IsTickable() const override { return true; }
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 
 	/**
 	 * @brief 뷰포트 서브시스템 초기화
@@ -41,14 +41,14 @@ public:
 	void InitializeViewportSystem(FAppWindow* InWindow);
 
 	/**
-	 * @brief 매 프레임 업데이트
-	 */
-	void Update();
-
-	/**
 	 * @brief 오버레이 렌더링 (ImGui 등)
 	 */
 	void RenderOverlay();
+
+	/**
+	 * @brief 뷰포트 렌더링 (매 프레임마다 호출)
+	 */
+	void RenderViewports();
 
 	/**
 	 * @brief 서브시스템 해제
@@ -99,13 +99,15 @@ public:
 	TArray<FViewport*>& GetViewports() { return Viewports; }
 	TArray<FViewportClient*>& GetClients() { return Clients; }
 
-	// 카메라 배열 접근자
-	const TArray<ACameraActor*>& GetOrthographicCameras() const { return OrthoGraphicCameras; }
-	const TArray<ACameraActor*>& GetPerspectiveCameras() const { return PerspectiveCameras; }
-
 	// ViewportChange 상태 접근자
 	EViewportChange GetViewportChange() const { return ViewportChange; }
 	void SetViewportChange(EViewportChange InChange) { ViewportChange = InChange; }
+
+	// New camera management API
+	ACameraActor* GetActiveCameraForViewport(int32 InViewportIndex) const;
+	TArray<ACameraActor*> GetAllCameras() const;
+	void SetViewportViewType(int32 InViewportIndex, EViewType InNewType);
+
 
 	/**
 	 * @brief 스플리터 비율 저장
@@ -132,6 +134,8 @@ private:
 
 	void UpdateOrthoGraphicCameraFov() const;
 
+	void UpdatePerspectiveCamera();
+
 	void BindOrthoGraphicCameraToClient() const;
 
 	void ForceRefreshOrthoViewsAfterLayoutChange();
@@ -157,9 +161,6 @@ private:
 
 	TArray<FViewport*> Viewports;
 	TArray<FViewportClient*> Clients;
-
-	TArray<ACameraActor*> OrthoGraphicCameras;
-	TArray<ACameraActor*> PerspectiveCameras;
 
 	TArray<FVector> InitialOffsets;
 

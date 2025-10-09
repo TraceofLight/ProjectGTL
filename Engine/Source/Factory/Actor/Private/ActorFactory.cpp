@@ -22,7 +22,7 @@ UActorFactory::UActorFactory()
  * @param InObjectFlags 객체 플래그
  * @return 생성된 액터 포인터
  */
-TObjectPtr<AActor> UActorFactory::CreateActor(TObjectPtr<UObject> InWorld, TObjectPtr<ULevel> InLevel,
+TObjectPtr<AActor> UActorFactory::CreateActor(TObjectPtr<UWorld> InWorld, TObjectPtr<ULevel> InLevel,
                                    const FTransform& InTransform, uint32 InObjectFlags)
 {
 	if (!InLevel)

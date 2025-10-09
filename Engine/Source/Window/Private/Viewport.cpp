@@ -2,6 +2,7 @@
 #include "Source/Window/Public/Viewport.h"
 #include "Source/Window/Public/ViewportClient.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
+#include "Runtime/RHI/Public/RHIDevice.h"
 
 FViewport::FViewport()
 {
@@ -62,7 +63,7 @@ void FViewport::PumpMouseFromInputManager()
         return;
     }
 
-    const FVector& MousePosWS = InputSubsystem->GetMousePosition(); 
+    const FVector& MousePosWS = InputSubsystem->GetMousePosition();
     const FPoint   Screen{ (LONG)MousePosWS.X, (LONG)MousePosWS.Y };
 
     // 로컬 좌표계 변환
@@ -97,5 +98,28 @@ void FViewport::PumpMouseFromInputManager()
             HandleMouseMove(Local.X, Local.Y);
         }
     }
+}
+
+bool FViewport::ShouldRender() const
+{
+    // 기본적으로 크기가 유효하고 ViewportClient가 있으면 렌더링
+    return (GetSizeX() > 0 && GetSizeY() > 0 && ViewportClient != nullptr);
+}
+
+void FViewport::Draw()
+{
+    if (!ViewportClient || !ShouldRender())
+    {
+        return;
+    }
+
+    // 뷰포트별 뷰포트 설정 (시저링 포함)
+    if (GDynamicRHI && GDynamicRHI->IsInitialized())
+    {
+        ApplyRasterizer(GDynamicRHI->GetDeviceContext());
+    }
+
+    // ViewportClient를 통한 실제 렌더링
+    ViewportClient->Draw(TObjectPtr(this));
 }
 

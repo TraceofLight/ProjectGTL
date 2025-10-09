@@ -83,6 +83,12 @@ struct FMatrix
 
 	static FMatrix GetModelMatrixInverse(const FVector& Location, const FVector& Rotation, const FVector& Scale);
 
+	// New matrix creation functions
+	static FMatrix MatrixLookAtLH(const FVector& EyePosition, const FVector& FocusPosition, const FVector& UpDirection);
+	static FMatrix MatrixOrthoLH(float ViewWidth, float ViewHeight, float NearZ, float FarZ);
+	static FMatrix MatrixPerspectiveFovLH(float FovAngleY, float AspectRatio, float NearZ, float FarZ);
+
+
 	static FVector4 VectorMultiply(const FVector4&, const FMatrix&);
 
 	static FVector VectorMultiply(const FVector& v, const FMatrix& m);

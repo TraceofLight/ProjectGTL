@@ -173,7 +173,8 @@ namespace FArchiveHelpers
 {
 	FString GetBinaryFilePath(const FString& ObjFilePath)
 	{
-		std::filesystem::path objPath(ObjFilePath);
+		// FString을 std::string으로 명시적 변환
+		std::filesystem::path objPath(static_cast<const std::string&>(ObjFilePath));
 		std::filesystem::path binaryPath = objPath;
 		binaryPath.replace_extension(".mesh");
 		return binaryPath.string();
@@ -183,15 +184,16 @@ namespace FArchiveHelpers
 	{
 		FString BinaryPath = GetBinaryFilePath(ObjFilePath);
 
-		if (!std::filesystem::exists(BinaryPath))
+		// FString을 std::string으로 명시적 변환
+		if (!std::filesystem::exists(static_cast<const std::string&>(BinaryPath)))
 		{
 			return false;
 		}
 
 		try
 		{
-			auto objTime = std::filesystem::last_write_time(ObjFilePath);
-			auto binaryTime = std::filesystem::last_write_time(BinaryPath);
+			auto objTime = std::filesystem::last_write_time(static_cast<const std::string&>(ObjFilePath));
+			auto binaryTime = std::filesystem::last_write_time(static_cast<const std::string&>(BinaryPath));
 			return binaryTime >= objTime;
 		}
 		catch (const std::filesystem::filesystem_error&)

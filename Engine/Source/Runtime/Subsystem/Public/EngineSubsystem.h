@@ -13,7 +13,7 @@ class UEngineSubsystem :
 	DECLARE_CLASS(UEngineSubsystem, USubsystem)
 
 public:
-	virtual void Tick()
+	virtual void Tick(float DeltaSeconds)
 	{
 	}
 

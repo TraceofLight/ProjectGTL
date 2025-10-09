@@ -1,22 +1,5 @@
 #include "pch.h"
 
-
-FMatrix FMatrix::UEToDx = FMatrix(
-	{
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f,
-	});
-
-FMatrix FMatrix::DxToUE = FMatrix(
-	{
-		0.0f, 0.0f, 1.0f, 0.0f,
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f,
-	});
-
 /**
 * @brief float 타입의 배열을 사용한 FMatrix의 기본 생성자
 */
@@ -147,25 +130,24 @@ FMatrix FMatrix::ScaleMatrixInverse(const FVector& InOtherVector)
 
 /**
 * @brief Rotation의 정보를 행렬로 변환하여 제공하는 함수
+* 좌표계 변환 제거 후에도 기존 회전 방식 유지
 */
 FMatrix FMatrix::RotationMatrix(const FVector& InOtherVector)
 {
-	// Dx11 yaw(y), pitch(x), roll(z)
-	// UE yaw(z), pitch(y), roll(x)
-	// 회전 축이 바뀌어서 각 회전행렬 함수에 바뀐 값을 적용
-
+	// 기존 회전 순서 유지 (작동하던 방식)
 	const float yaw = InOtherVector.Y;
 	const float pitch = InOtherVector.X;
 	const float roll = InOtherVector.Z;
-	//return RotationZ(yaw) * RotationY(pitch) * RotationX(roll);
-	//return RotationX(yaw) * RotationY(roll) * RotationZ(pitch);
+
 	return RotationX(pitch) * RotationY(yaw) * RotationZ(roll);
 }
 
 FMatrix FMatrix::CreateFromYawPitchRoll(const float yaw, const float pitch, const float roll)
 {
-	//return RotationZ(yaw) * RotationY(pitch)* RotationX(roll);
-	return RotationX(pitch) * RotationY(yaw) * RotationZ(roll);
+	// 언리얼 엔진 표준 회전 순서: Yaw(Z축) -> Pitch(Y축) -> Roll(X축)
+	// Yaw = Z축 회전(좌우), Pitch = Y축 회전(위아래), Roll = X축 회전(기울임)
+	// 행렬 곱셈은 오른쪽에서 왼쪽으로 적용되므로 역순으로 곱함
+	return RotationX(roll) * RotationY(pitch) * RotationZ(yaw);
 }
 
 FMatrix FMatrix::RotationMatrixInverse(const FVector& InOtherVector)
@@ -173,9 +155,9 @@ FMatrix FMatrix::RotationMatrixInverse(const FVector& InOtherVector)
 	const float yaw = InOtherVector.Y;
 	const float pitch = InOtherVector.X;
 	const float roll = InOtherVector.Z;
-	//return RotationX(-yaw) * RotationY(-pitch) * RotationZ(-roll);
-	return RotationX(-pitch) * RotationY(-yaw) * RotationZ(-roll);
 
+	// 기존 역회전 순서 유지
+	return RotationX(-pitch) * RotationY(-yaw) * RotationZ(-roll);
 }
 
 /**
@@ -237,8 +219,9 @@ FMatrix FMatrix::GetModelMatrix(const FVector& Location, const FVector& Rotation
 	FMatrix S = ScaleMatrix(Scale);
 	FMatrix modelMatrix = S * R * T;
 
-	// Dx11 y-up 왼손좌표계에서 정의된 물체의 정점을 UE z-up 왼손좌표계로 변환
-	return  FMatrix::UEToDx * modelMatrix;
+	// 좌표계 변환 제거: 정점 데이터와 Transform 모두 UE 좌표계로 통일
+	// 임포터에서 이미 UE 좌표계로 변환 완료됨
+	return modelMatrix;
 }
 
 FMatrix FMatrix::GetModelMatrixInverse(const FVector& Location, const FVector& Rotation, const FVector& Scale)
@@ -248,8 +231,8 @@ FMatrix FMatrix::GetModelMatrixInverse(const FVector& Location, const FVector& R
 	FMatrix S = ScaleMatrixInverse(Scale);
 	FMatrix modelMatrixInverse = T * R * S;
 
-	// UE 좌표계로 변환된 물체의 정점을 원래의 Dx 11 왼손좌표계 정점으로 변환
-	return modelMatrixInverse * FMatrix::DxToUE;
+	// 좌표계 변환 제거: 일관된 UE 좌표계 사용
+	return modelMatrixInverse;
 }
 
 FVector4 FMatrix::VectorMultiply(const FVector4& v, const FMatrix& m)
@@ -286,6 +269,76 @@ FMatrix FMatrix::Transpose() const
 	}
 
 	return result;
+}
+
+FMatrix FMatrix::MatrixLookAtLH(const FVector& EyePosition, const FVector& FocusPosition, const FVector& UpDirection)
+{
+    // 언리얼 엔진 표준 LookAt 행렬 (왼손 좌표계)
+    // UE는 행 우선(Row-major) 행렬 사용
+    FVector ZAxis = (FocusPosition - EyePosition).Normalized();  // Forward
+    FVector XAxis = ZAxis.Cross(UpDirection).Normalized();       // Right = Forward × Up (왼손 좌표계 수정!)
+    FVector YAxis = XAxis.Cross(ZAxis);                          // Up = Right × Forward
+
+    // 행 우선 방식으로 View Matrix 구성
+    FMatrix Result;
+    // Row 0: Right (XAxis)
+    Result.Data[0][0] = XAxis.X;
+    Result.Data[0][1] = XAxis.Y;
+    Result.Data[0][2] = XAxis.Z;
+    Result.Data[0][3] = -XAxis.Dot(EyePosition);
+
+    // Row 1: Up (YAxis)
+    Result.Data[1][0] = YAxis.X;
+    Result.Data[1][1] = YAxis.Y;
+    Result.Data[1][2] = YAxis.Z;
+    Result.Data[1][3] = -YAxis.Dot(EyePosition);
+
+    // Row 2: Forward (ZAxis)
+    Result.Data[2][0] = ZAxis.X;
+    Result.Data[2][1] = ZAxis.Y;
+    Result.Data[2][2] = ZAxis.Z;
+    Result.Data[2][3] = -ZAxis.Dot(EyePosition);
+
+    // Row 3: Homogeneous
+    Result.Data[3][0] = 0.0f;
+    Result.Data[3][1] = 0.0f;
+    Result.Data[3][2] = 0.0f;
+    Result.Data[3][3] = 1.0f;
+
+    return Result;
+}
+
+FMatrix FMatrix::MatrixOrthoLH(float ViewWidth, float ViewHeight, float NearZ, float FarZ)
+{
+    // Orthographic Projection
+    // Ortho는 원래 작동했으므로 원래대로 유지
+    FMatrix Result = FMatrix::Identity();
+    Result.Data[0][0] = 2.0f / ViewWidth;
+    Result.Data[1][1] = 2.0f / ViewHeight;
+    Result.Data[2][2] = 1.0f / (FarZ - NearZ);
+    Result.Data[3][2] = -NearZ / (FarZ - NearZ);
+    return Result;
+}
+
+FMatrix FMatrix::MatrixPerspectiveFovLH(float FovAngleY, float AspectRatio, float NearZ, float FarZ)
+{
+    // DirectX 표준 Projection은 column-vector용 (M*v)
+    // HLSL에서 mul(vector, matrix)는 row-vector 연산 (v*M)이므로 Transpose 필요
+    
+    float SinFov = sinf(0.5f * FovAngleY);
+    float CosFov = cosf(0.5f * FovAngleY);
+    float Height = CosFov / SinFov; // cot(fovY/2)
+    
+    // 표준 column-vector용 Projection
+    FMatrix Standard = {};
+    Standard.Data[0][0] = Height / AspectRatio;
+    Standard.Data[1][1] = -Height;  // Y축 반전 (DX NDC는 Y+가 위지만 렌더링 보정 필요)
+    Standard.Data[2][2] = FarZ / (FarZ - NearZ);
+    Standard.Data[2][3] = 1.0f;  // perspective divide: w' = z
+    Standard.Data[3][2] = -NearZ * FarZ / (FarZ - NearZ);
+    
+    // row-vector 연산을 위해 Transpose
+    return Standard.Transpose();
 }
 
 

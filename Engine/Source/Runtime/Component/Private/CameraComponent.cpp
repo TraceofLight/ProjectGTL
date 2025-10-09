@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Runtime/Component/Public/CameraComponent.h"
-#include "Render/Renderer/Public/Renderer.h"
 
 IMPLEMENT_CLASS(UCameraComponent, USceneComponent)
 
@@ -16,17 +15,19 @@ UCameraComponent::UCameraComponent()
 
 void UCameraComponent::UpdateVectors()
 {
-	FMatrix rotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(GetRelativeRotation()));
+	FMatrix RotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(GetRelativeRotation()));
 
-	FVector4 Forward4 = FVector4(1, 0, 0, 1) * rotationMatrix;
+	FVector4 Forward4 = FVector4(1, 0, 0, 1) * RotationMatrix;
 	Forward = FVector(Forward4.X, Forward4.Y, Forward4.Z);
 	Forward.Normalize();
 
-	FVector4 worldUp4 = FVector4(0, 0, 1, 1) * rotationMatrix;
-	FVector worldUp = {worldUp4.X, worldUp4.Y, worldUp4.Z};
-	Right = Forward.Cross(worldUp);
+	FVector4 UpVector4 = FVector4(0, 0, 1, 1) * RotationMatrix;
+	FVector UpVector = {UpVector4.X, UpVector4.Y, UpVector4.Z};
+
+	Right = UpVector.Cross(Forward);
 	Right.Normalize();
-	Up = Right.Cross(Forward);
+
+	Up = Forward.Cross(Right);
 	Up.Normalize();
 }
 
@@ -137,16 +138,24 @@ const FViewProjConstants UCameraComponent::GetFViewProjConstantsInverse() const
 		const float FovRadian = FVector::GetDegreeToRadian(FovY);
 		const float F = 1.0f / std::tanf(FovRadian * 0.5f);
 		FMatrix P = FMatrix::Identity();
-		// | aspect/F   0      0         0 |
-		// |    0      1/F     0         0 |
-		// |    0       0      0   -(zf-zn)/(zn*zf) |
-		// |    0       0      1        zf/(zn*zf)  |
+		// Inverse of perspective projection matrix:
+		// Original:
+		// | f/aspect   0        0              0          |
+		// |    0       f        0              0          |
+		// |    0       0   zf/(zf-zn)         1          |
+		// |    0       0  -zn*zf/(zf-zn)      0          |
+		// 
+		// Inverse:
+		// | aspect/f   0        0              0          |
+		// |    0      1/f       0              0          |
+		// |    0       0        0              1          |
+		// |    0       0   (zf-zn)/(zn*zf)   -zf/(zn*zf) |
 		P.Data[0][0] = Aspect / F;
 		P.Data[1][1] = 1.0f / F;
 		P.Data[2][2] = 0.0f;
-		P.Data[2][3] = -(FarZ - NearZ) / (NearZ * FarZ);
-		P.Data[3][2] = 1.0f;
-		P.Data[3][3] = FarZ / (NearZ * FarZ);
+		P.Data[2][3] = 1.0f;
+		P.Data[3][2] = (FarZ - NearZ) / (NearZ * FarZ);
+		P.Data[3][3] = -FarZ / (NearZ * FarZ);
 		Result.Projection = P;
 	}
 
@@ -160,17 +169,17 @@ float UCameraComponent::GetOrthographicHeight() const
 	float SafeFovY = max(5.0f, min(179.0f, abs(FovY))); // 절대값 사용 + 5도~179도 제한
 	float FovYRadians = FVector::GetDegreeToRadian(SafeFovY);
 	float TanHalfFov = std::tanf(FovYRadians * 0.5f);
-	
+
 	// TanHalfFov 값도 안전성 검사
 	if (TanHalfFov <= 0.0f || !isfinite(TanHalfFov))
 	{
 		return 10.0f; // 비정상 값이면 기본값 반환
 	}
-	
+
 	float OrthoWidth = 2.0f * TanHalfFov;
 	float SafeAspect = max(0.1f, Aspect); // Aspect 비율 안전 보장
 	float OrthographicHeight = OrthoWidth / SafeAspect;
-	
+
 	// 최소/최대 크기 보장 (기즈모가 사라지거나 너무 커지지 않도록)
 	return max(0.1f, min(1000.0f, OrthographicHeight));
 }

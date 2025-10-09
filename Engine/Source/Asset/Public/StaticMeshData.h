@@ -3,23 +3,42 @@
 #include "Global/Vector.h"
 #include "Global/CoreTypes.h"
 
+struct FStaticMeshSection;
 class UMaterialInterface;
 
 /**
- * @brief 스태틱 메시 내 객체의 재질 정보
- * 텍스처 경로 및 조명 매개변수를 포함한 모든 재질 속성을 포함.
+ * @brief OBJ 파일의 머티리얼 정보 (통합 버전)
+ * MTL 파일에서 읽어온 머티리얼 속성들 + DrawIndexedPrimitivesCommand 호환성
  */
 struct FObjMaterialInfo
 {
+	// 기본 머티리얼 정보
 	FString MaterialName;
+	
+	// 텍스쳐 경로들
 	FString DiffuseTexturePath;
 	FString NormalTexturePath;
 	FString SpecularTexturePath;
+	
+	// 색상 속성들 (기존 버전 유지)
 	FVector AmbientColorScalar = FVector(0.2f, 0.2f, 0.2f);
 	FVector DiffuseColorScalar = FVector(1.0f, 1.0f, 1.0f); 
 	FVector SpecularColorScalar = FVector(1.0f, 1.0f, 1.0f);
 	float ShininessScalar = 32.0f;
 	float TransparencyScalar = 1.0f;
+	
+	// DrawIndexedPrimitivesCommand 호환성을 위한 추가 속성들
+	FVector DiffuseColor = FVector(0.8f, 0.8f, 0.8f);      // Kd
+	FVector AmbientColor = FVector(0.2f, 0.2f, 0.2f);      // Ka
+	FVector SpecularColor = FVector(1.0f, 1.0f, 1.0f);     // Ks
+	FVector EmissiveColor = FVector(0.0f, 0.0f, 0.0f);     // Ke
+	float SpecularExponent = 32.0f;                        // Ns
+	float OpticalDensity = 1.0f;                           // Ni
+	float Transparency = 0.0f;                             // Tr or d
+	uint32 IlluminationModel = 2;                          // illum
+	
+	// 텍스쳐 파일명 (DrawIndexedPrimitivesCommand에서 사용)
+	std::string DiffuseTextureFileName;     // map_Kd
 
 	FObjMaterialInfo() = default;
 
@@ -84,15 +103,30 @@ struct FObjInfo
 };
 
 /**
- * @brief 스테틱 메시 섹션 구조
+ * @brief 언리얼 엔진 스타일 스테틱 메시 섹션 구조
  * @note 같은 섹션 내의 triangle들은 같은 material을 사용
+ * 기존 FGroupInfo/FMaterialSlot를 대체하는 언리얼 스타일 구조
  */
 struct FStaticMeshSection
 {
+	// 기본 인덱스 정보
 	int32 StartIndex = 0;   // 섹션의 시작 인덱스 (Indices 배열에서)
 	int32 IndexCount = 0;  // 섹션의 인덱스 개수
 	int32 MaterialSlotIndex = -1; // 슬롯은 UStaticMesh에서 관리
-	FString MaterialName; // 섹션에서 사용할 머티리얼 이름 (슬롯 매핑용)
+	
+	// 임시 데이터: OBJ 파싱 단계에서만 사용, 런타임에서는 MaterialSlotIndex 사용
+	FString MaterialName; // OBJ 'usemtl' 명령어에서 가져온 원본 이름 (파싱 전용)
+
+	// DrawIndexedPrimitivesCommand 호환성을 위한 헬퍼 메서드들
+	FString GroupName;       // 섹션 그룹 이름 (디버깅용)
+	uint32 GetStartIndex() const { return static_cast<uint32>(StartIndex); }
+	uint32 GetIndexCount() const { return static_cast<uint32>(IndexCount); }
+	
+	// Material Slot 매핑 로직
+	bool HasValidMaterialSlot() const { return MaterialSlotIndex >= 0; }
+	
+	// 파싱 단계 전용 (런타임에서는 MaterialSlotIndex 사용 권장)
+	bool HasMaterialName() const { return !MaterialName.IsEmpty(); }
 };
 
 /**

@@ -19,7 +19,7 @@ public:
 	~ACameraActor() override;
 
 	void BeginPlay() override;
-	void Tick() override;
+	void Tick(float DeltaSeconds) override;
 
 	// Camera Movement Speed Control
 	float GetMoveSpeed() const { return CurrentMoveSpeed; }
