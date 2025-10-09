@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Material/Public/Material.h"
-#include "Runtime/RHI/Public/RHIDevice.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
+#include "Runtime/Renderer/Public/MaterialRenderProxy.h"
 
 IMPLEMENT_CLASS(UMaterialInterface, UObject)
 IMPLEMENT_CLASS(UMaterial, UMaterialInterface)
@@ -8,18 +10,12 @@ IMPLEMENT_CLASS(UMaterialInstance, UMaterialInterface)
 
 UMaterial::~UMaterial()
 {
-	// SafeDelete(RenderProxy);
-	if (DiffuseTexture)
+	// RenderProxy 해제 (언리얼 엔진 방식)
+	if (RenderProxy)
 	{
-		GDynamicRHI->ReleaseTexture(DiffuseTexture);
-	}
-	if (NormalTexture)
-	{
-		GDynamicRHI->ReleaseTexture(NormalTexture);
-	}
-	if (SpecularTexture)
-	{
-		GDynamicRHI->ReleaseTexture(SpecularTexture);
+		RenderProxy->BeginReleaseResource();
+		delete RenderProxy;
+		RenderProxy = nullptr;
 	}
 }
 
@@ -33,69 +29,47 @@ const FObjMaterialInfo& UMaterial::GetMaterialInfo() const
 	return MaterialInfo;
 }
 
-void UMaterial::ImportAllTextures()
-{
-	const auto ImportTexture = [&](const FString& TexturePath, void (UMaterial::*Setter)(ID3D11ShaderResourceView*))
-	{
-		if (TexturePath.empty())
-		{
-			return;
-		}
-
-		std::wstring WTexturePath(TexturePath.begin(), TexturePath.end());
-		ID3D11ShaderResourceView* SRV = GDynamicRHI->CreateTextureFromFile(WTexturePath);
-
-		if (SRV)
-		{
-			(this->*Setter)(SRV);
-		}
-	};
-
-	ImportTexture(MaterialInfo.DiffuseTexturePath, &UMaterial::SetDiffuseTexture);
-	ImportTexture(MaterialInfo.NormalTexturePath, &UMaterial::SetNormalTexture);
-	ImportTexture(MaterialInfo.SpecularTexturePath, &UMaterial::SetSpecularTexture);
-}
-
-void UMaterial::SetDiffuseTexture(ID3D11ShaderResourceView* InTexture)
-{
-	DiffuseTexture = InTexture;
-}
-
-ID3D11ShaderResourceView* UMaterial::GetDiffuseTexture() const
-{
-	return DiffuseTexture;
-}
-
-void UMaterial::SetNormalTexture(ID3D11ShaderResourceView* InTexture)
-{
-	NormalTexture = InTexture;
-}
-
-ID3D11ShaderResourceView* UMaterial::GetNormalTexture() const
-{
-	return NormalTexture;
-}
-
-void UMaterial::SetSpecularTexture(ID3D11ShaderResourceView* InTexture)
-{
-	SpecularTexture = InTexture;
-}
-
-ID3D11ShaderResourceView* UMaterial::GetSpecularTexture() const
-{
-	return SpecularTexture;
-}
-
-// DrawIndexedPrimitivesCommand 호환성을 위한 메서드들 구현
+// DrawIndexedPrimitivesCommand 호환성을 위한 메서드들 구현 - 언리얼 방식
 UTexture* UMaterial::GetTexture() const
 {
-	// 기본적으로 DiffuseTexture를 UTexture로 캐스팅해서 반환
-	// 실제로는 UTexture 시스템과 연동해야 함
-	return nullptr; // 임시로 nullptr 반환
+	// DiffuseTexture 경로가 비어있으면 nullptr 반환
+	if (MaterialInfo.DiffuseTexturePath.empty())
+	{
+		return nullptr;
+	}
+
+	// AssetSubsystem에서 UTexture 로드/가져오기
+	UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
+	if (!AssetSubsystem)
+	{
+		UE_LOG_ERROR("UMaterial::GetTexture - AssetSubsystem is null!");
+		return nullptr;
+	}
+
+	// AssetSubsystem에서 텍스처 로드 (TObjectPtr에서 UTexture*로 변환)
+	TObjectPtr<UTexture> TexturePtr = AssetSubsystem->LoadTexture(MaterialInfo.DiffuseTexturePath);
+	return TexturePtr.Get(); // TObjectPtr에서 실제 포인터 반환
 }
 
 bool UMaterial::HasTexture() const
 {
-	return DiffuseTexture != nullptr || NormalTexture != nullptr || SpecularTexture != nullptr;
+	// 텍스처 경로가 비어있지 않으면 텍스처가 있는 것
+	return !MaterialInfo.DiffuseTexturePath.empty() ||
+	       !MaterialInfo.NormalTexturePath.empty() ||
+	       !MaterialInfo.SpecularTexturePath.empty();
+}
+
+FMaterialRenderProxy* UMaterial::GetRenderProxy() const
+{
+	// 지연 로딩: RenderProxy가 없으면 생성
+	if (!RenderProxy)
+	{
+		// const_cast 사용 (언리얼 엔진에서도 사용하는 패턴)
+		UMaterial* NonConstThis = const_cast<UMaterial*>(this);
+		NonConstThis->RenderProxy = new FMaterialRenderProxy(NonConstThis);
+		UE_LOG("UMaterial::GetRenderProxy - Created RenderProxy for material: %s", GetName().ToString().data());
+	}
+
+	return RenderProxy;
 }
 

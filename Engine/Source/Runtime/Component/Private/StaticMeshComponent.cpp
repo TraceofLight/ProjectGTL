@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Material/Public/Material.h"
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 
 IMPLEMENT_CLASS(UStaticMeshComponent, UMeshComponent)
 
@@ -234,4 +236,34 @@ const TArray<UMaterialInterface*>& UStaticMeshComponent::GetMaterailSlots() cons
 	// 빈 배열 반환
 	static TArray<UMaterialInterface*> EmptyMaterials;
 	return EmptyMaterials;
+}
+
+UMaterial* UStaticMeshComponent::GetMaterial() const
+{
+	// MaterialOverride가 있는 경우 첫 번째를 반환
+	if (UMaterialInterface* const* Found = MaterialOverrideMap.Find(0))
+	{
+		return Cast<UMaterial>(*Found);
+	}
+
+	// StaticMesh의 첫 번째 Material 슬롯 반환
+	if (StaticMesh)
+	{
+		const TArray<UMaterialInterface*>& MaterialSlots = StaticMesh->GetMaterialSlots();
+		if (MaterialSlots.Num() > 0 && MaterialSlots[0])
+		{
+			return Cast<UMaterial>(MaterialSlots[0]);
+		}
+	}
+
+	// AssetSubsystem에서 기본 Material 가져오기
+	UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
+	if (AssetSubsystem)
+	{
+		UMaterialInterface* DefaultMaterial = AssetSubsystem->GetDefaultMaterial();
+		return Cast<UMaterial>(DefaultMaterial);
+	}
+
+	// 모든 방법이 실패한 경우
+	return nullptr;
 }

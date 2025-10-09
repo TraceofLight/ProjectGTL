@@ -80,6 +80,9 @@ public:
 	// DrawIndexedPrimitivesCommand에서 필요한 메서드
 	const TArray<UMaterialInterface*>& GetMaterailSlots() const;
 
+	// PrimitiveComponent 오버라이드: 첫 번째 Material 슬롯 반환
+	virtual UMaterial* GetMaterial() const override;
+
 	/**
 	 * @brief 모든 머티리얼 오버라이드를 제거
 	 */

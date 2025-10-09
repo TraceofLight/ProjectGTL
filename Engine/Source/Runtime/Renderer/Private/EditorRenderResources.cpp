@@ -59,10 +59,63 @@ void FEditorRenderResources::Shutdown()
 		LineBatcher.Reset();
 	}
 
+	// Texture Resources 해제
+	ReleaseTextureResources();
+
 	RHIDevice = nullptr;
 	bIsInitialized = false;
 
 	UE_LOG("FEditorRenderResources: 종료 완료");
+}
+
+ID3D11ShaderResourceView* FEditorRenderResources::GetTextureResource(const FString& TexturePath)
+{
+	// 캐시에서 찾기
+	if (ComPtr<ID3D11ShaderResourceView>* Found = TextureResourceCache.Find(TexturePath))
+	{
+		return Found->Get();
+	}
+
+	// 없으면 새로 로드
+	if (!RHIDevice)
+	{
+		UE_LOG_ERROR("GetTextureResource - RHIDevice is null!");
+		return nullptr;
+	}
+
+	// 파일 경로를 와이드 스트링으로 변환
+	std::wstring WTexturePath(TexturePath.begin(), TexturePath.end());
+	
+	// RHIDevice를 통해 텍스처 로드
+	ID3D11ShaderResourceView* SRV = RHIDevice->CreateTextureFromFile(WTexturePath);
+	if (!SRV)
+	{
+		UE_LOG_ERROR("GetTextureResource - Failed to load texture: %s", TexturePath.c_str());
+		return nullptr;
+	}
+
+	// 캐시에 저장 (ComPtr가 자동 참조카운트 관리)
+	ComPtr<ID3D11ShaderResourceView> ComPtrSRV;
+	ComPtrSRV.Attach(SRV); // 소유권 이전
+	TextureResourceCache.Emplace(TexturePath, ComPtrSRV);
+
+	UE_LOG("GetTextureResource - Loaded texture: %s", TexturePath.c_str());
+	return SRV;
+}
+
+void FEditorRenderResources::ReleaseTextureResource(const FString& TexturePath)
+{
+	TextureResourceCache.Remove(TexturePath); // ComPtr이 자동으로 Release 호출
+}
+
+void FEditorRenderResources::ReleaseAllTextureResources()
+{
+	TextureResourceCache.Empty(); // 모든 ComPtr이 자동으로 Release 호출
+}
+
+void FEditorRenderResources::ReleaseTextureResources()
+{
+	ReleaseAllTextureResources();
 }
 
 ID3D11VertexShader* FEditorRenderResources::GetEditorVertexShader(EShaderType ShaderType) const
