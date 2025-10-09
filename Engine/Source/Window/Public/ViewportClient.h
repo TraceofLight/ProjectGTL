@@ -26,8 +26,12 @@ public:
 	// Camera Parameters
 	void SetFovY(float NewFovY) { FovY = NewFovY; }
 	void SetOrthoWidth(float NewWidth) { OrthoWidth = NewWidth; }
+	void SetNearZ(float NewNear) { NearZ = NewNear; }
+	void SetFarZ(float NewFar) { FarZ = NewFar; }
 	float GetFovY() const { return FovY; }
 	float GetOrthoWidth() const { return OrthoWidth; }
+	float GetNearZ() const { return NearZ; }
+	float GetFarZ() const { return FarZ; }
 
 	// View/Proj Matrix
 	FMatrix GetViewMatrix() const;

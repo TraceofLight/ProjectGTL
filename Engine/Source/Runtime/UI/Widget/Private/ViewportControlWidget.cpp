@@ -154,12 +154,56 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 					ImGui::SetItemDefaultFocus();
 			}
 
-			// Perspective 선택 시 하위 옵션 표시 - Camera deprecated
+			// Perspective 선택 시 하위 옵션 표시
 			if (CurType == EViewType::Perspective)
 			{
-				// TODO: Camera가 deprecated되어 FOV 등의 설정을 다른 방식으로 처리해야 함
-				// ImGui::Separator();
-				// ImGui::TextDisabled("VIEW");
+				ImGui::Separator();
+				ImGui::TextDisabled("VIEW");
+				
+				// FOV 설정
+				float CurrentFOV = Clients[ViewportIndex]->GetFovY();
+				ImGui::SetNextItemWidth(100.0f);
+				if (ImGui::SliderFloat("Field of View", &CurrentFOV, 10.0f, 170.0f, "%.1f"))
+				{
+					Clients[ViewportIndex]->SetFovY(CurrentFOV);
+				}
+				
+				// Near View Plane
+				float CurrentNear = Clients[ViewportIndex]->GetNearZ();
+				ImGui::SetNextItemWidth(100.0f);
+				if (ImGui::SliderFloat("Near View Plane", &CurrentNear, 0.001f, 10.0f, "%.3f"))
+				{
+					Clients[ViewportIndex]->SetNearZ(CurrentNear);
+				}
+				
+				// Far View Plane
+				float CurrentFar = Clients[ViewportIndex]->GetFarZ();
+				ImGui::SetNextItemWidth(100.0f);
+				if (CurrentFar >= 100000.0f)
+				{
+					ImGui::Text("Far View Plane: Infinity");
+				}
+				else
+				{
+					if (ImGui::SliderFloat("Far View Plane", &CurrentFar, 100.0f, 50000.0f, "%.0f"))
+					{
+						Clients[ViewportIndex]->SetFarZ(CurrentFar);
+					}
+				}
+				
+				// Infinity 토글 버튼
+				bool bIsInfinity = (CurrentFar >= 100000.0f);
+				if (ImGui::Checkbox("Infinity", &bIsInfinity))
+				{
+					if (bIsInfinity)
+					{
+						Clients[ViewportIndex]->SetFarZ(100000.0f);
+					}
+					else
+					{
+						Clients[ViewportIndex]->SetFarZ(10000.0f); // 기본값으로 설정
+					}
+				}
 			}
 
 			ImGui::EndCombo();
@@ -258,11 +302,8 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 		return;
 	}
 
-	// Perspective 뷰에서만 속도 컨트롤 표시
-	if (Client->GetViewType() != EViewType::Perspective)
-	{
-		return;
-	}
+	// 모든 뷰포트에서 카메라 스피드 컨트롤 표시
+	// Perspective와 Ortho 뷰 모두에서 사용 가능하도록 수정
 
 	// ViewportSubsystem에서 Perspective 카메라 속도 가져오기
 	float CurrentSpeed = ViewportManager->GetPerspectiveMoveSpeed();

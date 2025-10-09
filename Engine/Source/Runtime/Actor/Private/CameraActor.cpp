@@ -54,18 +54,19 @@ void ACameraActor::Tick(float DeltaSeconds)
 	int32 ViewportIndex = -1;
 
 	// 현재 카메라의 뷰포트 인덱스 찾기
-	if (auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>())
-	{
-		TArray<ACameraActor*> AllCameras = ViewportSS->GetAllCameras();
-		for (int32 i = 0; i < AllCameras.Num(); ++i)
-		{
-			if (AllCameras[i] == this)
-			{
-				ViewportIndex = i;
-				break;
-			}
-		}
-	}
+	// TODO(KHJ): 현재 CameraActor가 안 쓰여서 그냥 주석 처리함, 사용 시 바뀌어야 할 듯?
+	// if (auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>())
+	// {
+	// 	TArray<ACameraActor*> AllCameras = ViewportSS->GetAllCameras();
+	// 	for (int32 i = 0; i < AllCameras.Num(); ++i)
+	// 	{
+	// 		if (AllCameras[i] == this)
+	// 		{
+	// 			ViewportIndex = i;
+	// 			break;
+	// 		}
+	// 	}
+	// }
 
 	if (SceneHierarchyWidget && ViewportIndex >= 0)
 	{

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
+#include "Runtime/Component/Mesh/Public/VertexDatas.h"
 #include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Core/Public/VertexTypes.h"
 #include "Editor/Public/EditorPrimitive.h"
@@ -30,11 +31,11 @@ void FEditorRenderResources::Initialize(FRHIDevice* InRHIDevice)
 	LoadEditorShaders();
 	InitializeGrid();
 	InitializeGizmoResources();
-	
+
 	// LineBatcher 초기화
 	LineBatcher = MakeUnique<FLineBatcher>();
 	LineBatcher->Initialize(RHIDevice);
-	
+
 	bIsInitialized = true;
 
 	UE_LOG("FEditorRenderResources: 초기화 완료");
@@ -50,14 +51,14 @@ void FEditorRenderResources::Shutdown()
 	ReleaseEditorShaders();
 	ReleaseGrid();
 	ReleaseGizmoResources();
-	
+
 	// LineBatcher 종료
 	if (LineBatcher)
 	{
 		LineBatcher->Shutdown();
 		LineBatcher.Reset();
 	}
-	
+
 	RHIDevice = nullptr;
 	bIsInitialized = false;
 
@@ -296,26 +297,6 @@ void FEditorRenderResources::ReleaseGrid()
 	EditorGrid.Reset();
 }
 
-void FEditorRenderResources::RenderGrid(const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix, float CellSize)
-{
-	// 이 함수는 더 이상 사용되지 않습니다.
-	// 그리드 렌더링은 이제 DebugPass에서 BeginLineBatch/EndLineBatch를 통해 처리됩니다.
-	// EditorGrid의 CellSize만 업데이트합니다.
-
-	if (!EditorGrid)
-	{
-		return;
-	}
-
-	// CellSize 변경 시 Grid 업데이트
-	if (CellSize != EditorGrid->GetCellSize())
-	{
-		EditorGrid->UpdateVerticesBy(CellSize);
-	}
-}
-
-// Line batch methods removed - now using FLineBatcher class
-
 // Gizmo 관련 메서드 구현
 ID3D11Buffer* FEditorRenderResources::GetGizmoVertexBuffer(EPrimitiveType PrimitiveType) const
 {
@@ -336,94 +317,28 @@ void FEditorRenderResources::InitializeGizmoResources()
 		return;
 	}
 
-	// Arrow 생성 (Translation Gizmo)
+	ID3D11Buffer* ArrowBuffer = CreateVertexBuffer(VerticesArrow.GetData(),
+	                                               VerticesArrow.Num() * sizeof(FVertex), false);
+	if (ArrowBuffer)
 	{
-		// 간단한 Arrow 형태의 정점 데이터 (삼각형 목록)
-		TArray<FVector> ArrowVertices = {
-			// 화살표 몸체 (Cylinder)
-			FVector(0.0f, 0.0f, 0.0f), FVector(0.05f, 0.0f, 0.0f), FVector(0.0f, 0.05f, 0.0f),
-			FVector(0.0f, 0.0f, 0.0f), FVector(0.0f, 0.05f, 0.0f), FVector(-0.05f, 0.0f, 0.0f),
-			FVector(0.0f, 0.0f, 0.0f), FVector(-0.05f, 0.0f, 0.0f), FVector(0.0f, -0.05f, 0.0f),
-			FVector(0.0f, 0.0f, 0.0f), FVector(0.0f, -0.05f, 0.0f), FVector(0.05f, 0.0f, 0.0f),
-
-			// 화살표 몸체 연장
-			FVector(0.8f, 0.0f, 0.0f), FVector(0.85f, 0.0f, 0.0f), FVector(0.8f, 0.05f, 0.0f),
-			FVector(0.8f, 0.0f, 0.0f), FVector(0.8f, 0.05f, 0.0f), FVector(0.75f, 0.0f, 0.0f),
-
-			// 화살표 머리 (Cone)
-			FVector(0.8f, 0.0f, 0.0f), FVector(1.0f, 0.0f, 0.0f), FVector(0.9f, 0.1f, 0.0f),
-			FVector(0.8f, 0.0f, 0.0f), FVector(0.9f, 0.1f, 0.0f), FVector(0.9f, -0.1f, 0.0f),
-			FVector(0.8f, 0.0f, 0.0f), FVector(0.9f, -0.1f, 0.0f), FVector(1.0f, 0.0f, 0.0f)
-		};
-
-		ID3D11Buffer* ArrowBuffer = CreateVertexBuffer(ArrowVertices.GetData(),
-		                                               ArrowVertices.Num() * sizeof(FVector), false);
-		if (ArrowBuffer)
-		{
-			GizmoVertexBuffers[EPrimitiveType::Arrow] = ArrowBuffer;
-			GizmoVertexCounts[EPrimitiveType::Arrow] = ArrowVertices.Num();
-		}
+		GizmoVertexBuffers[EPrimitiveType::Arrow] = ArrowBuffer;
+		GizmoVertexCounts[EPrimitiveType::Arrow] = VerticesArrow.Num();
 	}
 
-	// Ring 생성 (Rotation Gizmo)
+	ID3D11Buffer* RingBuffer = CreateVertexBuffer(VerticesRing.GetData(),
+	                                              VerticesRing.Num() * sizeof(FVertex), false);
+	if (RingBuffer)
 	{
-		TArray<FVector> RingVertices;
-		const int32 RingSegments = 32;
-		const float Radius = 1.0f;
-		const float Thickness = 0.05f;
-
-		// Ring 생성 (삼각형 리스트)
-		for (int32 i = 0; i < RingSegments; ++i)
-		{
-			float Angle1 = (static_cast<float>(i) / RingSegments) * 2.0f * PI;
-			float Angle2 = (static_cast<float>((i + 1) % RingSegments) / RingSegments) * 2.0f * PI;
-
-			FVector Inner1(cos(Angle1) * (Radius - Thickness), sin(Angle1) * (Radius - Thickness), 0.0f);
-			FVector Outer1(cos(Angle1) * (Radius + Thickness), sin(Angle1) * (Radius + Thickness), 0.0f);
-			FVector Inner2(cos(Angle2) * (Radius - Thickness), sin(Angle2) * (Radius - Thickness), 0.0f);
-			FVector Outer2(cos(Angle2) * (Radius + Thickness), sin(Angle2) * (Radius + Thickness), 0.0f);
-
-			// 기본 리인 세그먼트만 생성
-			RingVertices.Add(Inner1);
-			RingVertices.Add(Inner2);
-			RingVertices.Add(Outer1);
-
-			RingVertices.Add(Inner2);
-			RingVertices.Add(Outer2);
-			RingVertices.Add(Outer1);
-		}
-
-		ID3D11Buffer* RingBuffer = CreateVertexBuffer(RingVertices.GetData(),
-		                                              RingVertices.Num() * sizeof(FVector), false);
-		if (RingBuffer)
-		{
-			GizmoVertexBuffers[EPrimitiveType::Ring] = RingBuffer;
-			GizmoVertexCounts[EPrimitiveType::Ring] = RingVertices.Num();
-		}
+		GizmoVertexBuffers[EPrimitiveType::Ring] = RingBuffer;
+		GizmoVertexCounts[EPrimitiveType::Ring] = VerticesRing.Num();
 	}
 
-	// CubeArrow 생성 (Scale Gizmo)
+	ID3D11Buffer* CubeArrowBuffer = CreateVertexBuffer(VerticesCubeArrow.GetData(),
+	                                                   VerticesCubeArrow.Num() * sizeof(FVertex), false);
+	if (CubeArrowBuffer)
 	{
-		// 간단한 사각형 + Arrow 형태
-		TArray<FVector> CubeArrowVertices = {
-			// Cube 부분
-			FVector(0.0f, -0.05f, -0.05f), FVector(0.8f, -0.05f, -0.05f), FVector(0.8f, 0.05f, -0.05f),
-			FVector(0.0f, -0.05f, -0.05f), FVector(0.8f, 0.05f, -0.05f), FVector(0.0f, 0.05f, -0.05f),
-
-			FVector(0.0f, -0.05f, 0.05f), FVector(0.8f, 0.05f, 0.05f), FVector(0.8f, -0.05f, 0.05f),
-			FVector(0.0f, -0.05f, 0.05f), FVector(0.0f, 0.05f, 0.05f), FVector(0.8f, 0.05f, 0.05f),
-
-			// Arrow 머리
-			FVector(0.8f, -0.1f, 0.0f), FVector(1.0f, 0.0f, 0.0f), FVector(0.8f, 0.1f, 0.0f)
-		};
-
-		ID3D11Buffer* CubeArrowBuffer = CreateVertexBuffer(CubeArrowVertices.GetData(),
-		                                                   CubeArrowVertices.Num() * sizeof(FVector), false);
-		if (CubeArrowBuffer)
-		{
-			GizmoVertexBuffers[EPrimitiveType::CubeArrow] = CubeArrowBuffer;
-			GizmoVertexCounts[EPrimitiveType::CubeArrow] = CubeArrowVertices.Num();
-		}
+		GizmoVertexBuffers[EPrimitiveType::CubeArrow] = CubeArrowBuffer;
+		GizmoVertexCounts[EPrimitiveType::CubeArrow] = VerticesCubeArrow.Num();
 	}
 
 	UE_LOG("기즈모 리소스 초기화 완료");

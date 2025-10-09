@@ -91,9 +91,6 @@ public:
 	 */
 	int32 GetViewportIndexUnderMouse() const;
 
-	/**
-	 * @brief 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
-	 */
 	bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;
 
 	TArray<FViewport*>& GetViewports() { return Viewports; }
@@ -103,11 +100,9 @@ public:
 	EViewportChange GetViewportChange() const { return ViewportChange; }
 	void SetViewportChange(EViewportChange InChange) { ViewportChange = InChange; }
 
-	// New camera management API
-	ACameraActor* GetActiveCameraForViewport(int32 InViewportIndex) const;
-	TArray<ACameraActor*> GetAllCameras() const;
+	// Viewport management API
 	void SetViewportViewType(int32 InViewportIndex, EViewType InNewType);
-	
+
 	// Perspective camera speed
 	float GetPerspectiveMoveSpeed() const { return PerspectiveMoveSpeed; }
 	void SetPerspectiveMoveSpeed(float NewSpeed) { PerspectiveMoveSpeed = NewSpeed; }
@@ -144,8 +139,6 @@ private:
 
 	void ForceRefreshOrthoViewsAfterLayoutChange();
 
-	void ApplySharedOrthoCenterToAllCameras() const;
-
 	// 애니메이션 시스템 내부 함수들
 	void StartViewportAnimation(bool bSingleToQuad, int32 PromoteIdx = -1);
 	void UpdateViewportAnimation();
@@ -177,7 +170,7 @@ private:
 
 	float SharedFovY = 150.0f;
 	float SharedY = 0.5f;
-	
+
 	// Perspective 카메라 이동 속도
 	float PerspectiveMoveSpeed = 30.0f;
 
@@ -280,7 +273,8 @@ struct FUEImgui
 				DL->AddRect(CMin, CMax, ic, 3.f, 0, 1.2f);
 			}
 			break;
-		default: break;
+		default:
+			break;
 		}
 		ImGui::PopID();
 		return bPressed;

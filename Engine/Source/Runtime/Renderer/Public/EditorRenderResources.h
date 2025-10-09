@@ -39,9 +39,6 @@ public:
     // 버퍼 업데이트
     void UpdateVertexBuffer(ID3D11Buffer* Buffer, const TArray<FVector>& Vertices);
 
-    // Grid 렌더링
-    void RenderGrid(const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix, float CellSize = 10.0f);
-
     // LineBatcher 접근자
     FLineBatcher* GetLineBatcher() const { return LineBatcher.Get(); }
 

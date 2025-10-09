@@ -255,7 +255,7 @@ FRay UEditor::CreateWorldRayFromMouse(const FViewportClient* InViewportClient, i
 	// Ray 생성
 	FRay Ray;
 	Ray.Origin = NearPointWorld4;
-	
+
 	// Direction 계산: FarPoint - NearPoint
 	Ray.Direction = FVector4(
 		FarPointWorld4.X - NearPointWorld4.X,
@@ -263,10 +263,10 @@ FRay UEditor::CreateWorldRayFromMouse(const FViewportClient* InViewportClient, i
 		FarPointWorld4.Z - NearPointWorld4.Z,
 		0.0f // Direction은 벡터이므로 W=0
 	);
-	
+
 	// Normalize
-	float Length = std::sqrt(Ray.Direction.X * Ray.Direction.X + 
-	                        Ray.Direction.Y * Ray.Direction.Y + 
+	float Length = std::sqrt(Ray.Direction.X * Ray.Direction.X +
+	                        Ray.Direction.Y * Ray.Direction.Y +
 	                        Ray.Direction.Z * Ray.Direction.Z);
 	if (Length > 0.0001f)
 	{
@@ -274,7 +274,7 @@ FRay UEditor::CreateWorldRayFromMouse(const FViewportClient* InViewportClient, i
 		Ray.Direction.Y /= Length;
 		Ray.Direction.Z /= Length;
 	}
-	
+
 	return Ray;
 }
 
@@ -826,28 +826,6 @@ FVector UEditor::GetGizmoDragScale(const FRay& InWorldRay, const FViewportClient
 	{
 		return Gizmo->GetActorScale();
 	}
-}
-
-/**
- * @brief 현재 사용하는 Viewport의 카메라를 가져오는 함수
- * @deprecated 더 이상 사용하지 않습니다. Viewport와 ViewportClient를 직접 사용하세요.
- * @return 타입에 따라 Perspective / Orthogonal Viewport 카메라
- */
-[[deprecated("Use ViewportSubsystem and ViewportClient directly instead")]]
-ACameraActor* UEditor::GetActivePickingCamera()
-{
-	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	if (!ViewportManager)
-	{
-		return nullptr;
-	}
-
-	// Get the viewport index under the mouse, default to 0 if none.
-	int32 Index = ViewportManager->GetViewportIndexUnderMouse();
-	Index = max(Index, 0);
-
-	// Get the active camera for that viewport directly from the subsystem.
-	return ViewportManager->GetActiveCameraForViewport(Index);
 }
 
 bool UEditor::IsShowFlagEnabled(EEngineShowFlags ShowFlag) const

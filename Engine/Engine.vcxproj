@@ -176,6 +176,7 @@
     <ClInclude Include="Source\Runtime\Renderer\Public\LineBatcher.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\PresentCommands.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\RenderCommand.h" />
+    <ClInclude Include="Source\Runtime\Renderer\Public\RenderGizmoPrimitiveCommand.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\RHICommandList.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\SetBlendStateCommand.h" />
     <ClInclude Include="Source\Runtime\Renderer\Public\SetDepthStencilStateCommand.h" />
@@ -342,6 +343,7 @@
     <ClCompile Include="Source\Runtime\Renderer\Private\EndLineBatchCommand.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\LineBatcher.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\PresentCommands.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\Private\RenderGizmoPrimitiveCommand.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\RHICommandList.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\SetBlendStateCommand.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\Private\SetDepthStencilStateCommand.cpp" />

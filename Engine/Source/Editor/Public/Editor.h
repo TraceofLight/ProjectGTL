@@ -84,7 +84,4 @@ private:
 
 	// View Type에 따른 기저 변환
 	static void CalculateBasisVectorsForViewType(EViewType InViewType, FVector& OutForward, FVector& OutRight, FVector& OutUp);
-
-	[[deprecated("Use ViewportSubsystem and ViewportClient directly instead")]]
-	static ACameraActor* GetActivePickingCamera();
 };

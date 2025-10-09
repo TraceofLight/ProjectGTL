@@ -762,8 +762,8 @@ void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 		Up = FVector(0.0f, 0.0f, -1.0f);        // -Z (반대)
 		break;
 	case EViewType::OrthoLeft:
-		// Left: ViewMatrix Right=-X, Up=+Z → 드래그는 반대
-		Right = FVector(1.0f, 0.0f, 0.0f);      // +X (반대)
+		// Left: ViewMatrix Right=+X, Up=+Z → 드래그는 반대
+		Right = FVector(-1.0f, 0.0f, 0.0f);     // -X (반대)
 		Up = FVector(0.0f, 0.0f, -1.0f);        // -Z (반대)
 		break;
 	case EViewType::OrthoRight:
@@ -971,47 +971,13 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 	SyncRectsToViewports();
 
 	// 2) 각 클라이언트에 카메라 재바인딩 + Update + OnResize
-	const int32 N = static_cast<int32>(Clients.Num());
+	const int32 N = Clients.Num();
 	for (int32 i = 0; i < N; ++i)
 	{
 		FViewportClient* Client = Clients[i];
-		if (!Client) continue;
-
-		const EViewType Viewport = Client->GetViewType();
-		if (Viewport == EViewType::Perspective)
+		if (!Client)
 		{
-			// Camera deprecated
-			// if (i < static_cast<int32>(PerspectiveCameras.Num()) && PerspectiveCameras[i])
-			// {
-			// 	PerspectiveCameras[i]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
-			// }
-		}
-		else
-		{
-			// 오쏘: ViewType → 6방향 인덱스 매핑
-			int OrthoIdx = -1;
-			switch (Viewport)
-			{
-			case EViewType::OrthoTop: OrthoIdx = 0;
-				break;
-			case EViewType::OrthoBottom: OrthoIdx = 1;
-				break;
-			case EViewType::OrthoLeft: OrthoIdx = 2;
-				break;
-			case EViewType::OrthoRight: OrthoIdx = 3;
-				break;
-			case EViewType::OrthoFront: OrthoIdx = 4;
-				break;
-			case EViewType::OrthoBack: OrthoIdx = 5;
-				break;
-			default: break;
-			}
-
-			// Camera deprecated
-			// if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.Num()))
-			// {
-			// 	ACameraActor* Camera = OrthoGraphicCameras[OrthoIdx];
-			// }
+			continue;
 		}
 
 		// 크기 반영(툴바 높이 포함) — 깜빡임/툴바 좌표 안정화
@@ -1057,16 +1023,6 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 	ActiveRmbViewportIdx = -1;
 }
 
-void UViewportSubsystem::ApplySharedOrthoCenterToAllCameras() const
-{
-	// Camera deprecated - 이 함수는 더 이상 사용하지 않음
-	// OrthoGraphicCamerapoint 기준으로 6개 오쉐 카메라 위치 갱신
-	// for (ACameraActor* Camera : OrthoGraphicCameras)
-	// {
-	// ...
-	// }
-}
-
 void UViewportSubsystem::PersistSplitterRatios()
 {
 	if (!Root)
@@ -1101,12 +1057,12 @@ void UViewportSubsystem::TickInput()
 	const FVector& MousePosition = InputSubsystem->GetMousePosition();
 	FPoint Point{static_cast<LONG>(MousePosition.X), static_cast<LONG>(MousePosition.Y)};
 
-	SWindow* Target = nullptr;
+	SWindow* Target;
 
 	if (Capture != nullptr)
 	{
 		// 드래그 캡처 중이면, 히트 테스트 없이 캡처된 위젯으로 고정
-		Target = static_cast<SWindow*>(Capture);
+		Target = Capture;
 	}
 	else
 	{
@@ -1177,11 +1133,21 @@ int32 UViewportSubsystem::GetViewportIndexUnderMouse() const
 	return -1;
 }
 
+/**
+ * @brief 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산 (true면 성공)
+ */
 bool UViewportSubsystem::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, float& OutNdcY) const
 {
-	if (InIdx < 0 || InIdx >= static_cast<int32>(Viewports.Num())) return false;
+	if (InIdx < 0 || InIdx >= Viewports.Num())
+	{
+		return false;
+	}
+
 	const FRect& Rect = Viewports[InIdx]->GetRect();
-	if (Rect.W <= 0 || Rect.H <= 0) return false;
+	if (Rect.W <= 0 || Rect.H <= 0)
+	{
+		return false;
+	}
 
 	// 툴바 높이를 고려한 실제 렌더링 영역 기준으로 NDC 계산
 	const int32 ToolbarHeight = Viewports[InIdx]->GetToolbarHeight();
@@ -1725,19 +1691,6 @@ void UViewportSubsystem::FinalizeFourSplitLayoutFromAnimation()
 	LastPromotedIdx = -1;
 
 	ForceRefreshOrthoViewsAfterLayoutChange();
-}
-
-ACameraActor* UViewportSubsystem::GetActiveCameraForViewport(int32 InViewportIndex) const
-{
-    // Camera deprecated - 더 이상 카메라를 반환하지 않음
-    return nullptr;
-}
-
-TArray<ACameraActor*> UViewportSubsystem::GetAllCameras() const
-{
-    // Camera deprecated - 빈 배열 반환
-    TArray<ACameraActor*> AllCameras;
-    return AllCameras;
 }
 
 void UViewportSubsystem::SetViewportViewType(int32 InViewportIndex, EViewType InNewType)
