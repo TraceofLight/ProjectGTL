@@ -94,4 +94,9 @@ struct FMatrix
 	static FVector VectorMultiply(const FVector& v, const FMatrix& m);
 
 	FMatrix Transpose() const;
+	FMatrix Inverse() const;
+	
+	// Get row vectors
+	FVector GetRow(int32 RowIndex) const;
+	FVector4 GetRow4(int32 RowIndex) const;
 };

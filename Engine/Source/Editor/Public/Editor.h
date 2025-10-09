@@ -6,6 +6,8 @@
 #include "Runtime/Level/Public/Level.h"
 
 class FEditorRenderResources;
+class FViewportClient;
+class FViewport;
 
 UCLASS()
 class UEditor :
@@ -69,19 +71,20 @@ private:
 	void HandleViewportInteraction();
 	void UpdateSelectionBounds();
 	void HandleGlobalShortcuts();
-	static FRay CreateWorldRayFromMouse(const ACameraActor* InPickingCamera);
+	static FRay CreateWorldRayFromMouse(const FViewportClient* InViewportClient, int32 InViewportIndex);
 	void UpdateGizmoDrag(const FRay& InWorldRay, ACameraActor& InPickingCamera);
 	void HandleNewInteraction(const FRay& InWorldRay);
 	static TArray<UPrimitiveComponent*> FindCandidateActors(const ULevel* InLevel);
 
-	FVector GetGizmoDragLocation(const FRay& InWorldRay, ACameraActor& InCamera);
-	FVector GetGizmoDragLocationForPerspective(const FRay& InWorldRay, ACameraActor& InCamera);
-	FVector GetGizmoDragLocationForOrthographic(const ACameraActor& InCamera);
-	FVector GetGizmoDragRotation(const FRay& InWorldRay);
-	FVector GetGizmoDragScale(const FRay& InWorldRay, ACameraActor& InCamera);
+	FVector GetGizmoDragLocation(const FRay& InWorldRay, const FViewportClient* InViewportClient, const FViewport* InViewport, int32 InViewportIndex);
+	FVector GetGizmoDragLocationForPerspective(const FRay& InWorldRay, const FViewportClient* InViewportClient, int32 InViewportIndex);
+	FVector GetGizmoDragLocationForOrthographic(const FViewportClient* InViewportClient, const FViewport* InViewport, int32 InViewportIndex);
+	FVector GetGizmoDragRotation(const FRay& InWorldRay, int32 InViewportIndex);
+	FVector GetGizmoDragScale(const FRay& InWorldRay, const FViewportClient* InViewportClient, int32 InViewportIndex);
 
 	// View Type에 따른 기저 변환
 	static void CalculateBasisVectorsForViewType(EViewType InViewType, FVector& OutForward, FVector& OutRight, FVector& OutUp);
 
+	[[deprecated("Use ViewportSubsystem and ViewportClient directly instead")]]
 	static ACameraActor* GetActivePickingCamera();
 };
