@@ -117,7 +117,7 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
 	P.Color = ColorFor(EGizmoDirection::Right, ViewportIndex);
 	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
-	// Z성 (Up) - 파란색 (Y성 주위로 -90도 회전)
+	// Z축 (Up) - 파란색 (Y축 주위로 -90도 회전)
 	FQuaternion RotZ = LocalRotation * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
 	P.Rotation = RotZ.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Up, ViewportIndex);

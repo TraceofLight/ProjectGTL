@@ -74,8 +74,11 @@ public:
 	// 샘플러 상태 설정
 	void PSSetDefaultSampler(UINT StartSlot);
 
-	// 셰이더 설정
+	// 셔이더 설정
 	void SetShader(TObjectPtr<UShader> InShader);
+
+	// Scissor Rect 설정
+	void SetScissorRect(int32 Left, int32 Top, int32 Right, int32 Bottom);
 
 	// 렌더 타겟 관리
 	bool BeginFrame();

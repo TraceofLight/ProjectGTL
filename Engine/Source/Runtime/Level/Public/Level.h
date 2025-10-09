@@ -5,7 +5,6 @@
 
 class AAxis;
 class UGizmo;
-class UGrid;
 class AActor;
 class UPrimitiveComponent;
 

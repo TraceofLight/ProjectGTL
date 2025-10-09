@@ -15,17 +15,19 @@ UCameraComponent::UCameraComponent()
 
 void UCameraComponent::UpdateVectors()
 {
-	FMatrix rotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(GetRelativeRotation()));
+	FMatrix RotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(GetRelativeRotation()));
 
-	FVector4 Forward4 = FVector4(1, 0, 0, 1) * rotationMatrix;
+	FVector4 Forward4 = FVector4(1, 0, 0, 1) * RotationMatrix;
 	Forward = FVector(Forward4.X, Forward4.Y, Forward4.Z);
 	Forward.Normalize();
 
-	FVector4 worldUp4 = FVector4(0, 0, 1, 1) * rotationMatrix;
-	FVector worldUp = {worldUp4.X, worldUp4.Y, worldUp4.Z};
-	Right = Forward.Cross(worldUp);
+	FVector4 UpVector4 = FVector4(0, 0, 1, 1) * RotationMatrix;
+	FVector UpVector = {UpVector4.X, UpVector4.Y, UpVector4.Z};
+
+	Right = UpVector.Cross(Forward);
 	Right.Normalize();
-	Up = Right.Cross(Forward);
+
+	Up = Forward.Cross(Right);
 	Up.Normalize();
 }
 

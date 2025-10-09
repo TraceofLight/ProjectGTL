@@ -42,10 +42,10 @@ public:
     void RenderGrid(const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix, float CellSize = 10.0f);
 
     // Line Batching 렌더링
-    void BeginLineBatch();
-    void AddLine(const FVector& Start, const FVector& End, const FVector4& Color = FVector4(1,1,1,1));
-    void AddLines(const TArray<FVector>& StartPoints, const TArray<FVector>& EndPoints, const TArray<FVector4>& Colors);
-    void EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix);
+	void BeginLineBatch();
+	void AddLine(const FVector& Start, const FVector& End, const FVector4& Color = FVector4(1,1,1,1));
+	void AddLines(const TArray<FVector>& StartPoints, const TArray<FVector>& EndPoints, const TArray<FVector4>& Colors);
+	void EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix, const FRect* ScissorRect = nullptr);
 
     // Gizmo 관련
     ID3D11Buffer* GetGizmoVertexBuffer(EPrimitiveType PrimitiveType) const;

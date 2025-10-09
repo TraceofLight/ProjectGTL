@@ -344,7 +344,7 @@ void FEditorRenderResources::AddLines(const TArray<FVector>& StartPoints, const 
 }
 
 void FEditorRenderResources::EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix,
-                                          const FMatrix& ProjectionMatrix)
+                                          const FMatrix& ProjectionMatrix, const FRect* ScissorRect)
 {
 	if (!bLineBatchActive || !RHIDevice || BatchedLineStartPoints.IsEmpty())
 	{
@@ -397,18 +397,42 @@ void FEditorRenderResources::EndLineBatch(const FMatrix& ModelMatrix, const FMat
 			DeviceContext->OMSetDepthStencilState(depthState, 0);
 		}
 
+		// Blend State 설정 (색상 쓰기 활성화)
+		D3D11_BLEND_DESC blendDesc = {};
+		blendDesc.RenderTarget[0].BlendEnable = FALSE;
+		blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+		ID3D11BlendState* blendState = nullptr;
+		RHIDevice->GetDevice()->CreateBlendState(&blendDesc, &blendState);
+		if (blendState)
+		{
+			DeviceContext->OMSetBlendState(blendState, nullptr, 0xFFFFFFFF);
+		}
+
 		// Rasterizer State 설정
 		D3D11_RASTERIZER_DESC ResterizerDescription = {};
 		ResterizerDescription.FillMode = D3D11_FILL_SOLID;
-		ResterizerDescription.CullMode = D3D11_CULL_NONE; // Culling 끄기
+		ResterizerDescription.CullMode = D3D11_CULL_NONE; // Culling 꺼기
 		ResterizerDescription.FrontCounterClockwise = FALSE;
 		ResterizerDescription.DepthClipEnable = TRUE;
+		ResterizerDescription.ScissorEnable = TRUE;  // Scissor 테스트 활성화
 
 		ID3D11RasterizerState* rastState = nullptr;
 		RHIDevice->GetDevice()->CreateRasterizerState(&ResterizerDescription, &rastState);
 		if (rastState)
 		{
 			DeviceContext->RSSetState(rastState);
+		}
+
+		// Scissor Rect 설정 (전달받은 경우)
+		if (ScissorRect)
+		{
+			D3D11_RECT D3DScissorRect;
+			D3DScissorRect.left = static_cast<LONG>(ScissorRect->X);
+			D3DScissorRect.top = static_cast<LONG>(ScissorRect->Y);
+			D3DScissorRect.right = static_cast<LONG>(ScissorRect->X + ScissorRect->W);
+			D3DScissorRect.bottom = static_cast<LONG>(ScissorRect->Y + ScissorRect->H);
+			DeviceContext->RSSetScissorRects(1, &D3DScissorRect);
 		}
 
 		// 쉐이더 설정
@@ -430,6 +454,10 @@ void FEditorRenderResources::EndLineBatch(const FMatrix& ModelMatrix, const FMat
 		if (depthState)
 		{
 			depthState->Release();
+		}
+		if (blendState)
+		{
+			blendState->Release();
 		}
 		if (rastState)
 		{

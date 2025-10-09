@@ -229,7 +229,6 @@
     <ClInclude Include="Source\Editor\Public\Editor.h" />
     <ClInclude Include="Source\Editor\Public\EditorPrimitive.h" />
     <ClInclude Include="Source\Editor\Public\Gizmo.h" />
-    <ClInclude Include="Source\Editor\Public\Grid.h" />
     <ClInclude Include="Source\Editor\Public\ObjectPicker.h" />
     <ClInclude Include="Source\Factory\Actor\Public\ActorFactory.h" />
     <ClInclude Include="Source\Factory\Component\Public\ComponentFactory.h" />
@@ -379,7 +378,6 @@
     <ClCompile Include="Source\Editor\Private\BoundingBoxLines.cpp" />
     <ClCompile Include="Source\Editor\Private\Editor.cpp" />
     <ClCompile Include="Source\Editor\Private\Gizmo.cpp" />
-    <ClCompile Include="Source\Editor\Private\Grid.cpp" />
     <ClCompile Include="Source\Editor\Private\ObjectPicker.cpp" />
     <ClCompile Include="Source\Factory\Actor\Private\ActorFactory.cpp" />
     <ClCompile Include="Source\Factory\Component\Private\ComponentFactories.cpp" />

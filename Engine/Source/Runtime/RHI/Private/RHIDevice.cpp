@@ -501,6 +501,7 @@ void FRHIDevice::CreateRasterizerStates()
 		desc.FillMode = D3D11_FILL_SOLID;
 		desc.CullMode = D3D11_CULL_BACK;
 		desc.DepthClipEnable = TRUE;
+		desc.ScissorEnable = TRUE;  // Scissor 테스트 활성화
 
 		ID3D11RasterizerState* state = nullptr;
 		HRESULT hr = Device->CreateRasterizerState(&desc, &state);
@@ -516,6 +517,7 @@ void FRHIDevice::CreateRasterizerStates()
 		desc.FillMode = D3D11_FILL_SOLID;
 		desc.CullMode = D3D11_CULL_BACK;
 		desc.DepthClipEnable = TRUE;
+		desc.ScissorEnable = TRUE;  // Scissor 테스트 활성화
 
 		ID3D11RasterizerState* state = nullptr;
 		HRESULT hr = Device->CreateRasterizerState(&desc, &state);
@@ -531,6 +533,7 @@ void FRHIDevice::CreateRasterizerStates()
 		desc.FillMode = D3D11_FILL_WIREFRAME;
 		desc.CullMode = D3D11_CULL_BACK;
 		desc.DepthClipEnable = TRUE;
+		desc.ScissorEnable = TRUE;  // Scissor 테스트 활성화
 
 		ID3D11RasterizerState* state = nullptr;
 		HRESULT hr = Device->CreateRasterizerState(&desc, &state);
@@ -1018,6 +1021,23 @@ void FRHIDevice::SetShader(TObjectPtr<UShader> InShader)
 		DeviceContext->PSSetShader(nullptr, nullptr, 0);
 		DeviceContext->IASetInputLayout(nullptr);
 	}
+}
+
+void FRHIDevice::SetScissorRect(int32 Left, int32 Top, int32 Right, int32 Bottom)
+{
+	if (!bIsInitialized || !DeviceContext)
+	{
+		UE_LOG_ERROR("RHIDevice: SetScissorRect 실패 - 초기화되지 않았습니다");
+		return;
+	}
+
+	D3D11_RECT ScissorRect;
+	ScissorRect.left = static_cast<LONG>(Left);
+	ScissorRect.top = static_cast<LONG>(Top);
+	ScissorRect.right = static_cast<LONG>(Right);
+	ScissorRect.bottom = static_cast<LONG>(Bottom);
+
+	DeviceContext->RSSetScissorRects(1, &ScissorRect);
 }
 
 void FRHIDevice::OMSetDepthWriteEnabled(bool bEnabled)

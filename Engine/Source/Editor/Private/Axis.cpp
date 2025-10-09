@@ -1,52 +1,43 @@
 #include "pch.h"
 #include "Editor/Public/Axis.h"
-
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
-#include "Runtime/RHI/Public/D3D11RHIModule.h"
 
-UAxis::UAxis(FD3D11RHIModule* InRenderModule)
-	: RenderModule(InRenderModule)
+IMPLEMENT_CLASS(UAxis, UObject)
+
+UAxis::UAxis() = default;
+
+UAxis::~UAxis() = default;
+
+/**
+ * @brief EditorRenderResources의 Line Batch에 축 라인을 추가하는 함수
+ * @param EditorResources Line Batch를 지원하는 EditorRenderResources
+ * @param AxisLength 축의 길이
+ */
+void UAxis::AddAxisLinesToBatch(FEditorRenderResources* EditorResources, float AxisLength)
 {
-	// UE x(forward)
-	AxisVertices.Add({ { 0.0f,0.0f,50000.0f }, { 1,0,0,1 } });
-	AxisVertices.Add({ { 0.0f,0.0f,0.0f }, { 1,0,0,1 } });
-
-	// UE y(right)
-	AxisVertices.Add({ { 50000.0f,0.0f,0.0f }, { 0,1,0,1 } });
-	AxisVertices.Add({ { 0.0f,0.0f,0.0f }, { 0,1,0,1 } });
-
-	// UE z(up)
-	AxisVertices.Add({ { 0.0f,50000.0f,0.0f }, { 0,0,1,1 } });
-	AxisVertices.Add({ { 0.0f,0.0f,0.0f }, { 0,0,1,1 } });
-
-	Primitive.NumVertices = AxisVertices.Num();
-	if (FEditorRenderResources* EditorResources = RenderModule->GetEditorResources())
+	if (!EditorResources)
 	{
-		Primitive.Vertexbuffer = EditorResources->CreateVertexBuffer(AxisVertices.GetData(), Primitive.NumVertices * sizeof(FVertex));
+		return;
 	}
-	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-	Primitive.Color = FVector4(1, 1, 1, 0);
-	Primitive.Location = FVector(0, 0, 0);
-	Primitive.Rotation = FVector(0, 0, 0);
-	Primitive.Scale = FVector(1, 1, 1);
-}
 
-UAxis::~UAxis()
-{
-	if(RenderModule)
-	{
-		if (FEditorRenderResources* EditorResources = RenderModule->GetEditorResources())
-		{
-			EditorResources->ReleaseVertexBuffer(Primitive.Vertexbuffer);
-		}
-	}
-}
+	// X축 (Forward) - 빨간색
+	EditorResources->AddLine(
+		FVector(0.0f, 0.0f, 0.0f),
+		FVector(AxisLength, 0.0f, 0.0f),
+		FVector4(1.0f, 0.0f, 0.0f, 1.0f)
+	);
 
-void UAxis::Render()
-{
-	if(!RenderModule) return;
-	if (FEditorRenderResources* EditorResources = RenderModule->GetEditorResources())
-	{
-		EditorResources->RenderPrimitiveIndexed(Primitive, Primitive.RenderState, false, sizeof(FVertex), 0);
-	}
+	// Y축 (Right) - 초록색
+	EditorResources->AddLine(
+		FVector(0.0f, 0.0f, 0.0f),
+		FVector(0.0f, AxisLength, 0.0f),
+		FVector4(0.0f, 1.0f, 0.0f, 1.0f)
+	);
+
+	// Z축 (Up) - 파란색
+	EditorResources->AddLine(
+		FVector(0.0f, 0.0f, 0.0f),
+		FVector(0.0f, 0.0f, AxisLength),
+		FVector4(0.0f, 0.0f, 1.0f, 1.0f)
+	);
 }

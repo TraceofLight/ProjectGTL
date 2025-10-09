@@ -1,20 +1,18 @@
 #pragma once
 #include "Runtime/Core/Public/Object.h"
-#include "Editor/Public/EditorPrimitive.h"
-#include "Global/CoreTypes.h"
 
-class FD3D11RHIModule;
+class FEditorRenderResources;
 
+UCLASS()
 class UAxis :
 	public UObject
 {
-public:
-	UAxis(FD3D11RHIModule* InRenderModule);
-	~UAxis() override;
-	void Render();
+	GENERATED_BODY()
+	DECLARE_CLASS(UAxis, UObject)
 
-private:
-	FD3D11RHIModule* RenderModule = nullptr;
-	FEditorPrimitive Primitive;
-	TArray<FVertex> AxisVertices;
+public:
+	UAxis();
+	~UAxis() override;
+
+	static void AddAxisLinesToBatch(FEditorRenderResources* EditorResources, float AxisLength = 50000.0f);
 };

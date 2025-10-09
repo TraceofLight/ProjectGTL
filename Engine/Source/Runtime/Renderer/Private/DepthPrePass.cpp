@@ -36,6 +36,9 @@ void FDepthPrePass::Execute(const FSceneView* View, FSceneRenderer* SceneRendere
             RenderActorDepth(Actor, View, SceneRenderer);
         }
     }
+
+    // Depth Pre-Pass 완료 후 Color Write 다시 활성화
+    GDynamicRHI->OMSetColorWriteEnabled(true);
 }
 
 void FDepthPrePass::RenderActorDepth(AActor* Actor, const FSceneView* View, FSceneRenderer* SceneRenderer)

@@ -40,25 +40,15 @@ void FBasePass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 		return;
 	}
 
-	// 비 매트릭스 계산
-	ACameraActor* Camera = View->GetCamera();
+	// Camera deprecated - View에서 직접 행렬 가져오기
 	FViewport* Viewport = View->GetViewport();
-
-	if (!Camera || !Viewport)
+	if (!Viewport)
 	{
 		return;
 	}
 
-	// UCameraComponent에서 ViewProjConstants 가져오기
-	UCameraComponent* CameraComp = Camera->GetCameraComponent();
-	if (!CameraComp)
-	{
-		return;
-	}
-
-	const FViewProjConstants& ViewProjConsts = CameraComp->GetFViewProjConstants();
-	FMatrix ViewMatrix = ViewProjConsts.View;
-	FMatrix ProjectionMatrix = ViewProjConsts.Projection;
+	FMatrix ViewMatrix = View->GetViewMatrix();
+	FMatrix ProjectionMatrix = View->GetProjectionMatrix();
 
 	// 뉴 모드 설정 (CommandList로 처리)
 	EViewMode ViewModeIndex = View->GetViewModeIndex();

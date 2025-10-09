@@ -41,11 +41,6 @@ public:
 	void InitializeViewportSystem(FAppWindow* InWindow);
 
 	/**
-	 * @brief 매 프레임 업데이트
-	 */
-	void Update();
-
-	/**
 	 * @brief 오버레이 렌더링 (ImGui 등)
 	 */
 	void RenderOverlay();
@@ -138,6 +133,8 @@ private:
 	void UpdateOrthoGraphicCameraPoint();
 
 	void UpdateOrthoGraphicCameraFov() const;
+
+	void UpdatePerspectiveCamera();
 
 	void BindOrthoGraphicCameraToClient() const;
 

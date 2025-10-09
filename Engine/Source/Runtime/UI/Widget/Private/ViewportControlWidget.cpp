@@ -2,6 +2,7 @@
 #include "Runtime/UI/Widget/Public/ViewportControlWidget.h"
 
 #include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Renderer/Public/EditorGrid.h"
 #include "Window/Public/ViewportClient.h"
 #include "Window/Public/Viewport.h"
 #include "Window/Public/Splitter.h"
@@ -298,16 +299,8 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 
 void UViewportControlWidget::RenderGridSizeControl()
 {
-	// D3D11RHIModule을 통해 EditorRenderResources 접근
-	FD3D11RHIModule& RHIModule = FD3D11RHIModule::GetInstance();
-	FEditorRenderResources* EditorResources = RHIModule.GetEditorResources();
-	if (!EditorResources)
-	{
-		return;
-	}
-
-	// 현재 그리드 사이즈는 정적 변수로 관리 (임시 해결책)
-	static float CurrentGridSize = 1.0f;
+	// 현재 그리드 사이즈
+	float CurrentGridSize = FEditorGrid::GetCellSize();
 
 	// 그리드 사이즈 표시
 	ImGui::Text("Grid: %.1f", CurrentGridSize);
@@ -334,9 +327,8 @@ void UViewportControlWidget::RenderGridSizeControl()
 			(void)snprintf(GridText, sizeof(GridText), "%.1f", GridSize);
 			if (ImGui::MenuItem(GridText, nullptr, bIsSelected))
 			{
-				CurrentGridSize = GridSize;
-				UE_LOG("ViewportControl: 그리드 사이즈를 %.1f로 변경", GridSize);
-				// TODO: EditorRenderResources에 Grid 사이즈 업데이트 메서드 추가 필요
+				FEditorGrid::SetCellSize(GridSize);
+				UE_LOG("뷰포트컨트롤: 그리드 사이즈를 %.1f로 변경", GridSize);
 			}
 		}
 
@@ -346,8 +338,7 @@ void UViewportControlWidget::RenderGridSizeControl()
 		float TempGridSize = CurrentGridSize;
 		if (ImGui::SliderFloat("세밀 조정", &TempGridSize, 0.1f, 50.0f, "%.1f"))
 		{
-			CurrentGridSize = TempGridSize;
-			// TODO: EditorRenderResources에 Grid 사이즈 업데이트 메서드 추가 필요
+			FEditorGrid::SetCellSize(TempGridSize);
 		}
 
 		ImGui::EndPopup();

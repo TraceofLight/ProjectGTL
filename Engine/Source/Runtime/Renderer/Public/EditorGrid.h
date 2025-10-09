@@ -1,48 +1,36 @@
 ﻿#pragma once
 
-#include "Runtime/Core/Public/Object.h"
+class FEditorRenderResources;
 
 /**
  * @brief Editor에서 사용하는 Grid 렌더링 클래스
- * 기존 UGrid를 FEditorGrid로 변경하여 Renderer 모듈로 이동
  */
 class FEditorGrid
 {
 public:
-    FEditorGrid();
-    ~FEditorGrid();
+	FEditorGrid();
+	~FEditorGrid();
 
-    void UpdateVerticesBy(float NewCellSize);
-    void MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartIndex);
+	static void AddGridLinesToBatch(
+		FEditorRenderResources* EditorResources,
+		float CellSize = 1.0f,
+		int32 NumLines = 250,
+		const FVector4& Color = FVector4(0.5f, 0.5f, 0.5f, 1.0f)
+	);
 
-    uint32 GetNumVertices() const
-    {
-        return NumVertices;
-    }
+	void UpdateVerticesBy(float InCellSize);
+	void MergeVerticesAt(TArray<FVector>& destVertices, size_t insertStartIndex);
 
-    float GetCellSize() const
-    {
-        return CellSize;
-    }
+	uint32 GetNumVertices() const { return NumVertices; }
+	static float GetCellSize() { return CellSize; }
+	const TArray<FVector>& GetVertices() const { return Vertices; }
+	int32 GetNumLines() const { return NumLines; }
 
-    void SetCellSize(const float newCellSize)
-    {
-        CellSize = newCellSize;
-    }
-
-    const TArray<FVector>& GetVertices() const
-    {
-        return Vertices;
-    }
-
-    int GetNumLines() const
-    {
-        return NumLines;
-    }
+	static void SetCellSize(const float InCellSize) { CellSize = InCellSize; }
 
 private:
-    float CellSize = 1.0f;
-    int NumLines = 250;
-    TArray<FVector> Vertices;
-    uint32 NumVertices;
+	static float CellSize;
+	int NumLines = 250;
+	TArray<FVector> Vertices;
+	int32 NumVertices;
 };

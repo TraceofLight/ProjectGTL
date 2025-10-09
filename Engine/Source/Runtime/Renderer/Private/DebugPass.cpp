@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Runtime/Renderer/Public/DebugPass.h"
 
 #include "Runtime/Core/Public/VertexTypes.h"
@@ -10,12 +10,14 @@
 #include "Runtime/Subsystem/World/Public/WorldSubsystem.h"
 #include "Window/Public/Viewport.h"
 #include "Editor/Public/Editor.h"
+#include "Editor/Public/Axis.h"
 #include "Runtime/Renderer/Public/EditorRenderResources.h"
 #include "Runtime/Renderer/Public/EditorGrid.h"
 #include "Runtime/RHI/Public/D3D11RHIModule.h"
 #include "Runtime/Component/Public/CameraComponent.h"
 #include "Runtime/Level/Public/Level.h"
 #include "Runtime/Component/Public/BillBoardComponent.h"
+#include "Window/Public/ViewportClient.h"
 
 FDebugPass::~FDebugPass()
 {
@@ -120,37 +122,12 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 	// Line Batching 시작
 	EditorResources->BeginLineBatch();
 
-	// 언리얼 엔진 표준 원점 축 라인 (X=Red, Y=Green, Z=Blue)
-	// 축의 길이를 충분히 길게 설정
-	const float AxisLength = 10000.0f; // 매우 긴 축
-	
-	// X축 (Forward) - 빨간색 (양방향)
-	EditorResources->AddLine(FVector(-AxisLength, 0.0f, 0.0f), FVector(AxisLength, 0.0f, 0.0f), FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	
-	// Y축 (Right) - 녹색 (양방향)
-	EditorResources->AddLine(FVector(0.0f, -AxisLength, 0.0f), FVector(0.0f, AxisLength, 0.0f), FVector4(0.0f, 1.0f, 0.0f, 1.0f));
-	
-	// Z축 (Up) - 파란색 (양방향)
-	EditorResources->AddLine(FVector(0.0f, 0.0f, -AxisLength), FVector(0.0f, 0.0f, AxisLength), FVector4(0.0f, 0.0f, 1.0f, 1.0f));
-	
-	// 그리드는 일단 비활성화
-	// TODO: 나중에 ShowFlag로 제어 가능하게 하기
-	/*
-	FEditorGrid* EditorGrid = EditorResources->GetEditorGrid();
-	if (EditorGrid)
-	{
-		const TArray<FVector>& Vertices = EditorGrid->GetVertices();
-		FVector4 GridColor(0.5f, 0.5f, 0.5f, 1.0f);
-		
-		for (int32 i = 0; i < Vertices.Num(); i += 2)
-		{
-			if (i + 1 < Vertices.Num())
-			{
-				EditorResources->AddLine(Vertices[i], Vertices[i + 1], GridColor);
-			}
-		}
-	}
-	*/
+	// UAxis를 사용하여 좌표축 라인 추가
+	UAxis::AddAxisLinesToBatch(EditorResources);
+
+	// 전역 그리드 사이즈 가져오기
+	const float GridSize = FEditorGrid::GetCellSize();
+	FEditorGrid::AddGridLinesToBatch(EditorResources, GridSize, 250, FVector4(0.5f, 0.5f, 0.5f, 1.0f));
 
 	// 언리얼에서는 ULevel에서 액터들을 가져옴
 	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
@@ -176,7 +153,8 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 	// Line Batching 종료 - 항상 호출
 	FMatrix ViewMatrix = View->GetViewMatrix();
 	FMatrix ProjectionMatrix = View->GetProjectionMatrix();
-	EditorResources->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
+	const FRect& ViewRect = View->GetViewRect();
+	EditorResources->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix, &ViewRect);
 }
 
 void FDebugPass::RenderGizmos(const FSceneView* View, FSceneRenderer* SceneRenderer, UEditor* Editor)

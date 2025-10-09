@@ -29,24 +29,31 @@ void FSceneView::Initialize(TObjectPtr<ACameraActor> InCamera, FViewport* InView
     Viewport = InViewport;
     World = InWorld;
 
-    if (Viewport)
-    {
-        ViewportSize = FVector2(
-            static_cast<float>(Viewport->GetSizeX()),
-            static_cast<float>(Viewport->GetSizeY())
-        );
+	if (Viewport)
+	{
+		const FRect& viewportRect = Viewport->GetRect();
+		const LONG ToolbarHeight = static_cast<LONG>(Viewport->GetToolbarHeight());
 
-        const FRect& viewportRect = Viewport->GetRect();
-        ViewRect = FRect(
-            viewportRect.X, viewportRect.Y,viewportRect.X + viewportRect.W,viewportRect.Y + viewportRect.H
-        );
+		// 툴바를 제외한 실제 렌더링 영역 계산
+		const float RenderWidth = static_cast<float>(viewportRect.W);
+		const float RenderHeight = static_cast<float>(max<LONG>(0, viewportRect.H - ToolbarHeight));
 
-        // Aspect Ratio 계산
-        if (ViewportSize.Y > 0)
-        {
-            AspectRatio = ViewportSize.X / ViewportSize.Y;
-        }
-    }
+		ViewportSize = FVector2(RenderWidth, RenderHeight);
+
+		// ViewRect는 툴바 아래 영역만 포함 (화면 좌표)
+		ViewRect = FRect{
+			viewportRect.X,
+			viewportRect.Y + ToolbarHeight,
+			viewportRect.W,
+			max<LONG>(0, viewportRect.H - ToolbarHeight)
+		};
+
+		// Aspect Ratio 계산
+		if (ViewportSize.Y > 0)
+		{
+			AspectRatio = ViewportSize.X / ViewportSize.Y;
+		}
+	}
 
     UpdateViewMatrices();
 }
@@ -87,27 +94,32 @@ void FSceneView::InitializeWithMatrices(
     ViewLocation = InViewLocation;
     ViewRotation = FQuaternion::FromEuler(InViewRotation);
 
-    // 뷰포트 정보 설정
-    if (Viewport)
-    {
-        ViewportSize = FVector2(
-            static_cast<float>(Viewport->GetSizeX()),
-            static_cast<float>(Viewport->GetSizeY())
-        );
+	// 뷰포트 정보 설정
+	if (Viewport)
+	{
+		const FRect& viewportRect = Viewport->GetRect();
+		const LONG ToolbarHeight = static_cast<LONG>(Viewport->GetToolbarHeight());
 
-        const FRect& viewportRect = Viewport->GetRect();
-        ViewRect = FRect(
-            viewportRect.X, viewportRect.Y,
-            viewportRect.X + viewportRect.W,
-            viewportRect.Y + viewportRect.H
-        );
+		// 툴바를 제외한 실제 렌더링 영역 계산
+		const float RenderWidth = static_cast<float>(viewportRect.W);
+		const float RenderHeight = static_cast<float>(max<LONG>(0, viewportRect.H - ToolbarHeight));
 
-        // Aspect Ratio 계산
-        if (ViewportSize.Y > 0)
-        {
-            AspectRatio = ViewportSize.X / ViewportSize.Y;
-        }
-    }
+		ViewportSize = FVector2(RenderWidth, RenderHeight);
+
+		// ViewRect는 툴바 아래 영역만 포함 (화면 좌표)
+		ViewRect = FRect{
+			viewportRect.X,
+			viewportRect.Y + ToolbarHeight,
+			viewportRect.W,
+			max<LONG>(0, viewportRect.H - ToolbarHeight)
+		};
+
+		// Aspect Ratio 계산
+		if (ViewportSize.Y > 0)
+		{
+			AspectRatio = ViewportSize.X / ViewportSize.Y;
+		}
+	}
 }
 
 /**

@@ -1,7 +1,8 @@
 cbuffer PerFrame : register(b0)
 {
-	row_major float4x4 View; // View Matrix Calculation of MVP Matrix
-	row_major float4x4 Projection; // Projection Matrix Calculation of MVP Matrix
+	row_major float4x4 Model;      // Model/World Matrix
+	row_major float4x4 View;       // View Matrix
+	row_major float4x4 Projection; // Projection Matrix
 };
 
 struct VS_INPUT

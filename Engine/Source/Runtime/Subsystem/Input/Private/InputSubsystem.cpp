@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Runtime/Subsystem/Input/Public/InputSubsystem.h"
 #include "Runtime/Core/Public/AppWindow.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 
 IMPLEMENT_CLASS(UInputSubsystem, UEngineSubsystem)
 
@@ -219,7 +220,7 @@ bool UInputSubsystem::IsKeyReleased(EKeyInput InKey) const
 	const bool bIsCurrentlyDown = CurrentKeyState.FindRef(InKey);
 	const bool bWasPreviouslyDown = PreviousKeyState.FindRef(InKey);
 
-	return bIsCurrentlyDown && !bWasPreviouslyDown;
+	return !bIsCurrentlyDown && bWasPreviouslyDown;
 }
 
 void UInputSubsystem::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LParam)
@@ -230,13 +231,26 @@ void UInputSubsystem::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM 
 		return;
 	}
 
-	// ImGui가 초기화되었고 마우스나 키보드를 캡처하고 있는 경우 입력 처리를 중단
+	// ImGui가 초기화되었고 마우스나 키보드를 캘처하고 있는 경우 입력 처리를 중단
+	// 단, 마우스가 뷰포트 영역 내에 있으면 ImGui 체크를 우회
 	if (ImGui::GetCurrentContext() != nullptr)
 	{
 		ImGuiIO& IO = ImGui::GetIO();
 		if (IO.WantCaptureMouse || IO.WantCaptureKeyboard)
 		{
-			return;
+			// 마우스가 뷰포트 영역 내에 있는지 확인
+			bool bInViewport = false;
+			if (auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>())
+			{
+				int32 ViewportIdx = ViewportSS->GetViewportIndexUnderMouse();
+				bInViewport = (ViewportIdx >= 0);
+			}
+
+			// 뷰포트 외부에서만 ImGui 입력 캐처 존중
+			if (!bInViewport)
+			{
+				return;
+			}
 		}
 	}
 

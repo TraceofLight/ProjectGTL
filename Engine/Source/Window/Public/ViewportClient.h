@@ -77,7 +77,7 @@ private:
 	// Camera Parameters
 	float FovY = 90.0f;
 	float OrthoWidth = 100.0f;
-	float NearZ = 1.0f;
+	float NearZ = 0.1f;
 	float FarZ = 10000.0f;
 
 	// 뷰/입력 상태
