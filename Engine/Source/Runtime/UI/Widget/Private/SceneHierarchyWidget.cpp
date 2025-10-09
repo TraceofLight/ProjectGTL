@@ -24,15 +24,16 @@ void USceneHierarchyWidget::Initialize()
 
 void USceneHierarchyWidget::Update()
 {
-	// 카메라 애니메이션 업데이트 (카메라별로 개별 진행)
+	// 뷰포트 애니메이션 업데이트 (뷰포트별로 개별 진행)
 	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 
-	// Update all cameras managed by the subsystem
-	for (ACameraActor* Camera : ViewportSS->GetAllCameras())
+	// Update all viewports managed by the subsystem
+	const auto& Viewports = ViewportSS->GetViewports();
+	for (int32 i = 0; i < Viewports.Num(); ++i)
 	{
-		if (Camera && CameraAnimatingStates[Camera->GetName()])
+		if (ViewportAnimatingStates[i])
 		{
-			UpdateCameraAnimation(TObjectPtr(Camera));
+			UpdateViewportAnimation(i);
 		}
 	}
 }
@@ -328,17 +329,19 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 
 		Editor->SetSelectedActor(InActor);
 
-		// 카메라 포커싱은 더블 클릭에서만 수행
+		// 뷰포트 포커싱은 더블 클릭에서만 수행
 		// 우클릭 중에는 포커싱하지 않음 (카메라 조작 모드)
 		UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
 		if (InActor && bInFocusCamera && InputSubsystem && !InputSubsystem->IsKeyDown(EKeyInput::MouseRight))
 		{
 			auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+			if (!ViewportSS) return;
 
-			// Start focus on all cameras
-			for (ACameraActor* Camera : ViewportSS->GetAllCameras())
+			// 모든 뷰포트에 포커싱 적용
+			const auto& Viewports = ViewportSS->GetViewports();
+			for (int32 i = 0; i < Viewports.Num(); ++i)
 			{
-				FocusOnActor(TObjectPtr(Camera), InActor);
+				FocusOnActor(i, InActor);
 			}
 		}
 		else
@@ -348,98 +351,121 @@ void USceneHierarchyWidget::SelectActor(TObjectPtr<AActor> InActor, bool bInFocu
 	}
 }
 /**
- * @brief 단일 카메라를 특정 Actor에 포커스하는 함수
- * @param InCamera 포커싱 처리할 카메라
+ * @brief 특정 뷰포트를 Actor에 포커스하는 함수
+ * @param ViewportIndex 포커싱할 뷰포트 인덱스
  * @param InActor 포커스할 Actor
  */
-void USceneHierarchyWidget::FocusOnActor(TObjectPtr<ACameraActor> InCamera, TObjectPtr<AActor> InActor)
+void USceneHierarchyWidget::FocusOnActor(int32 ViewportIndex, TObjectPtr<AActor> InActor)
 {
-	if (!InCamera || !InActor)
+	if (!InActor)
 	{
 		return;
 	}
 
-	FName CameraName = InCamera->GetName();
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	if (!ViewportSS) return;
 
-	// 이미 해당 카메라가 애니메이션 중이면 무시
-	if (CameraAnimatingStates[CameraName])
+	const auto& Viewports = ViewportSS->GetViewports();
+	const auto& Clients = ViewportSS->GetClients();
+	if (ViewportIndex < 0 || ViewportIndex >= Viewports.Num()) return;
+
+	// 이미 해당 뷰포트가 애니메이션 중이면 무시
+	if (ViewportAnimatingStates[ViewportIndex])
 	{
 		return;
 	}
 
-	// 현재 카메라의 위치와 회전을 저장
-	CameraStartLocations[CameraName] = InCamera->GetActorLocation();
-	CameraCurrentRotations[CameraName] = InCamera->GetActorRotation();
+	FViewportClient* Client = Clients[ViewportIndex];
+	if (!Client) return;
+
+	// 현재 뷰포트의 위치를 저장
+	ViewportStartLocations[ViewportIndex] = Client->GetViewLocation();
 
 	FVector ActorLocation = InActor->GetActorLocation();
 	FVector TargetLocation;
 
-	if (InCamera->GetCameraComponent()->GetCameraType() == ECameraType::ECT_Orthographic)
+	if (Client->IsOrtho())
 	{
-		// Orthographic 카메라의 경우, 오브젝트를 화면 중심에 위치시키기 위해
-		// 카메라의 현재 뷰 방향을 유지하면서 위치만 조정
-		FVector CurrentCameraLocation = InCamera->GetActorLocation();
-		FVector CameraForward = InCamera->GetCameraComponent()->GetForward();
+		// Orthographic 뷰포트의 경우, 오브젝트를 화면 중심에 위치시키기 위해
+		// 현재 뷰 방향을 유지하면서 위치만 조정
+		FVector CurrentLocation = Client->GetViewLocation();
+		FVector ViewRotation = Client->GetViewRotation();
 
-		// Actor 위치에서 카메라 위치로의 벡터
-		FVector ToCamera = CurrentCameraLocation - ActorLocation;
+		// Forward 벡터 계산 (Yaw, Pitch로부터)
+		float Yaw = ViewRotation.Y * (3.14159265f / 180.0f);
+		float Pitch = ViewRotation.X * (3.14159265f / 180.0f);
+		FVector Forward(
+			cos(Pitch) * cos(Yaw),
+			cos(Pitch) * sin(Yaw),
+			sin(Pitch)
+		);
 
-		// Forward 방향의 거리는 유지 (뷰 축과의 거리 유지)
-		float ForwardDistance = ToCamera.Dot(CameraForward);
+		// Actor 위치에서 현재 위치로의 벡터
+		FVector ToCamera = CurrentLocation - ActorLocation;
 
-		// Actor 위치에서 Forward 방향으로 현재 거리만큼 떨어진 지점을 타겟으로 설정
-		// 이렇게 하면 오브젝트가 화면 중앙에 위치하게 됨
-		TargetLocation = ActorLocation + (CameraForward * ForwardDistance);
+		// Forward 방향의 거리는 유지
+		float ForwardDistance = ToCamera.Dot(Forward);
 
-		UE_LOG_SUCCESS("SceneHierarchy: Ortho 카메라 포커싱 완료");
+		// Actor 위치에서 Forward 방향으로 현재 거리만큼 떨어진 지점
+		TargetLocation = ActorLocation + (Forward * ForwardDistance);
 	}
 	else
 	{
-		// 카메라의 정확한 Forward 벡터를 사용하여 화면 중앙 배치 보정
-		// Camera 클래스에서 이미 계산된 정확한 Forward 벡터 사용
-		FVector CameraForward = InCamera->GetCameraComponent()->GetForward();
-		TargetLocation = ActorLocation - (CameraForward * FOCUS_DISTANCE);
+		// Perspective 뷰포트
+		FVector ViewRotation = Client->GetViewRotation();
+
+		// Forward 벡터 계산
+		float Yaw = ViewRotation.Y * (3.14159265f / 180.0f);
+		float Pitch = ViewRotation.X * (3.14159265f / 180.0f);
+		FVector Forward(
+			cos(Pitch) * cos(Yaw),
+			cos(Pitch) * sin(Yaw),
+			sin(Pitch)
+		);
+
+		TargetLocation = ActorLocation - (Forward * FOCUS_DISTANCE);
 	}
 
-	// Actor를 정확히 화면 중앙에 놓기 위해 Forward 방향의 반대로 거리를 둔 위치에 카메라 배치
-	// 이렇게 하면 카메라 회전 유지 상태에서 Actor가 정확히 화면 중심에 위치함
-	CameraTargetLocations[CameraName] = TargetLocation;
+	ViewportTargetLocations[ViewportIndex] = TargetLocation;
 
-	// 카메라별 애니메이션 시작
-	CameraAnimatingStates[CameraName] = true;
-	CameraAnimationTimes[CameraName] = 0.0f;
-	CameraAnimationTargets[CameraName] = InActor;
+	// 뷰포트 애니메이션 시작
+	ViewportAnimatingStates[ViewportIndex] = true;
+	ViewportAnimationTimes[ViewportIndex] = 0.0f;
+	ViewportAnimationTargets[ViewportIndex] = InActor;
 }
 
 /**
- * @brief 단일 카메라 애니메이션을 업데이트하는 함수
+ * @brief 단일 뷰포트 애니메이션을 업데이트하는 함수
  * 선형 보간을 활용한 부드러운 움직임을 구현함
  */
-void USceneHierarchyWidget::UpdateCameraAnimation(TObjectPtr<ACameraActor> InCamera)
+void USceneHierarchyWidget::UpdateViewportAnimation(int32 ViewportIndex)
 {
-	if (!InCamera)
+	auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	if (!ViewportSS) return;
+
+	const auto& Viewports = ViewportSS->GetViewports();
+	const auto& Clients = ViewportSS->GetClients();
+	if (ViewportIndex < 0 || ViewportIndex >= Viewports.Num()) return;
+
+	// 해당 뷰포트가 애니메이션 중인지 확인
+	if (!ViewportAnimatingStates[ViewportIndex])
 	{
 		return;
 	}
 
-	FName CameraName = InCamera->GetName();
+	FViewportClient* Client = Clients[ViewportIndex];
+	if (!Client) return;
 
-	// 해당 카메라가 애니메이션 중인지 확인
-	if (!CameraAnimatingStates[CameraName])
-	{
-		return;
-	}
-
-	CameraAnimationTimes[CameraName] += DT;
+	ViewportAnimationTimes[ViewportIndex] += ImGui::GetIO().DeltaTime;
 
 	// 애니메이션 진행 비율 계산
-	float Progress = CameraAnimationTimes[CameraName] / CAMERA_ANIMATION_DURATION;
+	float Progress = ViewportAnimationTimes[ViewportIndex] / CAMERA_ANIMATION_DURATION;
 
 	if (Progress >= 1.0f)
 	{
 		// 애니메이션 완료
 		Progress = 1.0f;
-		CameraAnimatingStates[CameraName] = false;
+		ViewportAnimatingStates[ViewportIndex] = false;
 	}
 
 	// Easing 함수를 사용하여 부드러운 움직임 확보 (easeInOutQuart)
@@ -456,27 +482,27 @@ void USceneHierarchyWidget::UpdateCameraAnimation(TObjectPtr<ACameraActor> InCam
 		SmoothProgress = 1.0f - 8.0f * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd;
 	}
 
-	FVector CameraStartLocation = CameraStartLocations[CameraName];
-	FVector CameraTargetLocation = CameraTargetLocations[CameraName];
+	FVector ViewportStartLocation = ViewportStartLocations[ViewportIndex];
+	FVector ViewportTargetLocation = ViewportTargetLocations[ViewportIndex];
 
 	// Linear interpolation으로 위치 보간
-	FVector CurrentLocation = CameraStartLocation + (CameraTargetLocation - CameraStartLocation) * SmoothProgress;
+	FVector CurrentLocation = ViewportStartLocation + (ViewportTargetLocation - ViewportStartLocation) * SmoothProgress;
 
-	// 카메라 위치 설정
-	// 의도가 카메라의 위치만 옮겨서 화면 중앙에 오브젝트를 두는 것이었기 때문에 Rotation은 처리하지 않음
-	InCamera->SetActorLocation(CurrentLocation);
+	// 뷰포트 위치 설정
+	// 의도가 뷰포트의 위치만 옮겨서 화면 중앙에 오브젝트를 두는 것이었기 때문에 Rotation은 처리하지 않음
+	Client->SetViewLocation(CurrentLocation);
 
-	if (!CameraAnimatingStates[CameraName])
+	if (!ViewportAnimatingStates[ViewportIndex])
 	{
-		UE_LOG_SUCCESS("SceneHierarchy: %s: 포커싱 애니메이션 완료", CameraName.ToString().data());
+		UE_LOG_SUCCESS("SceneHierarchy: 뷰포트 %d: 포커싱 애니메이션 완료", ViewportIndex);
 
-		// 애니메이션이 완료된 Ortho 카메라에 대해서만 중심점 업데이트
-		if (InCamera->GetCameraComponent()->GetCameraType() == ECameraType::ECT_Orthographic)
+		// 애니메이션이 완료된 Ortho 뷰포트에 대해서만 중심점 업데이트
+		if (Client->IsOrtho())
 		{
-			TObjectPtr<AActor> TargetActor = CameraAnimationTargets[CameraName];
+			TObjectPtr<AActor> TargetActor = ViewportAnimationTargets[ViewportIndex];
 			if (TargetActor)
 			{
-				GEngine->GetEngineSubsystem<UViewportSubsystem>()->SetOrthoGraphicCenter(TargetActor->GetActorLocation());
+				ViewportSS->SetOrthoGraphicCenter(TargetActor->GetActorLocation());
 				UE_LOG_SUCCESS("SceneHierarchy: Ortho 중심점을 %s 위치로 업데이트", TargetActor->GetName().ToString().c_str());
 			}
 		}
@@ -635,48 +661,36 @@ void USceneHierarchyWidget::FinishRenaming(bool bInConfirm)
 }
 
 /**
- * @brief 특정 카메라의 포커싱 애니메이션을 중단하는 함수
- * @param InCamera 애니메이션을 중단할 카메라
+ * @brief 특정 뷰포트의 포커싱 애니메이션을 중단하는 함수
+ * @param ViewportIndex 애니메이션을 중단할 뷰포트 인덱스
  */
-void USceneHierarchyWidget::StopCameraAnimation(TObjectPtr<ACameraActor> InCamera)
+void USceneHierarchyWidget::StopViewportAnimation(int32 ViewportIndex)
 {
-	if (!InCamera)
+	if (ViewportAnimatingStates[ViewportIndex])
 	{
-		return;
-	}
-
-	FName CameraName = InCamera->GetName();
-	if (CameraAnimatingStates[CameraName])
-	{
-		CameraAnimatingStates[CameraName] = false;
-		CameraAnimationTimes[CameraName] = 0.0f;
-		UE_LOG("SceneHierarchy: 카메라 '%s' 애니메이션 중단", CameraName.ToString().c_str());
+		ViewportAnimatingStates[ViewportIndex] = false;
+		ViewportAnimationTimes[ViewportIndex] = 0.0f;
+		UE_LOG("SceneHierarchy: 뷰포트 %d 애니메이션 중단", ViewportIndex);
 	}
 }
 
 /**
- * @brief 특정 카메라가 애니메이션 중인지 확인하는 함수
- * @param InCamera 확인할 카메라
+ * @brief 특정 뷰포트가 애니메이션 중인지 확인하는 함수
+ * @param ViewportIndex 확인할 뷰포트 인덱스
  * @return 애니메이션 중이면 true
  */
-bool USceneHierarchyWidget::IsCameraAnimating(TObjectPtr<ACameraActor> InCamera) const
+bool USceneHierarchyWidget::IsViewportAnimating(int32 ViewportIndex) const
 {
-	if (!InCamera)
-	{
-		return false;
-	}
-
-	const FName CameraName = InCamera->GetName();
-	return CameraAnimatingStates.FindRef(CameraName);
+	return ViewportAnimatingStates.FindRef(ViewportIndex);
 }
 
 /**
- * @brief 현재 어떤 카메라든 애니메이션 중인지 확인하는 함수
+ * @brief 현재 어떤 뷰포트든 애니메이션 중인지 확인하는 함수
  * @return 하나라도 애니메이션 중이면 true
  */
-bool USceneHierarchyWidget::IsAnyCameraAnimating() const
+bool USceneHierarchyWidget::IsAnyViewportAnimating() const
 {
-	for (const auto& Pair : CameraAnimatingStates)
+	for (const auto& Pair : ViewportAnimatingStates)
 	{
 		if (Pair.second)
 		{
@@ -687,18 +701,18 @@ bool USceneHierarchyWidget::IsAnyCameraAnimating() const
 }
 
 /**
- * @brief 모든 카메라의 포커싱 애니메이션을 중단하는 함수
+ * @brief 모든 뷰포트의 포커싱 애니메이션을 중단하는 함수
  */
-void USceneHierarchyWidget::StopAllCameraAnimations()
+void USceneHierarchyWidget::StopAllViewportAnimations()
 {
 	// 이미 비어있으면 아무것도 하지 않음
-	if (CameraAnimatingStates.IsEmpty())
+	if (ViewportAnimatingStates.IsEmpty())
 	{
 		return;
 	}
 
 	bool bStoppedAny = false;
-	for (auto& Pair : CameraAnimatingStates)
+	for (auto& Pair : ViewportAnimatingStates)
 	{
 		if (Pair.second)
 		{
@@ -709,6 +723,6 @@ void USceneHierarchyWidget::StopAllCameraAnimations()
 
 	if (bStoppedAny)
 	{
-		UE_LOG("SceneHierarchy: 모든 카메라 애니메이션 중단됨");
+		UE_LOG("SceneHierarchy: 모든 뷰포트 애니메이션 중단됨");
 	}
 }

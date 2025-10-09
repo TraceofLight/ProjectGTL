@@ -97,12 +97,14 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 {
 	if (!StaticMeshComp || !RHIDevice)
 	{
+		UE_LOG_WARNING("RenderStaticMeshComponent - Component or RHIDevice is null");
 		return;
 	}
 
 	UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
 	if (!StaticMesh)
 	{
+		UE_LOG_WARNING("RenderStaticMeshComponent - StaticMesh is null");
 		return;
 	}
 
@@ -114,6 +116,8 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 
 	if (!VertexBuffer || !IndexBuffer)
 	{
+		UE_LOG_ERROR("RenderStaticMeshComponent - VertexBuffer(%p) or IndexBuffer(%p) is null for mesh: %s",
+		             VertexBuffer, IndexBuffer, StaticMesh->GetAssetPathFileName().c_str());
 		return;
 	}
 

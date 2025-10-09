@@ -17,8 +17,16 @@ void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
 
 	if (StaticMesh && StaticMesh->IsValidMesh())
 	{
+		UE_LOG("StaticMeshComponent::SetStaticMesh - Setting mesh: %s", 
+		       StaticMesh->GetAssetPathFileName().c_str());
+		UE_LOG("  VertexBuffer: %p, IndexBuffer: %p", 
+		       StaticMesh->GetVertexBuffer(), StaticMesh->GetIndexBuffer());
 		InitializeMeshRenderData();
-		MaterialOverrideMap.Empty(); // 스태틱메시 바뀌었으므로 머티리얼 오버라이드 맵 초기화
+		MaterialOverrideMap.Empty(); // 스태틱메시 바꿀었으므로 머티리얼 오버라이드 맵 초기화
+	}
+	else
+	{
+		UE_LOG_WARNING("StaticMeshComponent::SetStaticMesh - Invalid or null mesh!");
 	}
 }
 

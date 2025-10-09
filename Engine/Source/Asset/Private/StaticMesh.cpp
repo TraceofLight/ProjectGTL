@@ -3,6 +3,7 @@
 #include "Asset/Public/StaticMeshData.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
 #include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/RHI/Public/RHIDevice.h"
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Utility/Public/Archive.h"
 
@@ -31,32 +32,54 @@ bool UStaticMesh::IsValidMesh() const
 
 void UStaticMesh::CreateRenderBuffers()
 {
-	if (!IsValidMesh() || !GEngine)
+	if (!IsValidMesh())
 	{
+		UE_LOG_WARNING("StaticMesh::CreateRenderBuffers - Invalid mesh data");
 		return;
 	}
 
-	// TODO: 새로운 렌더링 시스템에서 Buffer 생성 방식 결정 필요
-	/*
-	RenderModule& Renderer = *GEngine->GetRenderModule();
+	// GDynamicRHI를 통해 버퍼 생성
+	extern FRHIDevice* GDynamicRHI;
+	if (!GDynamicRHI)
+	{
+		UE_LOG_ERROR("StaticMesh::CreateRenderBuffers - GDynamicRHI is null!");
+		return;
+	}
 
 	const TArray<FVertex>& Vertices = StaticMeshData.Vertices;
 	const TArray<uint32>& Indices = StaticMeshData.Indices;
 
+	UE_LOG("StaticMesh::CreateRenderBuffers - %s: Vertices=%d, Indices=%d", 
+	       StaticMeshData.PathFileName.c_str(), Vertices.Num(), Indices.Num());
+
 	if (!Vertices.IsEmpty())
 	{
 		const uint32 VertexBufferSize = static_cast<uint32>(Vertices.Num()) * sizeof(FVertex);
-		VertexBuffer = Renderer.CreateVertexBuffer(const_cast<FVertex*>(Vertices.GetData()), VertexBufferSize);
+		VertexBuffer = GDynamicRHI->CreateVertexBuffer(Vertices.GetData(), VertexBufferSize);
+		if (VertexBuffer)
+		{
+			UE_LOG_SUCCESS("VertexBuffer created: %p", VertexBuffer);
+		}
+		else
+		{
+			UE_LOG_ERROR("Failed to create VertexBuffer!");
+		}
 	}
 
 	if (!Indices.IsEmpty())
 	{
 		const uint32 IndexBufferSize = static_cast<uint32>(Indices.Num()) * sizeof(uint32);
-		IndexBuffer = Renderer.CreateIndexBuffer(Indices.GetData(), IndexBufferSize);
+		IndexBuffer = GDynamicRHI->CreateIndexBuffer(Indices.GetData(), IndexBufferSize);
+		if (IndexBuffer)
+		{
+			UE_LOG_SUCCESS("IndexBuffer created: %p", IndexBuffer);
+		}
+		else
+		{
+			UE_LOG_ERROR("Failed to create IndexBuffer!");
+		}
 	}
-	*/
 }
-
 void UStaticMesh::ReleaseRenderBuffers()
 {
 	if (VertexBuffer)

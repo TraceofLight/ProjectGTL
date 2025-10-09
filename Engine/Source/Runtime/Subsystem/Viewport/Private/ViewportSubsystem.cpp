@@ -108,9 +108,9 @@ void UViewportSubsystem::Tick(float DeltaSeconds)
 		TObjectPtr<UWidget> Widget = UISS->FindWidget(FName("Scene Hierarchy Widget"));
 		if (USceneHierarchyWidget* SceneWidget = Cast<USceneHierarchyWidget>(Widget))
 		{
-			if (SceneWidget->IsAnyCameraAnimating())
+			if (SceneWidget->IsAnyViewportAnimating())
 			{
-				SceneWidget->StopAllCameraAnimations();
+				SceneWidget->StopAllViewportAnimations();
 			}
 		}
 	}

@@ -21,11 +21,11 @@ public:
 	USceneHierarchyWidget();
 	~USceneHierarchyWidget() override;
 
-	// 카메라 애니메이션 제어
-	void StopCameraAnimation(TObjectPtr<ACameraActor> InCamera);
-	bool IsCameraAnimating(TObjectPtr<ACameraActor> InCamera) const;
-	bool IsAnyCameraAnimating() const;
-	void StopAllCameraAnimations();
+	// 뷰포트 애니메이션 제어
+	void StopViewportAnimation(int32 ViewportIndex);
+	bool IsViewportAnimating(int32 ViewportIndex) const;
+	bool IsAnyViewportAnimating() const;
+	void StopAllViewportAnimations();
 
 private:
 	// UI 상태
@@ -44,23 +44,22 @@ private:
 	TObjectPtr<AActor> LastClickedActor = nullptr;
 	static constexpr float RENAME_CLICK_DELAY = 0.3f; // 두 번째 클릭 간격
 
-	// Camera focus animation
-	TMap<FName, bool> CameraAnimatingStates;
-	TMap<FName, float> CameraAnimationTimes;
-	TMap<FName, FVector> CameraStartLocations;
-	TMap<FName, FVector> CameraTargetLocations;
-	TMap<FName, FVector> CameraCurrentRotations;
-	TMap<FName, TObjectPtr<AActor>> CameraAnimationTargets;
+	// Viewport focus animation
+	TMap<int32, bool> ViewportAnimatingStates;
+	TMap<int32, float> ViewportAnimationTimes;
+	TMap<int32, FVector> ViewportStartLocations;
+	TMap<int32, FVector> ViewportTargetLocations;
+	TMap<int32, TObjectPtr<AActor>> ViewportAnimationTargets;
 
 	// Heuristic constant
 	static constexpr float CAMERA_ANIMATION_DURATION = 0.6f;
 	static constexpr float FOCUS_DISTANCE = 5.0f;
 
-	// Camera movement
+	// Viewport movement
 	void RenderActorInfo(TObjectPtr<AActor> InActor, int32 InIndex);
 	void SelectActor(TObjectPtr<AActor> InActor, bool bInFocusCamera = false);
-	void FocusOnActor(TObjectPtr<ACameraActor> InCamera, TObjectPtr<AActor> InActor);
-	void UpdateCameraAnimation(TObjectPtr<ACameraActor> InCamera);
+	void FocusOnActor(int32 ViewportIndex, TObjectPtr<AActor> InActor);
+	void UpdateViewportAnimation(int32 ViewportIndex);
 
 	// 검색 기능
 	void RenderSearchBar();

@@ -5,6 +5,7 @@
 #include "Runtime/Subsystem/Config/Public/ConfigSubsystem.h"
 #include "Runtime/Engine/Public/Engine.h"
 #include "Runtime/Subsystem/UI/Public/UISubsystem.h"
+#include "Runtime/Subsystem/Viewport/Public/ViewportSubsystem.h"
 #include "Runtime/UI/Widget/Public/SceneHierarchyWidget.h"
 
 IMPLEMENT_CLASS(ACameraActor, AActor)
@@ -44,16 +45,31 @@ void ACameraActor::Tick(float DeltaSeconds)
 	if (!CameraComponent)
 		return;
 
-	// SceneHierarchyWidget에서 카메라 애니메이션 상태 확인
+	// SceneHierarchyWidget에서 뷰포트 애니메이션 상태 확인
 	auto* UISS = GEngine->GetEngineSubsystem<UUISubsystem>();
 	TObjectPtr<UWidget> SceneHierarchyWidgetPtr = UISS->FindWidget(FName("Scene Hierarchy Widget"));
 	USceneHierarchyWidget* SceneHierarchyWidget = Cast<USceneHierarchyWidget>(SceneHierarchyWidgetPtr);
 
 	bool bIsAnimating = false;
+	int32 ViewportIndex = -1;
 
-	if (SceneHierarchyWidget)
+	// 현재 카메라의 뷰포트 인덱스 찾기
+	if (auto* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>())
 	{
-		bIsAnimating = SceneHierarchyWidget->IsCameraAnimating(TObjectPtr<ACameraActor>(this));
+		TArray<ACameraActor*> AllCameras = ViewportSS->GetAllCameras();
+		for (int32 i = 0; i < AllCameras.Num(); ++i)
+		{
+			if (AllCameras[i] == this)
+			{
+				ViewportIndex = i;
+				break;
+			}
+		}
+	}
+
+	if (SceneHierarchyWidget && ViewportIndex >= 0)
+	{
+		bIsAnimating = SceneHierarchyWidget->IsViewportAnimating(ViewportIndex);
 	}
 
 	UInputSubsystem* InputSubsystem = GEngine->GetEngineSubsystem<UInputSubsystem>();
@@ -67,9 +83,9 @@ void ACameraActor::Tick(float DeltaSeconds)
 	if (InputSubsystem->IsKeyDown(EKeyInput::MouseRight))
 	{
 		// 애니메이션 중이면 중단
-		if (bIsAnimating && SceneHierarchyWidget)
+		if (bIsAnimating && SceneHierarchyWidget && ViewportIndex >= 0)
 		{
-			SceneHierarchyWidget->StopCameraAnimation(TObjectPtr<ACameraActor>(this));
+			SceneHierarchyWidget->StopViewportAnimation(ViewportIndex);
 		}
 		if (CameraComponent->GetCameraType() == ECameraType::ECT_Orthographic)
 		{
