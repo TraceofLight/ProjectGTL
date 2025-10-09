@@ -120,39 +120,37 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 	// Line Batching 시작
 	EditorResources->BeginLineBatch();
 
-	// 테스트: 간단한 큰 라인 몇 개만 그리기
-	// X축 라인 (빨간색)
-	EditorResources->AddLine(FVector(-1000.0f, 0.0f, 0.0f), FVector(1000.0f, 0.0f, 0.0f), FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	// Y축 라인 (녹색)
-	EditorResources->AddLine(FVector(0.0f, -1000.0f, 0.0f), FVector(0.0f, 1000.0f, 0.0f), FVector4(0.0f, 1.0f, 0.0f, 1.0f));
-	// Z축 라인 (파란색)
-	EditorResources->AddLine(FVector(0.0f, 0.0f, -1000.0f), FVector(0.0f, 0.0f, 1000.0f), FVector4(0.0f, 0.0f, 1.0f, 1.0f));
+	// 언리얼 엔진 표준 원점 축 라인 (X=Red, Y=Green, Z=Blue)
+	// 축의 길이를 충분히 길게 설정
+	const float AxisLength = 10000.0f; // 매우 긴 축
 	
-	// 그리드 라인 10x10 테스트 (흰색) - Z=-1에 그리기
-	FVector4 GridColor(0.7f, 0.7f, 0.7f, 1.0f); // 약간 어두운 회색
-	float GridSize = 100.0f;
-	int32 GridLines = 10;
-	float GridZ = -1.0f; // 그리드를 약간 아래에 그리기
+	// X축 (Forward) - 빨간색 (양방향)
+	EditorResources->AddLine(FVector(-AxisLength, 0.0f, 0.0f), FVector(AxisLength, 0.0f, 0.0f), FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	
-	// X 방향 라인 (Y축을 따라)
-	for (int32 i = -GridLines; i <= GridLines; ++i)
+	// Y축 (Right) - 녹색 (양방향)
+	EditorResources->AddLine(FVector(0.0f, -AxisLength, 0.0f), FVector(0.0f, AxisLength, 0.0f), FVector4(0.0f, 1.0f, 0.0f, 1.0f));
+	
+	// Z축 (Up) - 파란색 (양방향)
+	EditorResources->AddLine(FVector(0.0f, 0.0f, -AxisLength), FVector(0.0f, 0.0f, AxisLength), FVector4(0.0f, 0.0f, 1.0f, 1.0f));
+	
+	// 그리드는 일단 비활성화
+	// TODO: 나중에 ShowFlag로 제어 가능하게 하기
+	/*
+	FEditorGrid* EditorGrid = EditorResources->GetEditorGrid();
+	if (EditorGrid)
 	{
-		float y = i * GridSize;
-		EditorResources->AddLine(
-			FVector(-GridLines * GridSize, y, GridZ), 
-			FVector(GridLines * GridSize, y, GridZ), 
-			GridColor);
+		const TArray<FVector>& Vertices = EditorGrid->GetVertices();
+		FVector4 GridColor(0.5f, 0.5f, 0.5f, 1.0f);
+		
+		for (int32 i = 0; i < Vertices.Num(); i += 2)
+		{
+			if (i + 1 < Vertices.Num())
+			{
+				EditorResources->AddLine(Vertices[i], Vertices[i + 1], GridColor);
+			}
+		}
 	}
-	
-	// Y 방향 라인 (X축을 따라)
-	for (int32 i = -GridLines; i <= GridLines; ++i)
-	{
-		float x = i * GridSize;
-		EditorResources->AddLine(
-			FVector(x, -GridLines * GridSize, GridZ), 
-			FVector(x, GridLines * GridSize, GridZ), 
-			GridColor);
-	}
+	*/
 
 	// 언리얼에서는 ULevel에서 액터들을 가져옴
 	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();

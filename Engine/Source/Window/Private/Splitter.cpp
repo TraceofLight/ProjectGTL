@@ -87,7 +87,9 @@ bool SSplitter::OnMouseDown(FPoint Coord, int Button)
         }
     }
 
-    if (Button == 0 && IsHandleHover(Coord))
+    bool bIsHover = IsHandleHover(Coord);
+    
+    if (Button == 0 && bIsHover)
     {
         bDragging = true;
         // Determine if we are dragging at the cross (both handles overlap)
@@ -113,7 +115,6 @@ bool SSplitter::OnMouseDown(FPoint Coord, int Button)
                 if (Root->Orientation == EOrientation::Vertical && Root->IsHandleHover(Coord))
                 {
                     bCrossDragging = true;
-					UE_LOG("bCrossDragging");
                 }
             }
         }
@@ -273,51 +274,46 @@ SWindow* SSplitter::HitTest(FPoint ScreenCoord)
 {
 	// 기즈모가 드래그 중이면 스플리터 hit test 차단
 	UWorldSubsystem* WorldSS = GEngine->GetEngineSubsystem<UWorldSubsystem>();
+	bool bGizmoDragging = false;
 	if (WorldSS)
 	{
 		if (UEditor* Editor = WorldSS->GetEditor())
 		{
 			if (Editor->GetGizmo() && Editor->GetGizmo()->IsDragging())
 			{
-				// 기즈모 드래그 중에는 스플리터 hit test를 바이패스하고 자식에게 위임
-				// Handle has priority so splitter can capture drag
-				// 기즈모 드래그 중에는 스플리터가 캡처하지 않음
-			}
-			else if (IsHandleHover(ScreenCoord))
-			{
-				return this;
+				bGizmoDragging = true;
 			}
 		}
-		else
-		{
-			// Editor가 없는 경우 기존 로직 유지
-			if (IsHandleHover(ScreenCoord))
-				return this;
-		}
-
-		// Delegate to children based on rect containment
-		if (SideLT)
-		{
-			const FRect& r = SideLT->GetRect();
-			if (ScreenCoord.X >= r.X && ScreenCoord.X < r.X + r.W &&
-				ScreenCoord.Y >= r.Y && ScreenCoord.Y < r.Y + r.H)
-			{
-				if (auto* hit = SideLT->HitTest(ScreenCoord)) return hit;
-				return SideLT;
-			}
-		}
-		if (SideRB)
-		{
-			const FRect& r = SideRB->GetRect();
-			if (ScreenCoord.X >= r.X && ScreenCoord.X < r.X + r.W &&
-				ScreenCoord.Y >= r.Y && ScreenCoord.Y < r.Y + r.H)
-			{
-				if (auto* hit = SideRB->HitTest(ScreenCoord)) return hit;
-				return SideRB;
-			}
-		}
-		return SWindow::HitTest(ScreenCoord);
 	}
 
-	return this;
+	// 기즈모 드래그 중이 아니면 핸들 호버 체크
+	if (!bGizmoDragging && IsHandleHover(ScreenCoord))
+	{
+		return this;
+	}
+
+	// Delegate to children based on rect containment
+	if (SideLT)
+	{
+		const FRect& r = SideLT->GetRect();
+		if (ScreenCoord.X >= r.X && ScreenCoord.X < r.X + r.W &&
+			ScreenCoord.Y >= r.Y && ScreenCoord.Y < r.Y + r.H)
+		{
+			if (auto* hit = SideLT->HitTest(ScreenCoord)) return hit;
+			return SideLT;
+		}
+	}
+	if (SideRB)
+	{
+		const FRect& r = SideRB->GetRect();
+		if (ScreenCoord.X >= r.X && ScreenCoord.X < r.X + r.W &&
+			ScreenCoord.Y >= r.Y && ScreenCoord.Y < r.Y + r.H)
+		{
+			if (auto* hit = SideRB->HitTest(ScreenCoord)) return hit;
+			return SideRB;
+		}
+	}
+
+	// 자식에게 위임하지 못했다면 기본 처리
+	return SWindow::HitTest(ScreenCoord);
 }
