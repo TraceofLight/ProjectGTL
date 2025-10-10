@@ -2,97 +2,27 @@
 #include "Runtime/Component/Public/PrimitiveComponent.h"
 
 #include "Physics/Public/AABB.h"
+#include "Runtime/Subsystem/Partition/Public/WorldPartitionSubsystem.h"
 
 IMPLEMENT_CLASS(UPrimitiveComponent, USceneComponent)
 
 UPrimitiveComponent::UPrimitiveComponent()
 {
 	ComponentType = EComponentType::Primitive;
+
+	//GetWorldPartitionSubsystem()->Register(this);
 }
 
-void USceneComponent::SetRelativeLocation(const FVector& Location)
+UPrimitiveComponent::~UPrimitiveComponent()
 {
-	RelativeLocation = Location;
-	MarkAsDirty();
+	//GetWorldPartitionSubsystem()->Unregister(this);
 }
 
-void USceneComponent::SetRelativeRotation(const FVector& Rotation)
+void UPrimitiveComponent::OnTransformChanged()
 {
-	RelativeRotation = Rotation;
-	MarkAsDirty();
-}
-void USceneComponent::SetRelativeScale3D(const FVector& Scale)
-{
-	FVector ActualScale = Scale;
-	if (ActualScale.X < MinScale)
-		ActualScale.X = MinScale;
-	if (ActualScale.Y < MinScale)
-		ActualScale.Y = MinScale;
-	if (ActualScale.Z < MinScale)
-		ActualScale.Z = MinScale;
-	RelativeScale3D = ActualScale;
-	MarkAsDirty();
-}
+	USceneComponent::OnTransformChanged();
 
-void USceneComponent::SetUniformScale(bool bIsUniform)
-{
-	bIsUniformScale = bIsUniform;
-}
-
-bool USceneComponent::IsUniformScale() const
-{
-	return bIsUniformScale;
-}
-
-const FVector& USceneComponent::GetRelativeLocation() const
-{
-	return RelativeLocation;
-}
-const FVector& USceneComponent::GetRelativeRotation() const
-{
-	return RelativeRotation;
-}
-const FVector& USceneComponent::GetRelativeScale3D() const
-{
-	return RelativeScale3D;
-}
-
-const FMatrix& USceneComponent::GetWorldTransformMatrix() const
-{
-	if (bIsTransformDirty)
-	{
-		WorldTransformMatrix = FMatrix::GetModelMatrix(GetRelativeLocation(), FVector::GetDegreeToRadian(GetRelativeRotation()), GetRelativeScale3D());
-
-		// 부모 컴포넌트가 있는 경우 부모의 변환도 적용
-		if (ParentAttachment)
-		{
-			FMatrix ParentTransform = ParentAttachment->GetWorldTransformMatrix();
-			WorldTransformMatrix = ParentTransform * WorldTransformMatrix;
-		}
-
-		bIsTransformDirty = false;
-	}
-
-	return WorldTransformMatrix;
-}
-
-const FMatrix& USceneComponent::GetWorldTransformMatrixInverse() const
-{
-
-	if (bIsTransformDirtyInverse)
-	{
-		WorldTransformMatrixInverse = FMatrix::Identity();
-		for (USceneComponent* Ancester = ParentAttachment; Ancester && Ancester->ParentAttachment; Ancester = Ancester->ParentAttachment)
-		{
-			WorldTransformMatrixInverse = FMatrix::GetModelMatrixInverse(Ancester->RelativeLocation, FVector::GetDegreeToRadian(Ancester->RelativeRotation), Ancester->RelativeScale3D) * WorldTransformMatrixInverse;
-
-		}
-		WorldTransformMatrixInverse = WorldTransformMatrixInverse * FMatrix::GetModelMatrixInverse(RelativeLocation, FVector::GetDegreeToRadian(RelativeRotation), RelativeScale3D);
-
-		bIsTransformDirtyInverse = false;
-	}
-
-	return WorldTransformMatrixInverse;
+	//GetWorldPartitionSubsystem()->Update(this);
 }
 
 const TArray<FVertex>* UPrimitiveComponent::GetVerticesData() const

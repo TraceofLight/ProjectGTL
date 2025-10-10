@@ -12,6 +12,10 @@ class UPrimitiveComponent :
 
 public:
 	UPrimitiveComponent();
+	~UPrimitiveComponent();
+
+	virtual void OnTransformChanged() override;
+
 
 	const TArray<FVertex>* GetVerticesData() const;
 	ID3D11Buffer* GetVertexBuffer() const;
