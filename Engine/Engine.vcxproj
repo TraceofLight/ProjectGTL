@@ -127,7 +127,8 @@
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y
-xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y</Command>
+IF EXIST "$(ProjectDir)Data" xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y
+:VCEnd</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -161,7 +162,8 @@ xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y</Command>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y
-xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y</Command>
+IF EXIST "$(ProjectDir)Data" xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y
+:VCEnd</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

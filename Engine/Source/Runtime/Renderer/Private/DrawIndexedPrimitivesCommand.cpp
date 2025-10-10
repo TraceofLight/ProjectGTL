@@ -104,7 +104,7 @@ void FRHIDrawIndexedPrimitivesCommand::RenderComponent(UPrimitiveComponent* InCo
 		return;
 	}
 
-	// 상수 버퍼 업데이트 (Model, View, Projection)
+	// 상수 버퍼 업데이트 (Model, View, Projection) - 모든 메시에 실제 World Matrix 사용
 	RHIDevice->UpdateConstantBuffers(InComponent->GetWorldMatrix(), ViewMatrix, ProjMatrix);
 
 
@@ -222,36 +222,77 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 					bHasTexture = MaterialInterface->HasTexture();
 				}
 
-				// Texture 바인딩
+				// Texture 바인딩 - Material에서 가져오기
 				UTexture* Texture = MaterialInterface->GetTexture();
+				ID3D11ShaderResourceView* SRV = nullptr;
+
 				if (Texture)
 				{
 					FTextureRenderProxy* TextureProxy = Texture->GetRenderProxy();
 					if (TextureProxy)
 					{
-						ID3D11ShaderResourceView* SRV = TextureProxy->GetTextureForRendering_RenderThread(RHIDevice);
-						if (SRV)
+						SRV = TextureProxy->GetTextureForRendering_RenderThread(RHIDevice);
+					}
+				}
+
+				// 텍스처가 없으면 DefaultTexture 로드
+				if (!SRV && AssetSubsystem)
+				{
+					TObjectPtr<UTexture> DefaultTexture = AssetSubsystem->LoadTexture("DefaultTexture.png");
+					if (DefaultTexture)
+					{
+						FTextureRenderProxy* DefaultProxy = DefaultTexture->GetRenderProxy();
+						if (DefaultProxy)
 						{
-							DeviceContext->PSSetShaderResources(0, 1, &SRV);
-							bHasTexture = true;
+							SRV = DefaultProxy->GetTextureForRendering_RenderThread(RHIDevice);
 						}
 					}
+				}
+
+				// SRV 바인딩
+				if (SRV)
+				{
+					DeviceContext->PSSetShaderResources(0, 1, &SRV);
+					bHasTexture = true;
 				}
 			}
 
 			// Material 정보를 Pixel Shader에 전달
 			RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, MaterialInterface != nullptr, bHasTexture);
 
-			// Draw Call 실행
+			// Draw Call 실행 (Command에서 처리되어야 함)
 			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			DeviceContext->DrawIndexed(Section.GetIndexCount(), Section.GetStartIndex(), 0);
 		}
 	}
 	else
 	{
-		// Material이 없는 경우 기본 Material 사용
+		// Material이 없는 경우 흰색 기본 Material 사용
 		FObjMaterialInfo ObjMaterialInfo;
-		RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false);
+		ObjMaterialInfo.DiffuseColor = FVector(1.0f, 1.0f, 1.0f); // 흰색 설정
+
+		// DefaultTexture 로드 및 바인딩
+		bool bHasTexture = false;
+		UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
+		if (AssetSubsystem)
+		{
+			TObjectPtr<UTexture> DefaultTexture = AssetSubsystem->LoadTexture("DefaultTexture.png");
+			if (DefaultTexture)
+			{
+				FTextureRenderProxy* DefaultProxy = DefaultTexture->GetRenderProxy();
+				if (DefaultProxy)
+				{
+					ID3D11ShaderResourceView* SRV = DefaultProxy->GetTextureForRendering_RenderThread(RHIDevice);
+					if (SRV)
+					{
+						DeviceContext->PSSetShaderResources(0, 1, &SRV);
+						bHasTexture = true;
+					}
+				}
+			}
+		}
+
+		RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, true, bHasTexture);
 
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		DeviceContext->DrawIndexed(StaticMesh->GetIndexCount(), 0, 0);
@@ -270,8 +311,8 @@ void FRHIDrawIndexedPrimitivesCommand::RenderGizmoComponent(UStaticMeshComponent
 
 	ID3D11DeviceContext* DeviceContext = RHIDevice->GetDeviceContext();
 
-	// 기즈모가 항상 앞에 나오도록 Depth Test 비활성화
-	RHIDevice->OmSetDepthStencilState(EComparisonFunc::Always);
+	// 기즈모 피킹을 위해 정상 Depth Test 사용
+	RHIDevice->OmSetDepthStencilState(EComparisonFunc::LessEqual);
 
 	// 알파 블렌딩 활성화 (기즈모 반투명 효과)
 	RHIDevice->OMSetBlendState(true);
@@ -322,10 +363,10 @@ void FRHIDrawIndexedPrimitivesCommand::RenderGizmoComponent(UStaticMeshComponent
 			gizmoAxis = 1; // 기본값은 X축
 	}
 
-	// HighLightBuffer를 통해 기즈모 색상 설정
+	// HighLightBuffer를 통해 기즈모 색상 설정 - OverrideColor 사용
 	RHIDevice->UpdateHighLightConstantBuffers(
 		0, // Picked = 0 (하이라이트 안함)
-		FVector(1.0f, 1.0f, 1.0f), // Color (기본 하얀)
+		OverrideColor, // Color = 오버라이드 색상 사용 (빨강/초록/파란)
 		gizmoAxis, // X = 축 인덱스 (1=빨강, 2=초록, 3=파란)
 		bIsHovering ? 1 : 0, // Y = 호버링 상태에 따라 노란색 활성화
 		0, // Z = 0
@@ -335,6 +376,9 @@ void FRHIDrawIndexedPrimitivesCommand::RenderGizmoComponent(UStaticMeshComponent
 	// 기즈모는 Material 없이 단순 렌더링
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	DeviceContext->DrawIndexed(StaticMesh->GetIndexCount(), 0, 0);
+
+	// 기즈모 렌더링 후 상태 정리 (다음 객체에 영향을 주지 않도록)
+	// 참고: 실제 상태 복원은 각 RenderComponent 호출 시작에서 수행됨
 }
 
 // =============================================================================

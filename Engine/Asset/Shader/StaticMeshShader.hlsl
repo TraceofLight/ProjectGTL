@@ -4,15 +4,11 @@
 cbuffer PerObject : register(b0)
 {
 	row_major float4x4 World;        // 월드 변환 행렬
-}
-
-cbuffer PerFrame : register(b1)
-{
 	row_major float4x4 View;         // 뷰 행렬
 	row_major float4x4 Projection;   // 투영 행렬
 }
 
-cbuffer Material : register(b2)
+cbuffer Material : register(b1)
 {
 	float4 DiffuseColor;	// 디퓨즈 색상
 	float4 MaterialUsage;	// x: 버텍스 컬러 사용 여부, y: 디퓨즈 텍스처 사용 여부, z: UV 스크롤 사용 여부, w: 델타 타임
@@ -41,10 +37,10 @@ PS_INPUT VSMain(VS_INPUT input)
 {
 	PS_INPUT output;
 
-	// 정점을 월드 공간으로 변환
+	// 정점을 월드 공간으로 변환 (Row-major 방식)
 	float4 worldPos = mul(float4(input.Position, 1.0f), World);
 
-	// 뷰 및 투영 변환
+	// 뷰 및 투영 변환 (Row-major 방식)
 	float4 viewPos = mul(worldPos, View);
 	output.Position = mul(viewPos, Projection);
 

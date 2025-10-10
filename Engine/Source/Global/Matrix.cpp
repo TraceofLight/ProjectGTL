@@ -85,9 +85,9 @@ void FMatrix::operator*=(const FMatrix& InOtherMatrix)
 FMatrix FMatrix::TranslationMatrix(const FVector& InOtherVector)
 {
 	FMatrix Result = FMatrix::Identity();
-	Result.Data[3][0] = InOtherVector.X;
-	Result.Data[3][1] = InOtherVector.Y;
-	Result.Data[3][2] = InOtherVector.Z;
+	Result.Data[0][3] = InOtherVector.X;
+	Result.Data[1][3] = InOtherVector.Y;
+	Result.Data[2][3] = InOtherVector.Z;
 	Result.Data[3][3] = 1;
 
 	return Result;
@@ -96,9 +96,9 @@ FMatrix FMatrix::TranslationMatrix(const FVector& InOtherVector)
 FMatrix FMatrix::TranslationMatrixInverse(const FVector& InOtherVector)
 {
 	FMatrix Result = FMatrix::Identity();
-	Result.Data[3][0] = -InOtherVector.X;
-	Result.Data[3][1] = -InOtherVector.Y;
-	Result.Data[3][2] = -InOtherVector.Z;
+	Result.Data[0][3] = -InOtherVector.X;
+	Result.Data[1][3] = -InOtherVector.Y;
+	Result.Data[2][3] = -InOtherVector.Z;
 	Result.Data[3][3] = 1;
 
 	return Result;
@@ -324,11 +324,11 @@ FMatrix FMatrix::MatrixPerspectiveFovLH(float FovAngleY, float AspectRatio, floa
 {
     // DirectX 표준 Projection은 column-vector용 (M*v)
     // HLSL에서 mul(vector, matrix)는 row-vector 연산 (v*M)이므로 Transpose 필요
-    
+
     float SinFov = sinf(0.5f * FovAngleY);
     float CosFov = cosf(0.5f * FovAngleY);
     float Height = CosFov / SinFov; // cot(fovY/2)
-    
+
     // 표준 column-vector용 Projection
     FMatrix Standard = {};
     Standard.Data[0][0] = Height / AspectRatio;
@@ -336,7 +336,7 @@ FMatrix FMatrix::MatrixPerspectiveFovLH(float FovAngleY, float AspectRatio, floa
     Standard.Data[2][2] = FarZ / (FarZ - NearZ);
     Standard.Data[2][3] = 1.0f;  // perspective divide: w' = z
     Standard.Data[3][2] = -NearZ * FarZ / (FarZ - NearZ);
-    
+
     // row-vector 연산을 위해 Transpose
     return Standard.Transpose();
 }
@@ -348,7 +348,7 @@ FMatrix FMatrix::Inverse() const
 {
     FMatrix result = *this;
     FMatrix inverse = Identity();
-    
+
     // Gauss-Jordan 소거법
     for (int32 i = 0; i < 4; i++)
     {
@@ -364,7 +364,7 @@ FMatrix FMatrix::Inverse() const
                 pivotValue = val;
             }
         }
-        
+
         // 행 교환
         if (pivot != i)
         {
@@ -374,13 +374,13 @@ FMatrix FMatrix::Inverse() const
                 std::swap(inverse.Data[i][j], inverse.Data[pivot][j]);
             }
         }
-        
+
         // Pivot이 0에 가까우면 역행렬이 존재하지 않음
         if (std::abs(result.Data[i][i]) < 1e-10f)
         {
             return Identity(); // 역행렬이 없으면 항등행렬 반환
         }
-        
+
         // Pivot으로 나누기
         float pivotDiv = result.Data[i][i];
         for (int32 j = 0; j < 4; j++)
@@ -388,7 +388,7 @@ FMatrix FMatrix::Inverse() const
             result.Data[i][j] /= pivotDiv;
             inverse.Data[i][j] /= pivotDiv;
         }
-        
+
         // 다른 행 소거
         for (int32 j = 0; j < 4; j++)
         {
@@ -403,7 +403,7 @@ FMatrix FMatrix::Inverse() const
             }
         }
     }
-    
+
     return inverse;
 }
 
