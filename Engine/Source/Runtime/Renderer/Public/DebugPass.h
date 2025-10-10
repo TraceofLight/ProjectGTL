@@ -23,7 +23,7 @@ public:
 
 private:
     void RenderGrid(const FSceneView* View, FSceneRenderer* SceneRenderer);
-    void RenderGizmos(const FSceneView* View, FSceneRenderer* SceneRenderer, UEditor* Editor);
+    static void RenderGizmos(const FSceneView* View, FSceneRenderer* SceneRenderer, const UEditor* Editor);
     void RenderDebugComponents(const FSceneView* View, FSceneRenderer* SceneRenderer);
     void RenderActorLines(AActor* Actor, const FSceneView* View, FSceneRenderer* SceneRenderer, class FEditorRenderResources* EditorResources, UEditor* Editor);
     // Octree 기능 비활성화 (현재 사용 안함)

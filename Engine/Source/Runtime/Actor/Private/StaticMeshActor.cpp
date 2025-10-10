@@ -72,3 +72,32 @@ UStaticMesh* AStaticMeshActor::GetStaticMesh() const
 	}
 	return nullptr;
 }
+
+// AABB 관련 함수들
+/**
+ * @brief 액터의 월드 좌표계 AABB를 가져옴
+ * @return 변환된 월드 AABB
+ */
+FAABB AStaticMeshActor::GetWorldAABB() const
+{
+	if (StaticMeshComponent)
+	{
+		FVector WorldMin, WorldMax;
+		StaticMeshComponent->GetWorldAABB(WorldMin, WorldMax);
+		return {WorldMin, WorldMax};
+	}
+	return {};
+}
+
+/**
+ * @brief 액터의 로컬 좌표계 AABB를 가져옴
+ * @return 로컬 AABB
+ */
+FAABB AStaticMeshActor::GetLocalAABB() const
+{
+	if (StaticMeshComponent)
+	{
+		return StaticMeshComponent->GetAABB();
+	}
+	return {};
+}

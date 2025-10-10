@@ -1,8 +1,5 @@
-﻿#pragma once
-
-#include "Runtime/Core/Public/Object.h"
+#pragma once
 #include "Source/Global/Enum.h"
-#include <d3d11.h>
 
 class FRHIDevice;
 class FEditorGrid;
@@ -39,9 +36,6 @@ public:
     // 버퍼 업데이트
     void UpdateVertexBuffer(ID3D11Buffer* Buffer, const TArray<FVector>& Vertices);
 
-    // Grid 렌더링
-    void RenderGrid(const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix, float CellSize = 10.0f);
-
     // LineBatcher 접근자
     FLineBatcher* GetLineBatcher() const { return LineBatcher.Get(); }
 
@@ -51,6 +45,11 @@ public:
 
     // EditorGrid 접근자
     FEditorGrid* GetEditorGrid() const { return EditorGrid.Get(); }
+
+    // Texture Resource 관리 (Material에서 사용)
+    ID3D11ShaderResourceView* GetTextureResource(const FString& TexturePath);
+    void ReleaseTextureResource(const FString& TexturePath);
+    void ReleaseAllTextureResources();
 
 private:
     FRHIDevice* RHIDevice = nullptr;
@@ -88,4 +87,8 @@ private:
 
     void InitializeGizmoResources();
     void ReleaseGizmoResources();
+
+    // Texture Resource 관리 - ComPtr로 자동 리소스 관리
+    TMap<FString, ComPtr<ID3D11ShaderResourceView>> TextureResourceCache;
+    void ReleaseTextureResources();
 };

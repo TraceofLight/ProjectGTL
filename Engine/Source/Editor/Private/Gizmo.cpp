@@ -32,6 +32,9 @@ UGizmo::UGizmo()
 	const float ScaleT = TranslateCollisionConfig.Scale;
 	Primitives[0].Vertexbuffer = EditorResources->GetGizmoVertexBuffer(EPrimitiveType::Arrow);
 	Primitives[0].NumVertices = EditorResources->GetGizmoVertexCount(EPrimitiveType::Arrow);
+	Primitives[0].VertexShader = EditorResources->GetEditorVertexShader(EShaderType::StaticMesh);
+	Primitives[0].PixelShader = EditorResources->GetEditorPixelShader(EShaderType::StaticMesh);
+	Primitives[0].InputLayout = EditorResources->GetEditorInputLayout(EShaderType::StaticMesh);
 	Primitives[0].Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	Primitives[0].Scale = FVector(ScaleT, ScaleT, ScaleT);
 	Primitives[0].bShouldAlwaysVisible = true;
@@ -41,6 +44,9 @@ UGizmo::UGizmo()
 	*/
 	Primitives[1].Vertexbuffer = EditorResources->GetGizmoVertexBuffer(EPrimitiveType::Ring);
 	Primitives[1].NumVertices = EditorResources->GetGizmoVertexCount(EPrimitiveType::Ring);
+	Primitives[1].VertexShader = EditorResources->GetEditorVertexShader(EShaderType::StaticMesh);
+	Primitives[1].PixelShader = EditorResources->GetEditorPixelShader(EShaderType::StaticMesh);
+	Primitives[1].InputLayout = EditorResources->GetEditorInputLayout(EShaderType::StaticMesh);
 	Primitives[1].Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	Primitives[1].Scale = FVector(ScaleT, ScaleT, ScaleT);
 	Primitives[1].bShouldAlwaysVisible = true;
@@ -50,6 +56,9 @@ UGizmo::UGizmo()
 	*/
 	Primitives[2].Vertexbuffer = EditorResources->GetGizmoVertexBuffer(EPrimitiveType::CubeArrow);
 	Primitives[2].NumVertices = EditorResources->GetGizmoVertexCount(EPrimitiveType::CubeArrow);
+	Primitives[2].VertexShader = EditorResources->GetEditorVertexShader(EShaderType::StaticMesh);
+	Primitives[2].PixelShader = EditorResources->GetEditorPixelShader(EShaderType::StaticMesh);
+	Primitives[2].InputLayout = EditorResources->GetEditorInputLayout(EShaderType::StaticMesh);
 	Primitives[2].Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	Primitives[2].Scale = FVector(ScaleT, ScaleT, ScaleT);
 	Primitives[2].bShouldAlwaysVisible = true;
@@ -63,7 +72,7 @@ UGizmo::UGizmo()
 
 UGizmo::~UGizmo() = default;
 
-void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const ACameraActor* InCamera, float InViewportWidth,
+void UGizmo::RenderGizmo(FSceneRenderer* InSceneRenderer, AActor* InActor, const FVector& InCameraLocation, const ACameraActor* InCamera, float InViewportWidth,
                          float InViewportHeight, int32 ViewportIndex)
 {
 	TargetActor = InActor;
@@ -105,23 +114,29 @@ void UGizmo::RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const
 		LocalRotation = bIsWorld ? FQuaternion::Identity() : FQuaternion::FromEuler(TargetActor->GetActorRotation());
 	}
 
+	if (!InSceneRenderer)
+	{
+		UE_LOG_ERROR("RenderGizmo: SceneRenderer가 null입니다");
+		return;
+	}
+	
 	// X축 (Forward) - 빨간색
 	FQuaternion RotationX = LocalRotation * FQuaternion::Identity();
 	P.Rotation = RotationX.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Forward, ViewportIndex);
-	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	InSceneRenderer->EnqueueGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
 	// Y축 (Right) - 초록색 (Z축 주위로 90도 회전)
 	FQuaternion RotY = LocalRotation * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
 	P.Rotation = RotY.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Right, ViewportIndex);
-	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	InSceneRenderer->EnqueueGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 
 	// Z축 (Up) - 파란색 (Y축 주위로 -90도 회전)
 	FQuaternion RotZ = LocalRotation * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
 	P.Rotation = RotZ.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Up, ViewportIndex);
-	FSceneRenderer::RenderGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
+	InSceneRenderer->EnqueueGizmoPrimitive(P, RenderState, InCameraLocation, InViewportWidth, InViewportHeight);
 }
 
 void UGizmo::ChangeGizmoMode()

@@ -353,7 +353,7 @@ void FRHICommandList::ExecuteWithMultithreadedSorting()
 
     // Command 스냅샷 생성
     TArray<IRHICommand*> CommandSnapshot;
-    CommandSnapshot.Reserve(PendingCommands.size());
+    CommandSnapshot.Reserve(static_cast<int32>(PendingCommands.size()));
 
     while (!PendingCommands.empty())
     {

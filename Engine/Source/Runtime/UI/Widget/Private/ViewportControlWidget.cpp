@@ -154,12 +154,56 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 					ImGui::SetItemDefaultFocus();
 			}
 
-			// Perspective 선택 시 하위 옵션 표시 - Camera deprecated
+			// Perspective 선택 시 하위 옵션 표시
 			if (CurType == EViewType::Perspective)
 			{
-				// TODO: Camera가 deprecated되어 FOV 등의 설정을 다른 방식으로 처리해야 함
-				// ImGui::Separator();
-				// ImGui::TextDisabled("VIEW");
+				ImGui::Separator();
+				ImGui::TextDisabled("VIEW");
+				
+				// FOV 설정
+				float CurrentFOV = Clients[ViewportIndex]->GetFovY();
+				ImGui::SetNextItemWidth(100.0f);
+				if (ImGui::SliderFloat("Field of View", &CurrentFOV, 10.0f, 170.0f, "%.1f"))
+				{
+					Clients[ViewportIndex]->SetFovY(CurrentFOV);
+				}
+				
+				// Near View Plane
+				float CurrentNear = Clients[ViewportIndex]->GetNearZ();
+				ImGui::SetNextItemWidth(100.0f);
+				if (ImGui::SliderFloat("Near View Plane", &CurrentNear, 0.001f, 10.0f, "%.3f"))
+				{
+					Clients[ViewportIndex]->SetNearZ(CurrentNear);
+				}
+				
+				// Far View Plane
+				float CurrentFar = Clients[ViewportIndex]->GetFarZ();
+				ImGui::SetNextItemWidth(100.0f);
+				if (CurrentFar >= 100000.0f)
+				{
+					ImGui::Text("Far View Plane: Infinity");
+				}
+				else
+				{
+					if (ImGui::SliderFloat("Far View Plane", &CurrentFar, 100.0f, 50000.0f, "%.0f"))
+					{
+						Clients[ViewportIndex]->SetFarZ(CurrentFar);
+					}
+				}
+				
+				// Infinity 토글 버튼
+				bool bIsInfinity = (CurrentFar >= 100000.0f);
+				if (ImGui::Checkbox("Infinity", &bIsInfinity))
+				{
+					if (bIsInfinity)
+					{
+						Clients[ViewportIndex]->SetFarZ(100000.0f);
+					}
+					else
+					{
+						Clients[ViewportIndex]->SetFarZ(10000.0f); // 기본값으로 설정
+					}
+				}
 			}
 
 			ImGui::EndCombo();
@@ -245,18 +289,25 @@ void UViewportControlWidget::RenderSplitterLines()
 void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 {
 	auto* ViewportManager = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	const auto& Clients = ViewportManager->GetClients();
 
-	// Get the active camera for the current viewport from the subsystem
-	ACameraActor* CurrentCamera = ViewportManager->GetActiveCameraForViewport(ViewportIndex);
-
-	if (!CurrentCamera)
+	if (ViewportIndex >= Clients.Num())
 	{
 		return;
 	}
 
-	// 스피드 수치 표시
-	float CurrentSpeed = CurrentCamera->GetMoveSpeed();
-	ImGui::Text("Speed: %.0f", CurrentSpeed);
+	FViewportClient* Client = Clients[ViewportIndex];
+	if (!Client)
+	{
+		return;
+	}
+
+	// 모든 뷰포트에서 카메라 스피드 컨트롤 표시
+	// Perspective와 Ortho 뷰 모두에서 사용 가능하도록 수정
+
+	// ViewportSubsystem에서 Perspective 카메라 속도 가져오기
+	float CurrentSpeed = ViewportManager->GetPerspectiveMoveSpeed();
+	ImGui::Text("Speed: %.1f", CurrentSpeed);
 
 	// 드롭다운 아이콘
 	ImGui::SameLine();
@@ -272,15 +323,15 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 		ImGui::Separator();
 
 		// 미리 정의된 스피드 옵션들
-		constexpr float SpeedOptions[] = {10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f};
+		constexpr float SpeedOptions[] = {10.0f, 20.0f, 30.0f, 50.0f, 100.0f, 200.0f, 300.0f};
 		for (float Speed : SpeedOptions)
 		{
 			bool bIsSelected = (abs(CurrentSpeed - Speed) < 0.1f);
 			char SpeedText[32];
-			(void)snprintf(SpeedText, sizeof(SpeedText), "%.0f", Speed);
+			(void)snprintf(SpeedText, sizeof(SpeedText), "%.1f", Speed);
 			if (ImGui::MenuItem(SpeedText, nullptr, bIsSelected))
 			{
-				CurrentCamera->SetMoveSpeed(Speed);
+				ViewportManager->SetPerspectiveMoveSpeed(Speed);
 			}
 		}
 
@@ -288,9 +339,9 @@ void UViewportControlWidget::RenderCameraSpeedControl(int32 ViewportIndex)
 
 		// 슬라이더로 세밀 조정
 		float TempSpeed = CurrentSpeed;
-		if (ImGui::SliderFloat("세밀 조정", &TempSpeed, ACameraActor::MIN_SPEED, ACameraActor::MAX_SPEED, "%.0f"))
+		if (ImGui::SliderFloat("세밀 조정", &TempSpeed, 10.0f, 500.0f, "%.1f"))
 		{
-			CurrentCamera->SetMoveSpeed(TempSpeed);
+			ViewportManager->SetPerspectiveMoveSpeed(TempSpeed);
 		}
 
 		ImGui::EndPopup();

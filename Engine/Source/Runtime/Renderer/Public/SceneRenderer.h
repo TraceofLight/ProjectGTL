@@ -29,9 +29,9 @@ public:
     // RenderCommandList 접근자
     FRHICommandList* GetCommandList() const { return CommandList; }
 
-    // 기즈모 렌더링 메서드
-    static void RenderGizmoPrimitive(const struct FEditorPrimitive& Primitive, const struct FRenderState& RenderState, 
-                                    const FVector& CameraLocation, float ViewportWidth, float ViewportHeight);
+    // 기즈모 렌더링 RenderCommand 추가 메서드
+    void EnqueueGizmoPrimitive(const struct FEditorPrimitive& Primitive, const struct FRenderState& RenderState, 
+                              const FVector& CameraLocation, float ViewportWidth, float ViewportHeight);
 
 private:
     const FSceneViewFamily* ViewFamily;

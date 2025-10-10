@@ -489,7 +489,9 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 				int32 VertexIndex = static_cast<int32>(ObjectInfo.VertexIndexList[Index]);
 				if (VertexIndex < ObjectInfo.VertexList.Num())
 				{
-					Vertex.Position = ObjectInfo.VertexList[VertexIndex];
+					// Y-up을 Z-up으로 좌표계 변환 (X, Y, Z) -> (X, -Z, Y)
+					FVector OriginalPos = ObjectInfo.VertexList[VertexIndex];
+					Vertex.Position = FVector(OriginalPos.X, -OriginalPos.Z, OriginalPos.Y);
 				}
 			}
 
@@ -509,7 +511,9 @@ void FObjImporter::ConvertToTriangleList(const FObjInfo& ObjectInfo,
 				int32 NormalIndex = static_cast<int32>(ObjectInfo.NormalIndexList[Index]);
 				if (NormalIndex < ObjectInfo.NormalList.Num())
 				{
-					Vertex.Normal = ObjectInfo.NormalList[NormalIndex];
+					// 노먰도 Y-up에서 Z-up으로 변환
+					FVector OriginalNormal = ObjectInfo.NormalList[NormalIndex];
+					Vertex.Normal = FVector(OriginalNormal.X, -OriginalNormal.Z, OriginalNormal.Y);
 				}
 			}
 

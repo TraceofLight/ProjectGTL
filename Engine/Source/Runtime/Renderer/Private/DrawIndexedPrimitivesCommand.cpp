@@ -10,6 +10,8 @@
 #include "Runtime/Subsystem/Asset/Public/AssetSubsystem.h"
 #include "Shader/Public/Shader.h"
 #include "Texture/Public/Texture.h"
+#include "Runtime/Renderer/Public/MaterialRenderProxy.h"
+#include "Runtime/Renderer/Public/TextureRenderProxy.h"
 
 class UAssetSubsystem;
 class UShader;
@@ -32,9 +34,13 @@ void FRHIDrawIndexedPrimitivesCommand::Execute()
 
 void FRHIDrawIndexedPrimitivesCommand::SetupShaderForComponent(UPrimitiveComponent* InComponent)
 {
-	if (!InComponent || !RHIDevice) return;
+	if (!InComponent || !RHIDevice)
+	{
+		UE_LOG_ERROR("DrawIndexedPrimitives: SetupShaderForComponent - Component(%p) or RHIDevice(%p) is null!", InComponent, RHIDevice);
+		return;
+	}
 
-	// 1. 셰이더 로드
+	// 셰이더 로드
 	UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
 	TObjectPtr<UShader> Shader = nullptr;
 	if (AssetSubsystem)
@@ -49,21 +55,45 @@ void FRHIDrawIndexedPrimitivesCommand::SetupShaderForComponent(UPrimitiveCompone
 		Shader = AssetSubsystem->LoadShader("StaticMeshShader.hlsl", LayoutDesc);
 	}
 
-	// 2. RHI에 셰이더 설정
+	// RHI에 셰이더 설정
 	RHIDevice->SetShader(Shader);
 
-	// 3. 텍스처 및 샘플러 바인딩
+	// 텍스처 및 샘플러 바인딩
 	UMaterial* ComponentMaterial = InComponent->GetMaterial();
+	ID3D11ShaderResourceView* TextureSRV = nullptr;
+
 	if (ComponentMaterial)
 	{
-		UTexture* Texture = ComponentMaterial->GetTexture();
-		if (Texture && Texture->GetShaderResourceView())
+		// Material에서 RenderProxy 가져오기
+		FMaterialRenderProxy* MaterialProxy = ComponentMaterial->GetRenderProxy();
+
+		if (MaterialProxy && MaterialProxy->IsValid())
 		{
-			ID3D11DeviceContext* DeviceContext = RHIDevice->GetDeviceContext();
-			ID3D11ShaderResourceView* SRV = Texture->GetShaderResourceView();
-			DeviceContext->PSSetShaderResources(0, 1, &SRV);
-			RHIDevice->PSSetDefaultSampler(0);
+			// RenderProxy를 통해 렌더 스레드에서 텍스처 리소스 요청
+			TextureSRV = MaterialProxy->GetTextureForRendering_RenderThread(RHIDevice);
 		}
+		else
+		{
+			UE_LOG("SetupShader: MaterialProxy is null or invalid");
+		}
+	}
+	else
+	{
+		UE_LOG("SetupShader: No material found on component, using default material");
+		// Material이 없어도 렌더링은 계속 - 기본 Material 사용
+	}
+
+	// 4. 텍스처 SRV 설정
+	if (TextureSRV)
+	{
+		ID3D11DeviceContext* DeviceContext = RHIDevice->GetDeviceContext();
+		DeviceContext->PSSetShaderResources(0, 1, &TextureSRV);
+		RHIDevice->PSSetDefaultSampler(0);
+	}
+	else
+	{
+		UE_LOG("SetupShader: No texture SRV available, using default");
+		// 텍스처가 없어도 렌더링은 계속
 	}
 }
 
@@ -74,7 +104,7 @@ void FRHIDrawIndexedPrimitivesCommand::RenderComponent(UPrimitiveComponent* InCo
 		return;
 	}
 
-	// 상수 버퍼 업데이트 (Model, View, Projection)
+	// 상수 버퍼 업데이트 (Model, View, Projection) - 모든 메시에 실제 World Matrix 사용
 	RHIDevice->UpdateConstantBuffers(InComponent->GetWorldMatrix(), ViewMatrix, ProjMatrix);
 
 
@@ -97,12 +127,14 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 {
 	if (!StaticMeshComp || !RHIDevice)
 	{
+		UE_LOG_WARNING("RenderStaticMeshComponent - Component or RHIDevice is null");
 		return;
 	}
 
 	UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
 	if (!StaticMesh)
 	{
+		UE_LOG_WARNING("RenderStaticMeshComponent - StaticMesh is null for component");
 		return;
 	}
 
@@ -114,6 +146,8 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 
 	if (!VertexBuffer || !IndexBuffer)
 	{
+		UE_LOG_ERROR("RenderStaticMeshComponent - VertexBuffer(%p) or IndexBuffer(%p) is null for mesh: %s",
+		             VertexBuffer, IndexBuffer, StaticMesh->GetAssetPathFileName().c_str());
 		return;
 	}
 
@@ -163,12 +197,6 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 
 			// AssetSubsystem을 통해 Material 데이터 가져오기
 			UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
-			if (!MaterialInterface && AssetSubsystem)
-			{
-				// MaterialName은 파싱 전용이므로 런타임에서는 사용하지 않음
-				// 대신 MaterialSlotIndex를 통해 Material 참조
-				// 또는 미리 로드된 MaterialInterface 배열 사용
-			}
 
 			// 기본 Material 사용
 			if (!MaterialInterface && AssetSubsystem)
@@ -182,15 +210,48 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 
 			if (MaterialInterface)
 			{
-				// TODO: MaterialInterface에서 MaterialInfo 추출 로직 필요
-				// MaterialInfo = MaterialInterface->GetMaterialInfo();
-				// bHasTexture = MaterialInterface->HasTexture();
-
-				// Texture 바인딩 (언리얼 스타일)
-				UTexture* Texture = MaterialInterface->GetTexture();
-				if (Texture && Texture->GetShaderResourceView())
+				// MaterialInterface에서 MaterialInfo 추출
+				if (UMaterial* Material = Cast<UMaterial>(MaterialInterface))
 				{
-					ID3D11ShaderResourceView* SRV = Texture->GetShaderResourceView();
+					MaterialInfo = Material->GetMaterialInfo();
+					bHasTexture = Material->HasTexture();
+				}
+				else
+				{
+					// UMaterialInstance나 다른 MaterialInterface 타입일 경우
+					bHasTexture = MaterialInterface->HasTexture();
+				}
+
+				// Texture 바인딩 - Material에서 가져오기
+				UTexture* Texture = MaterialInterface->GetTexture();
+				ID3D11ShaderResourceView* SRV = nullptr;
+
+				if (Texture)
+				{
+					FTextureRenderProxy* TextureProxy = Texture->GetRenderProxy();
+					if (TextureProxy)
+					{
+						SRV = TextureProxy->GetTextureForRendering_RenderThread(RHIDevice);
+					}
+				}
+
+				// 텍스처가 없으면 DefaultTexture 로드
+				if (!SRV && AssetSubsystem)
+				{
+					TObjectPtr<UTexture> DefaultTexture = AssetSubsystem->LoadTexture("DefaultTexture.png");
+					if (DefaultTexture)
+					{
+						FTextureRenderProxy* DefaultProxy = DefaultTexture->GetRenderProxy();
+						if (DefaultProxy)
+						{
+							SRV = DefaultProxy->GetTextureForRendering_RenderThread(RHIDevice);
+						}
+					}
+				}
+
+				// SRV 바인딩
+				if (SRV)
+				{
 					DeviceContext->PSSetShaderResources(0, 1, &SRV);
 					bHasTexture = true;
 				}
@@ -199,16 +260,39 @@ void FRHIDrawIndexedPrimitivesCommand::RenderStaticMeshComponent(UStaticMeshComp
 			// Material 정보를 Pixel Shader에 전달
 			RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, MaterialInterface != nullptr, bHasTexture);
 
-			// Draw Call 실행 (언리얼 스타일: Section 단위)
+			// Draw Call 실행 (Command에서 처리되어야 함)
 			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			DeviceContext->DrawIndexed(Section.GetIndexCount(), Section.GetStartIndex(), 0);
 		}
 	}
 	else
 	{
-		// Material이 없는 경우 기본 Material 사용
+		// Material이 없는 경우 흰색 기본 Material 사용
 		FObjMaterialInfo ObjMaterialInfo;
-		RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false);
+		ObjMaterialInfo.DiffuseColor = FVector(1.0f, 1.0f, 1.0f); // 흰색 설정
+
+		// DefaultTexture 로드 및 바인딩
+		bool bHasTexture = false;
+		UAssetSubsystem* AssetSubsystem = GEngine->GetEngineSubsystem<UAssetSubsystem>();
+		if (AssetSubsystem)
+		{
+			TObjectPtr<UTexture> DefaultTexture = AssetSubsystem->LoadTexture("DefaultTexture.png");
+			if (DefaultTexture)
+			{
+				FTextureRenderProxy* DefaultProxy = DefaultTexture->GetRenderProxy();
+				if (DefaultProxy)
+				{
+					ID3D11ShaderResourceView* SRV = DefaultProxy->GetTextureForRendering_RenderThread(RHIDevice);
+					if (SRV)
+					{
+						DeviceContext->PSSetShaderResources(0, 1, &SRV);
+						bHasTexture = true;
+					}
+				}
+			}
+		}
+
+		RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, true, bHasTexture);
 
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		DeviceContext->DrawIndexed(StaticMesh->GetIndexCount(), 0, 0);
@@ -227,8 +311,8 @@ void FRHIDrawIndexedPrimitivesCommand::RenderGizmoComponent(UStaticMeshComponent
 
 	ID3D11DeviceContext* DeviceContext = RHIDevice->GetDeviceContext();
 
-	// 기즈모가 항상 앞에 나오도록 Depth Test 비활성화
-	RHIDevice->OmSetDepthStencilState(EComparisonFunc::Always);
+	// 기즈모 피킹을 위해 정상 Depth Test 사용
+	RHIDevice->OmSetDepthStencilState(EComparisonFunc::LessEqual);
 
 	// 알파 블렌딩 활성화 (기즈모 반투명 효과)
 	RHIDevice->OMSetBlendState(true);
@@ -279,10 +363,10 @@ void FRHIDrawIndexedPrimitivesCommand::RenderGizmoComponent(UStaticMeshComponent
 			gizmoAxis = 1; // 기본값은 X축
 	}
 
-	// HighLightBuffer를 통해 기즈모 색상 설정
+	// HighLightBuffer를 통해 기즈모 색상 설정 - OverrideColor 사용
 	RHIDevice->UpdateHighLightConstantBuffers(
 		0, // Picked = 0 (하이라이트 안함)
-		FVector(1.0f, 1.0f, 1.0f), // Color (기본 하얀)
+		OverrideColor, // Color = 오버라이드 색상 사용 (빨강/초록/파란)
 		gizmoAxis, // X = 축 인덱스 (1=빨강, 2=초록, 3=파란)
 		bIsHovering ? 1 : 0, // Y = 호버링 상태에 따라 노란색 활성화
 		0, // Z = 0
@@ -292,6 +376,9 @@ void FRHIDrawIndexedPrimitivesCommand::RenderGizmoComponent(UStaticMeshComponent
 	// 기즈모는 Material 없이 단순 렌더링
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	DeviceContext->DrawIndexed(StaticMesh->GetIndexCount(), 0, 0);
+
+	// 기즈모 렌더링 후 상태 정리 (다음 객체에 영향을 주지 않도록)
+	// 참고: 실제 상태 복원은 각 RenderComponent 호출 시작에서 수행됨
 }
 
 // =============================================================================

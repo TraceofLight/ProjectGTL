@@ -6,7 +6,9 @@
 #include "Material/Public/Material.h"
 #include "Factory/Public/NewObject.h"
 #include "Runtime/Core/Public/ObjectIterator.h"
+#include "Texture/Public/Texture.h"
 #include "Utility/Public/Archive.h"
+#include "Global/Paths.h"
 
 IMPLEMENT_CLASS(UAssetSubsystem, UEngineSubsystem)
 
@@ -18,6 +20,32 @@ void UAssetSubsystem::Initialize()
 	InitializeDefaultMaterial();
 
 	UE_LOG("AssetSubsystem: 초기화 완료");
+}
+
+TObjectPtr<UTexture> UAssetSubsystem::LoadTexture(const FString& TexturePath)
+{
+	// 이미 생성된 UTexture 객체가 있는지 확인 (언리얼 방식)
+	if (TObjectPtr<UTexture>* Found = TextureCache.Find(TexturePath))
+	{
+		return *Found;
+	}
+
+	// 새 UTexture 객체 생성 (경로만 설정, GPU 리소스 안 로드)
+	TObjectPtr<UTexture> NewTexture = NewObject<UTexture>();
+	if (!NewTexture)
+	{
+		UE_LOG_ERROR("LoadTexture - Failed to create UTexture for: %s", TexturePath.c_str());
+		return nullptr;
+	}
+
+	// 텍스처 경로 설정 (언리얼 방식 - 경로만)
+	NewTexture->SetTexturePath(TexturePath);
+
+	// 캐시에 저장
+	TextureCache.Emplace(TexturePath, NewTexture);
+
+	UE_LOG("LoadTexture - Created UTexture asset object for: %s", TexturePath.c_str());
+	return NewTexture;
 }
 
 void UAssetSubsystem::Deinitialize()
@@ -259,7 +287,6 @@ UMaterialInterface* UAssetSubsystem::CreateMaterial(const FObjMaterialInfo& Mate
 	}
 
 	MaterialAsset->SetMaterialInfo(MaterialInfo);
-	MaterialAsset->ImportAllTextures();
 
 	return MaterialAsset;
 }
@@ -356,6 +383,89 @@ void UAssetSubsystem::InsertDefaultMaterial(UStaticMesh& InStaticMeshData, TArra
 			Section.MaterialSlotIndex = DefaultMaterialSlot;
 		}
 	}
+}
+
+TObjectPtr<UTexture> UAssetSubsystem::GetTexture(const FString& InFilePath)
+{
+	// 캐시에서 텍스처 검색
+	if (TObjectPtr<UTexture>* Found = TextureCache.Find(InFilePath))
+	{
+		return *Found;
+	}
+	return nullptr;
+}
+
+void UAssetSubsystem::ReleaseTexture(const FString& InFilePath)
+{
+	// 캐시에서 제거 및 UTexture 객체 삭제
+	if (TObjectPtr<UTexture>* Found = TextureCache.Find(InFilePath))
+	{
+		TObjectPtr<UTexture> TextureToDelete = *Found;
+		TextureCache.Remove(InFilePath);
+		delete TextureToDelete.Get(); // TObjectPtr에서 실제 포인터 가져와서 삭제
+		UE_LOG("ReleaseTexture - Released texture: %s", InFilePath.c_str());
+	}
+}
+
+bool UAssetSubsystem::HasTexture(const FString& InFilePath) const
+{
+	return TextureCache.Contains(InFilePath);
+}
+
+FString UAssetSubsystem::FindTextureFilePath(const FString& InFileName) const
+{
+	// 경로에서 파일명만 추출
+	path InputPath = InFileName;
+	FString ActualFileName = InputPath.filename();
+
+	// FPaths를 사용하여 텍스처 디렉토리들 생성
+	path ProjectRoot = FPaths::GetProjectRootDir();
+	TArray<path> SearchDirectories = {
+		ProjectRoot / "Engine" / "Data",
+		ProjectRoot / "Build" / "Debug" / "Asset" / "Texture",
+		ProjectRoot / "Build" / "Release" / "Asset" / "Texture",
+		ProjectRoot / "Engine" / "Asset" / "Texture",
+		ProjectRoot / "Data" / "Texture",
+	};
+
+	for (const path& Directory : SearchDirectories)
+	{
+		// 먼저 직접 경로에서 찾기
+		path DirectPath = Directory / ActualFileName;
+		if (exists(DirectPath))
+		{
+			FString Result = DirectPath;
+			return Result;
+		}
+
+		// 디렉토리가 존재하지 않으면 다음으로
+		if (!exists(Directory))
+		{
+			continue;
+		}
+
+		// 재귀적으로 하위 디렉토리에서 찾기
+		try
+		{
+			for (const auto& Entry : filesystem::recursive_directory_iterator(Directory))
+			{
+				if (Entry.is_regular_file() && Entry.path().filename() == ActualFileName)
+				{
+					FString Result = Entry.path();
+					return Result;
+				}
+			}
+		}
+		catch (const filesystem::filesystem_error&)
+		{
+			// 디렉토리 접근 오류 무시하고 계속
+			continue;
+		}
+	}
+
+	UE_LOG_ERROR("FindTextureFilePath: Texture file not found: %s", InFileName.c_str());
+	assert(!"FindTextureFilePath: Texture file not found");
+	return {};
 }
 
 TObjectPtr<UShader> UAssetSubsystem::LoadShader(const FString& InFilePath, const TArray<D3D11_INPUT_ELEMENT_DESC>& InLayoutDesc)

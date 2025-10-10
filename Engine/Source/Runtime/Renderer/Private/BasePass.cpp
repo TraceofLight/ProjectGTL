@@ -6,6 +6,7 @@
 #include "Runtime/Renderer/Public/SceneView.h"
 #include "Runtime/Actor/Public/StaticMeshActor.h"
 #include "Runtime/Component/Public/PrimitiveComponent.h"
+#include "Runtime/Component/Public/StaticMeshComponent.h"
 #include "Runtime/Engine/Public/World.h"
 #include "Window/Public/Viewport.h"
 
@@ -102,18 +103,17 @@ void FBasePass::Execute(const FSceneView* View, FSceneRenderer* SceneRenderer)
 		}
 
 		// Frustum Culling 통계 출력 (프레임마다 출력하지 말고 주기적으로)
-		static int32 FrameCount = 0;
-		FrameCount++;
-		if (FrameCount % 120 == 0) // 2초마다 출력 (60fps 기준)
-		{
-			int32 TotalActors = Actors.Num();
-			if (TotalActors > 0)
-			{
-				UE_LOG("[BasePass] Frustum Culling Stats - Total: %d, Rendered: %d, Culled: %d (%.1f%%)\n",
-				       TotalActors, RenderedCount, CulledCount, (float)CulledCount * 100.0f / TotalActors);
-				UE_LOG("[BasePass] 렌더링 대상 액터 수: %d", Actors.Num());
-			}
-		}
+		// static int32 FrameCount = 0;
+		// FrameCount++;
+		// if (FrameCount % 120 == 0) // 2초마다 출력 (60fps 기준)
+		// {
+		// 	int32 TotalActors = Actors.Num();
+		// 	if (TotalActors > 0)
+		// 	{
+		// 		UE_LOG("[BasePass] Frustum Culling Stats - Total: %d, Rendered: %d, Culled: %d (%.1f%%)\n",
+		// 		       TotalActors, RenderedCount, CulledCount, (float)CulledCount * 100.0f / TotalActors);
+		// 	}
+		// }
 	}
 
 	// === 엔진 액터들 (그리드 등) 렌더링 ===
@@ -133,7 +133,6 @@ bool FBasePass::RenderActor(AActor* Actor, const FSceneView* View, FRHICommandLi
 	// 렌더링 문제 해결을 위해 임시로 Frustum Culling을 비활성화
 	bool bShouldCull = false; // 항상 false로 설정
 
-
 	// 바운딩 박스 기반 컵링 체크 (비활성화 - 컴포넌트 미존재)
 	bool bFoundBoundingBox = false;
 	// 참고: UAABoundingBoxComponent와 UOBoundingBoxComponent가 존재하지 않으므로
@@ -147,17 +146,14 @@ bool FBasePass::RenderActor(AActor* Actor, const FSceneView* View, FRHICommandLi
 		return false; // Frustum 외부에 있으므로 컬링
 	}
 
-	UWorld* World = View->GetWorld();
-
-	// 선택 상태 확인 (임시로 비활성화 - USelectionManager 미존재)
-	bool bIsSelected = false;
 	// TODO: UEditor의 GetSelectedActor()를 사용하여 선택 상태 확인 구현
 
 	// 하이라이트 상수 버퍼 업데이트 (CommandList로 처리)
 	// TODO: UpdateHighlightBuffers Command 추가
 
 	// 액터의 모든 컴포넌트 렌더링
-	for (USceneComponent* Component : Actor->GetComponents<USceneComponent>())
+	TArray<USceneComponent*> Components = Actor->GetComponents<USceneComponent>();
+	for (USceneComponent* Component : Components)
 	{
 		if (!Component)
 		{

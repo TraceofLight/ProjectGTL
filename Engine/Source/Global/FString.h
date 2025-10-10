@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 
 class FString : public std::string
 {
@@ -31,6 +32,38 @@ public:
 	size_t GetHash() const
 	{
 		return std::hash<std::string>{}(static_cast<const std::string&>(*this));
+	}
+
+	// std::filesystem::path와의 상호 운용성을 위한 변환 연산자들
+	operator std::filesystem::path() const
+	{
+		return std::filesystem::path(static_cast<const std::string&>(*this));
+	}
+
+	// path 생성자
+	FString(const std::filesystem::path& path) : std::string(path.string()) {}
+
+	// path 대입 연산자
+	FString& operator=(const std::filesystem::path& path)
+	{
+		std::string::operator=(path.string());
+		return *this;
+	}
+
+	// path와의 / 연산자 (경로 결합)
+	std::filesystem::path operator/(const std::string& other) const
+	{
+		return std::filesystem::path(*this) / other;
+	}
+
+	std::filesystem::path operator/(const FString& other) const
+	{
+		return std::filesystem::path(*this) / std::string(other);
+	}
+
+	std::filesystem::path operator/(const std::filesystem::path& other) const
+	{
+		return std::filesystem::path(*this) / other;
 	}
 };
 

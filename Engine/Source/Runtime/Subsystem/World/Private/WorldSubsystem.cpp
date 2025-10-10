@@ -198,45 +198,38 @@ bool UWorldSubsystem::SaveCurrentLevel(const FString& InFilePath) const
 		// 현재 레벨의 메타데이터 생성
 		FLevelMetadata Metadata = ConvertLevelToMetadata(CurrentLevel);
 
-		// 0번 ViewPort의 PerspectiveCamera 세팅을 Metadata에 포함
+		// 0번 ViewPort의 Perspective 카메라 세팅을 Metadata에 포함
 		UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
 		UE_LOG("WorldSubsystem: SaveCurrentLevel - Saving camera from Viewport 0");
-		if (ViewportSS)
+		if (ViewportSS && ViewportSS->GetClients().Num() > 0)
 		{
-			ACameraActor* PerspectiveCamera = ViewportSS->GetActiveCameraForViewport(0);
-			if (PerspectiveCamera && PerspectiveCamera->GetCameraComponent()->GetCameraType() == ECameraType::ECT_Perspective)
+			FViewportClient* PerspectiveClient = ViewportSS->GetClients()[0]; // 0번은 Perspective 뷰
+			if (PerspectiveClient && PerspectiveClient->GetViewType() == EViewType::Perspective)
 			{
-				UCameraComponent* CamComp = PerspectiveCamera->GetCameraComponent();
-				if (CamComp)
-				{
-					Metadata.PerspectiveCamera.FarClip = CamComp->GetFarZ();
-					Metadata.PerspectiveCamera.NearClip = CamComp->GetNearZ();
-					Metadata.PerspectiveCamera.FOV = CamComp->GetFovY();
-					Metadata.PerspectiveCamera.Location = PerspectiveCamera->GetActorLocation();
-					Metadata.PerspectiveCamera.Rotation = PerspectiveCamera->GetActorRotation();
+				// ViewportClient에서 직접 카메라 정보 가져오기
+				Metadata.PerspectiveCamera.FarClip = 100000.0f;  // ViewportClient의 기본값
+				Metadata.PerspectiveCamera.NearClip = 0.01f;     // ViewportClient의 기본값
+				Metadata.PerspectiveCamera.FOV = PerspectiveClient->GetFovY();
+				Metadata.PerspectiveCamera.Location = PerspectiveClient->GetViewLocation();
+				Metadata.PerspectiveCamera.Rotation = PerspectiveClient->GetViewRotation();
 
-					UE_LOG(
-						"WorldSubsystem: Camera saved - Loc:(%.2f,%.2f,%.2f) Rot:(%.2f,%.2f,%.2f) FOV:%.2f Near:%.2f Far:%.2f",
-						Metadata.PerspectiveCamera.Location.X, Metadata.PerspectiveCamera.Location.Y,
-						Metadata.PerspectiveCamera.Location.Z,
-						Metadata.PerspectiveCamera.Rotation.X, Metadata.PerspectiveCamera.Rotation.Y,
-						Metadata.PerspectiveCamera.Rotation.Z,
-						Metadata.PerspectiveCamera.FOV, Metadata.PerspectiveCamera.NearClip,
-						Metadata.PerspectiveCamera.FarClip);
-				}
-				else
-				{
-					UE_LOG("WorldSubsystem: WARNING - PerspectiveCamera has no CameraComponent, camera data not saved!");
-				}
+				UE_LOG(
+					"WorldSubsystem: Camera saved - Loc:(%.2f,%.2f,%.2f) Rot:(%.2f,%.2f,%.2f) FOV:%.2f Near:%.2f Far:%.2f",
+					Metadata.PerspectiveCamera.Location.X, Metadata.PerspectiveCamera.Location.Y,
+					Metadata.PerspectiveCamera.Location.Z,
+					Metadata.PerspectiveCamera.Rotation.X, Metadata.PerspectiveCamera.Rotation.Y,
+					Metadata.PerspectiveCamera.Rotation.Z,
+					Metadata.PerspectiveCamera.FOV, Metadata.PerspectiveCamera.NearClip,
+					Metadata.PerspectiveCamera.FarClip);
 			}
 			else
 			{
-				UE_LOG("WorldSubsystem: WARNING - Viewport 0 has no PerspectiveCamera, camera data not saved!");
+				UE_LOG("WorldSubsystem: Viewport 0 is not Perspective type, camera data not saved!");
 			}
 		}
 		else
 		{
-			UE_LOG("WorldSubsystem: WARNING - No ViewportSubsystem available, camera data not saved!");
+			UE_LOG("WorldSubsystem: No ViewportSubsystem or ViewportClients available, camera data not saved!");
 		}
 
 		bool bSuccess = FJsonSerializer::SaveLevelToFile(Metadata, FilePath.string());
@@ -531,44 +524,47 @@ void UWorldSubsystem::ClearCurrentLevel()
 }
 
 /**
- * @brief 메타데이터에서 카메라 정보를 복원
+ * @brief 메타데이터에서 카메라 정보를 ViewportClient에 복원
  */
 void UWorldSubsystem::RestoreCameraFromMetadata(const FCameraMetadata& InCameraMetadata)
 {
-	// Camera deprecated - 더 이상 카메라를 복원하지 않음
-	// UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	// if (!ViewportSS) return;
+	UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
+	if (!ViewportSS || ViewportSS->GetClients().Num() == 0)
+	{
+		UE_LOG("WorldSubsystem: No ViewportSubsystem or ViewportClients available for camera restore");
+		return;
+	}
 
 	// FOV/Near/Far가 0이면 저장된 데이터가 손상되었으므로 기본값 사용
-	// bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
-	// 	InCameraMetadata.FarClip <= 0.0f);
-	// if (bUseDefaults)
-	// {
-	// 	UE_LOG_WARNING("월드Subsystem: 경고: 카메라 메타데이터 손상, 기본값을 사용합니다");
-	// }
+	bool bUseDefaults = (InCameraMetadata.FOV <= 0.0f || InCameraMetadata.NearClip <= 0.0f ||
+		InCameraMetadata.FarClip <= 0.0f);
+	if (bUseDefaults)
+	{
+		UE_LOG_WARNING("월드Subsystem: 경고: 카메라 메타데이터 손상, 기본값을 사용합니다");
+	}
 
-	// 모든 Perspective 카메라에 동일한 설정 적용
-	// const auto& PerspectiveCameras = ViewportSS->GetPerspectiveCameras();
-	// for (ACameraActor* PerspectiveCamera : PerspectiveCameras)
-	// {
-	// 	if (!PerspectiveCamera || !PerspectiveCamera->GetCameraComponent()) continue;
+	// 0번 ViewportClient (Perspective 뷰)에 카메라 정보 복원
+	FViewportClient* PerspectiveClient = ViewportSS->GetClients()[0];
+	if (PerspectiveClient && PerspectiveClient->GetViewType() == EViewType::Perspective)
+	{
+		// ViewportClient에 카메라 설정 복원
+		PerspectiveClient->SetViewLocation(InCameraMetadata.Location);
+		PerspectiveClient->SetViewRotation(InCameraMetadata.Rotation);
 
-	// 	UCameraComponent* CameraComponent = PerspectiveCamera->GetCameraComponent();
+		// FOV는 유효성 검사 후 설정
+		if (!bUseDefaults)
+		{
+			PerspectiveClient->SetFovY(InCameraMetadata.FOV);
+		}
 
-	// 	// 카메라 설정 복원
-	// 	PerspectiveCamera->SetActorLocation(InCameraMetadata.Location);
-	// 	PerspectiveCamera->SetActorRotation(InCameraMetadata.Rotation);
-
-	// 	// FOV/Near/Far는 유효성 검사 후 설정
-	// 	if (!bUseDefaults)
-	// 	{
-	// 		CameraComponent->SetFovY(InCameraMetadata.FOV);
-	// 		CameraComponent->SetNearZ(InCameraMetadata.NearClip);
-	// 		CameraComponent->SetFarZ(InCameraMetadata.FarClip);
-	// 	}
-	// }
-
-	// Ortho 카메라들도 업데이트가 필요하다면 여기에 로직 추가
-
-	UE_LOG("월드Subsystem: Camera restore deprecated - no longer using cameras.");
+		UE_LOG(
+			"WorldSubsystem: Camera restored - Loc:(%.2f,%.2f,%.2f) Rot:(%.2f,%.2f,%.2f) FOV:%.2f",
+			InCameraMetadata.Location.X, InCameraMetadata.Location.Y, InCameraMetadata.Location.Z,
+			InCameraMetadata.Rotation.X, InCameraMetadata.Rotation.Y, InCameraMetadata.Rotation.Z,
+			InCameraMetadata.FOV);
+	}
+	else
+	{
+		UE_LOG("WorldSubsystem: Viewport 0 is not Perspective type, camera data not restored!");
+	}
 }

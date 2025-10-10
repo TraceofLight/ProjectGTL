@@ -167,26 +167,63 @@ void FDebugPass::RenderGrid(const FSceneView* View, FSceneRenderer* SceneRendere
 		FMatrix ViewMatrix = View->GetViewMatrix();
 		FMatrix ProjectionMatrix = View->GetProjectionMatrix();
 		const FRect& ViewRect = View->GetViewRect();
-		
+
 		LineBatcher->EndBatch(RHICmdList, FMatrix::Identity(), ViewMatrix, ProjectionMatrix, &ViewRect);
 	}
 }
 
-void FDebugPass::RenderGizmos(const FSceneView* View, FSceneRenderer* SceneRenderer, UEditor* Editor)
+void FDebugPass::RenderGizmos(const FSceneView* View, FSceneRenderer* SceneRenderer, const UEditor* Editor)
 {
-	if (!View || !Editor) return;
+	if (!View || !Editor)
+	{
+		return;
+	}
 
 	// Editor에서 선택된 액터 가져오기
 	AActor* SelectedActor = Editor->GetSelectedActor();
-	if (!SelectedActor) return;
+	if (!SelectedActor)
+	{
+		return;
+	}
 
-	// TODO: Gizmo 렌더링은 이제 FEditorRenderResources에서 처리되어야 함
-	// 임시로 Gizmo 렌더링 비활성화
-	// FRendererModule& RendererModule = FRendererModule::Get();
-	// FEditorRenderResources* EditorResources = RendererModule.GetEditorResources();
-	// if (EditorResources) {
-	//     EditorResources->RenderGizmo(SelectedActor, ...);
-	// }
+	// Gizmo 가져오기
+	UGizmo* Gizmo = Editor->GetGizmo();
+	if (!Gizmo)
+	{
+		return;
+	}
+
+	// ViewportClient와 Viewport 정보 가져오기
+	FViewport* Viewport = View->GetViewport();
+	if (!Viewport)
+	{
+		return;
+	}
+
+	FViewportClient* ViewportClient = Viewport->GetViewportClient();
+	if (!ViewportClient)
+	{
+		return;
+	}
+
+	// Viewport 크기 정보
+	const FRect& ViewRect = View->GetViewRect();
+	float ViewportWidth = static_cast<float>(ViewRect.W);
+	float ViewportHeight = static_cast<float>(max<LONG>(0, ViewRect.H - Viewport->GetToolbarHeight()));
+
+	if (ViewportWidth <= 0.0f || ViewportHeight <= 0.0f)
+	{
+		return;
+	}
+
+	// Viewport에서 카메라 위치 가져오기
+	FVector CameraLocation = ViewportClient->GetViewLocation();
+
+	// Viewport Index 계산 (ViewportSubsystem에서 가져와야 하지만 여기서는 0으로 가정)
+	int32 ViewportIndex = 0; // TODO: ViewportSubsystem에서 올바른 인덱스 가져오기
+
+	// Gizmo 렌더링 수행 - SceneRenderer를 전달하여 RenderCommand 기반으로 동작
+	Gizmo->RenderGizmo(SceneRenderer, SelectedActor, CameraLocation, nullptr, ViewportWidth, ViewportHeight, ViewportIndex);
 }
 
 void FDebugPass::RenderActorLines(AActor* Actor, const FSceneView* View, FSceneRenderer* SceneRenderer, FEditorRenderResources* EditorResources, UEditor* Editor)

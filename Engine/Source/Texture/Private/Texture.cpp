@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Texture/Public/Texture.h"
+#include "Runtime/Renderer/Public/TextureResource.h"
+#include "Runtime/Renderer/Public/TextureRenderProxy.h"
+#include "Runtime/RHI/Public/RHIDevice.h"
 
 IMPLEMENT_CLASS(UTexture, UObject)
 
@@ -9,7 +12,6 @@ IMPLEMENT_CLASS(UTexture, UObject)
  * 생성에 필요한 내용을 갖추도록 구현
  */
 UTexture::UTexture()
-	: TextureFilePath(FName::FName_None)
 {
 	SetName(FName::FName_None);
 }
@@ -18,14 +20,52 @@ UTexture::UTexture(const FString& InFilePath, FName InName)
 	: TextureFilePath(InFilePath)
 {
 	SetName(InName);
+
+	// RenderProxy 생성
+	if (!InFilePath.empty())
+	{
+		RenderProxy = new FTextureRenderProxy(InFilePath);
+	}
 }
 
-UTexture::~UTexture() = default;
+UTexture::~UTexture()
+{
+	// RenderProxy 해제
+	if (RenderProxy)
+	{
+		RenderProxy->BeginReleaseResource();
+		delete RenderProxy;
+		RenderProxy = nullptr;
+	}
+}
 
 ID3D11ShaderResourceView* UTexture::GetShaderResourceView() const
 {
-	// RenderProxy에서 SRV를 발취해야 하지만
-	// 현재 FTextureRenderProxy 구조체가 정의되지 않음
-	// 임시로 nullptr 반환
+	UE_LOG_WARNING("UTexture::GetShaderResourceView - Deprecated! Use GetRenderProxy() instead.");
 	return nullptr;
+}
+
+void UTexture::SetTexturePath(const FString& InTexturePath)
+{
+	// 언리얼 방식: 경로만 저장, GPU 리소스는 렌더링 시점에 생성
+	TextureFilePath = InTexturePath;
+
+	// 기존 RenderProxy 해제 후 새로 생성
+	if (RenderProxy)
+	{
+		RenderProxy->BeginReleaseResource();
+		delete RenderProxy;
+		RenderProxy = nullptr;
+	}
+
+	// 새로운 RenderProxy 생성
+	if (!InTexturePath.empty())
+	{
+		RenderProxy = new FTextureRenderProxy(InTexturePath);
+	}
+}
+
+FString UTexture::GetTexturePath() const
+{
+	return TextureFilePath;
 }

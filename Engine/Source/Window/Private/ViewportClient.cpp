@@ -28,42 +28,40 @@ FMatrix FViewportClient::GetViewMatrix() const
     FMatrix ViewMatrix;
     FVector Right, Up, Forward;
 
-    // 직교 뷰는 Forward + Right 직접 정의 (언리얼 표준)
+    // 직교 뷰는 Forward + Right 직접 정의
     // 왼손 좌표계: Up = Forward × Right
     switch (ViewType)
     {
     case EViewType::OrthoTop:
-        // Top: 화면 오른쪽=-Y, 화면 위=-X
         Forward = FVector(0.0f, 0.0f, -1.0f);   // -Z
         Right = FVector(0.0f, -1.0f, 0.0f);     // -Y
         Up = FVector(-1.0f, 0.0f, 0.0f);        // -X
         break;
 
     case EViewType::OrthoBottom:
-        // Bottom: 화면 오른쪽=+Y, 화면 위=+X
         Forward = FVector(0.0f, 0.0f, 1.0f);    // +Z
         Right = FVector(0.0f, 1.0f, 0.0f);      // +Y
-        Up = FVector(1.0f, 0.0f, 0.0f);         // +X
+        Up = FVector(-1.0f, 0.0f, 0.0f);        // -X
         break;
 
     case EViewType::OrthoFront:
         // Front: 화면 오른쪽=-Y, 화면 위=+Z
         Forward = FVector(1.0f, 0.0f, 0.0f);    // +X
-        Right = FVector(0.0f, -1.0f, 0.0f);     // -Y
+        Right = FVector(0.0f, 1.0f, 0.0f);      // +Y
         Up = FVector(0.0f, 0.0f, 1.0f);         // +Z
         break;
 
     case EViewType::OrthoBack:
         // Back: 화면 오른쪽=+Y, 화면 위=+Z
         Forward = FVector(-1.0f, 0.0f, 0.0f);   // -X
-        Right = FVector(0.0f, 1.0f, 0.0f);      // +Y
+        Right = FVector(0.0f, -1.0f, 0.0f);     // -Y
         Up = FVector(0.0f, 0.0f, 1.0f);         // +Z
         break;
 
     case EViewType::OrthoLeft:
         // Left: 화면 오른쪽=-X, 화면 위=+Z
         Forward = FVector(0.0f, -1.0f, 0.0f);   // -Y
-        Right = FVector(-1.0f, 0.0f, 0.0f);     // -X
+        Right = FVector(1.0f, 0.0f, 0.0f);      // +X
         Up = FVector(0.0f, 0.0f, 1.0f);         // +Z
         break;
 
@@ -93,26 +91,30 @@ FMatrix FViewportClient::GetViewMatrix() const
         break;
     }
 
-    // View 행렬 직접 구성 (Row-major, 원래대로)
-    // UE: X=Forward, Y=Right, Z=Up
-    // DirectX View Space: X=Right, Y=Up, Z=Forward
-    // Row 0: Right (DirectX X 축)
+    // DirectX View Matrix 구성 (Row-major 순서)
+    //
+    // DirectX 렌더링 파이프라인에서 기대하는 순서:
+    //   Row 0: Right Vector  (NDC X축 매핑)
+    //   Row 1: Up Vector     (NDC Y축 매핑)
+    //   Row 2: Forward Vector (NDC Z축 매핑)
+    //   Row 3: Translation   (카매라 위치 변환)
+    //
+    // 참고: ViewLocation은 월드 좌표이므로 -Right.Dot(ViewLocation)로 내적
+
     ViewMatrix.Data[0][0] = Right.X;
     ViewMatrix.Data[0][1] = Right.Y;
     ViewMatrix.Data[0][2] = Right.Z;
-    ViewMatrix.Data[0][3] = -Right.Dot(ViewLocation);
+    ViewMatrix.Data[0][3] = -Right.Dot(ViewLocation);    // 오른쪽 방향 투영 + 카메라 오프셋
 
-    // Row 1: Up (DirectX Y 축)
     ViewMatrix.Data[1][0] = Up.X;
     ViewMatrix.Data[1][1] = Up.Y;
     ViewMatrix.Data[1][2] = Up.Z;
-    ViewMatrix.Data[1][3] = -Up.Dot(ViewLocation);
+    ViewMatrix.Data[1][3] = -Up.Dot(ViewLocation);       // 위 방향 투영 + 카메라 오프셋
 
-    // Row 2: Forward (DirectX Z 축)
     ViewMatrix.Data[2][0] = Forward.X;
     ViewMatrix.Data[2][1] = Forward.Y;
     ViewMatrix.Data[2][2] = Forward.Z;
-    ViewMatrix.Data[2][3] = -Forward.Dot(ViewLocation);
+    ViewMatrix.Data[2][3] = -Forward.Dot(ViewLocation);  // 전진 방향 투영 + 카메라 오프셋
 
     // Row 3: Homogeneous
     ViewMatrix.Data[3][0] = 0.0f;
@@ -166,32 +168,6 @@ void FViewportClient::Draw(FViewport* InViewport)
 		UE_LOG("ViewportClient::Draw - No World");
 		return;
 	}
-
-	// Camera deprecated - 카메라 없이 ViewportClient의 행렬을 직접 사용
-	// Get Current Camera from ViewportSubsystem
-	// UViewportSubsystem* ViewportSS = GEngine->GetEngineSubsystem<UViewportSubsystem>();
-	// ACameraActor* CurrentCamera = nullptr;
-	// if (ViewportSS)
-	// {
-	// 	// Find the index for the given viewport pointer
-	// 	int32 ViewportIndex = -1;
-	// 	const auto& Viewports = ViewportSS->GetViewports();
-	// 	for (int32 i = 0; i < Viewports.Num(); ++i)
-	// 	{
-	// 		if (Viewports[i] == InViewport)
-	// 		{
-	// 			ViewportIndex = i;
-	// 			break;
-	// 		}
-	// 	}
-	// 	CurrentCamera = ViewportSS->GetActiveCameraForViewport(ViewportIndex);
-	// }
-
-	// if (!CurrentCamera)
-	// {
-	// 	// UE_LOG("ViewportClient::Draw - No active camera for this viewport");
-	// 	return; // 렌더링할 카메라가 없으면 종료
-	// }
 
 	// SceneViewFamily
 	FSceneViewFamily ViewFamily;

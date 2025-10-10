@@ -108,9 +108,9 @@ void UViewportSubsystem::Tick(float DeltaSeconds)
 		TObjectPtr<UWidget> Widget = UISS->FindWidget(FName("Scene Hierarchy Widget"));
 		if (USceneHierarchyWidget* SceneWidget = Cast<USceneHierarchyWidget>(Widget))
 		{
-			if (SceneWidget->IsAnyCameraAnimating())
+			if (SceneWidget->IsAnyViewportAnimating())
 			{
-				SceneWidget->StopAllCameraAnimations();
+				SceneWidget->StopAllViewportAnimations();
 			}
 		}
 	}
@@ -218,6 +218,21 @@ void UViewportSubsystem::Tick(float DeltaSeconds)
 						{
 							SharedFovY = NewFovY; // 정상 범위 내에서 업데이트
 						}
+
+						WheelInputSubsystem->SetMouseWheelDelta(0.0f);
+					}
+				}
+				else if (Client && !Client->IsOrtho())
+				{
+					// 2.8) 원근투영: 우클릭 드래그 중에만 휠로 카메라 이동 속도 조절
+					if (WheelInputSubsystem->IsKeyDown(EKeyInput::MouseRight))
+					{
+						constexpr float SpeedStep = 5.0f;
+						constexpr float MinSpeed = 15.0f;
+						constexpr float MaxSpeed = 500.0f;
+
+						float NewSpeed = PerspectiveMoveSpeed + (WheelDelta * SpeedStep);
+						PerspectiveMoveSpeed = std::clamp(NewSpeed, MinSpeed, MaxSpeed);
 
 						WheelInputSubsystem->SetMouseWheelDelta(0.0f);
 					}
@@ -747,8 +762,8 @@ void UViewportSubsystem::UpdateOrthoGraphicCameraPoint()
 		Up = FVector(0.0f, 0.0f, -1.0f);        // -Z (반대)
 		break;
 	case EViewType::OrthoLeft:
-		// Left: ViewMatrix Right=-X, Up=+Z → 드래그는 반대
-		Right = FVector(1.0f, 0.0f, 0.0f);      // +X (반대)
+		// Left: ViewMatrix Right=+X, Up=+Z → 드래그는 반대
+		Right = FVector(-1.0f, 0.0f, 0.0f);     // -X (반대)
 		Up = FVector(0.0f, 0.0f, -1.0f);        // -Z (반대)
 		break;
 	case EViewType::OrthoRight:
@@ -884,47 +899,59 @@ void UViewportSubsystem::UpdatePerspectiveCamera()
 	}
 
 	// 2. 이동 처리 (WASD + QE)
-	FVector MoveDelta(0.0f, 0.0f, 0.0f);
-	constexpr float MoveSpeed = 30.0f; // 튜닝 가능
+	const float MoveSpeed = PerspectiveMoveSpeed; // ViewportSubsystem의 속도 사용
+	FVector CurrentLocation = ViewportClient->GetViewLocation();
+	bool bHasMovement = false;
+
+	// WASD: 카메라 회전에 따른 이동 (로컬 공간)
+	FVector HorizontalMoveDelta(0.0f, 0.0f, 0.0f);
 
 	if (InputSubsystem->IsKeyDown(EKeyInput::W))
 	{
-		MoveDelta += FVector(1.0f, 0.0f, 0.0f); // Forward
+		HorizontalMoveDelta += FVector(1.0f, 0.0f, 0.0f); // Forward
+		bHasMovement = true;
 	}
 	if (InputSubsystem->IsKeyDown(EKeyInput::S))
 	{
-		MoveDelta += FVector(-1.0f, 0.0f, 0.0f); // Backward
+		HorizontalMoveDelta += FVector(-1.0f, 0.0f, 0.0f); // Backward
+		bHasMovement = true;
 	}
 	if (InputSubsystem->IsKeyDown(EKeyInput::D))
 	{
-		MoveDelta += FVector(0.0f, 1.0f, 0.0f); // Right
+		HorizontalMoveDelta += FVector(0.0f, 1.0f, 0.0f); // Right
+		bHasMovement = true;
 	}
 	if (InputSubsystem->IsKeyDown(EKeyInput::A))
 	{
-		MoveDelta += FVector(0.0f, -1.0f, 0.0f); // Left
+		HorizontalMoveDelta += FVector(0.0f, -1.0f, 0.0f); // Left
+		bHasMovement = true;
 	}
+
+	// WASD 이동을 카메라 회전에 맞춰 변환
+	if (HorizontalMoveDelta.LengthSquared() > 0.0f)
+	{
+		FVector Radians = FVector::GetDegreeToRadian(CurrentRotation);
+		FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, Radians.X, Radians.Z);
+		FVector WorldMoveDelta = FMatrix::VectorMultiply(HorizontalMoveDelta, RotationMatrix);
+		WorldMoveDelta.Normalize();
+		CurrentLocation += WorldMoveDelta * MoveSpeed * DT;
+	}
+
+	// QE: 절대 월드 Z축 상하 이동 (회전과 무관)
 	if (InputSubsystem->IsKeyDown(EKeyInput::E))
 	{
-		MoveDelta += FVector(0.0f, 0.0f, 1.0f); // Up
+		CurrentLocation.Z += MoveSpeed * DT; // Up
+		bHasMovement = true;
 	}
 	if (InputSubsystem->IsKeyDown(EKeyInput::Q))
 	{
-		MoveDelta += FVector(0.0f, 0.0f, -1.0f); // Down
+		CurrentLocation.Z -= MoveSpeed * DT; // Down
+		bHasMovement = true;
 	}
 
-	if (MoveDelta.LengthSquared() > 0.0f)
+	// 위치 업데이트
+	if (bHasMovement)
 	{
-		// 회전에 따른 이동 방향 처리
-		FVector Radians = FVector::GetDegreeToRadian(CurrentRotation);
-		FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, Radians.X, Radians.Z);
-
-		// 로컬 공간에서 월드 공간으로 변환
-		FVector WorldMoveDelta = FMatrix::VectorMultiply(MoveDelta, RotationMatrix);
-		WorldMoveDelta.Normalize();
-
-		// 위치 업데이트
-		FVector CurrentLocation = ViewportClient->GetViewLocation();
-		CurrentLocation += WorldMoveDelta * MoveSpeed * DT;
 		ViewportClient->SetViewLocation(CurrentLocation);
 	}
 }
@@ -944,47 +971,13 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 	SyncRectsToViewports();
 
 	// 2) 각 클라이언트에 카메라 재바인딩 + Update + OnResize
-	const int32 N = static_cast<int32>(Clients.Num());
+	const int32 N = Clients.Num();
 	for (int32 i = 0; i < N; ++i)
 	{
 		FViewportClient* Client = Clients[i];
-		if (!Client) continue;
-
-		const EViewType Viewport = Client->GetViewType();
-		if (Viewport == EViewType::Perspective)
+		if (!Client)
 		{
-			// Camera deprecated
-			// if (i < static_cast<int32>(PerspectiveCameras.Num()) && PerspectiveCameras[i])
-			// {
-			// 	PerspectiveCameras[i]->GetCameraComponent()->SetCameraType(ECameraType::ECT_Perspective);
-			// }
-		}
-		else
-		{
-			// 오쏘: ViewType → 6방향 인덱스 매핑
-			int OrthoIdx = -1;
-			switch (Viewport)
-			{
-			case EViewType::OrthoTop: OrthoIdx = 0;
-				break;
-			case EViewType::OrthoBottom: OrthoIdx = 1;
-				break;
-			case EViewType::OrthoLeft: OrthoIdx = 2;
-				break;
-			case EViewType::OrthoRight: OrthoIdx = 3;
-				break;
-			case EViewType::OrthoFront: OrthoIdx = 4;
-				break;
-			case EViewType::OrthoBack: OrthoIdx = 5;
-				break;
-			default: break;
-			}
-
-			// Camera deprecated
-			// if (OrthoIdx >= 0 && OrthoIdx < static_cast<int>(OrthoGraphicCameras.Num()))
-			// {
-			// 	ACameraActor* Camera = OrthoGraphicCameras[OrthoIdx];
-			// }
+			continue;
 		}
 
 		// 크기 반영(툴바 높이 포함) — 깜빡임/툴바 좌표 안정화
@@ -1030,16 +1023,6 @@ void UViewportSubsystem::ForceRefreshOrthoViewsAfterLayoutChange()
 	ActiveRmbViewportIdx = -1;
 }
 
-void UViewportSubsystem::ApplySharedOrthoCenterToAllCameras() const
-{
-	// Camera deprecated - 이 함수는 더 이상 사용하지 않음
-	// OrthoGraphicCamerapoint 기준으로 6개 오쉐 카메라 위치 갱신
-	// for (ACameraActor* Camera : OrthoGraphicCameras)
-	// {
-	// ...
-	// }
-}
-
 void UViewportSubsystem::PersistSplitterRatios()
 {
 	if (!Root)
@@ -1074,12 +1057,12 @@ void UViewportSubsystem::TickInput()
 	const FVector& MousePosition = InputSubsystem->GetMousePosition();
 	FPoint Point{static_cast<LONG>(MousePosition.X), static_cast<LONG>(MousePosition.Y)};
 
-	SWindow* Target = nullptr;
+	SWindow* Target;
 
 	if (Capture != nullptr)
 	{
 		// 드래그 캡처 중이면, 히트 테스트 없이 캡처된 위젯으로 고정
-		Target = static_cast<SWindow*>(Capture);
+		Target = Capture;
 	}
 	else
 	{
@@ -1150,11 +1133,21 @@ int32 UViewportSubsystem::GetViewportIndexUnderMouse() const
 	return -1;
 }
 
+/**
+ * @brief 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산 (true면 성공)
+ */
 bool UViewportSubsystem::ComputeLocalNDCForViewport(int32 InIdx, float& OutNdcX, float& OutNdcY) const
 {
-	if (InIdx < 0 || InIdx >= static_cast<int32>(Viewports.Num())) return false;
+	if (InIdx < 0 || InIdx >= Viewports.Num())
+	{
+		return false;
+	}
+
 	const FRect& Rect = Viewports[InIdx]->GetRect();
-	if (Rect.W <= 0 || Rect.H <= 0) return false;
+	if (Rect.W <= 0 || Rect.H <= 0)
+	{
+		return false;
+	}
 
 	// 툴바 높이를 고려한 실제 렌더링 영역 기준으로 NDC 계산
 	const int32 ToolbarHeight = Viewports[InIdx]->GetToolbarHeight();
@@ -1698,19 +1691,6 @@ void UViewportSubsystem::FinalizeFourSplitLayoutFromAnimation()
 	LastPromotedIdx = -1;
 
 	ForceRefreshOrthoViewsAfterLayoutChange();
-}
-
-ACameraActor* UViewportSubsystem::GetActiveCameraForViewport(int32 InViewportIndex) const
-{
-    // Camera deprecated - 더 이상 카메라를 반환하지 않음
-    return nullptr;
-}
-
-TArray<ACameraActor*> UViewportSubsystem::GetAllCameras() const
-{
-    // Camera deprecated - 빈 배열 반환
-    TArray<ACameraActor*> AllCameras;
-    return AllCameras;
 }
 
 void UViewportSubsystem::SetViewportViewType(int32 InViewportIndex, EViewType InNewType)

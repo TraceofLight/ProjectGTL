@@ -20,7 +20,7 @@ IMPLEMENT_CLASS(UUISubsystem, UEngineSubsystem)
 
 UUISubsystem::UUISubsystem()
 {
-	ImGuiHelper = new UImGuiHelper();
+	ImGuiHelper = new UImGuiHelper;
 }
 
 UUISubsystem::~UUISubsystem()
@@ -53,6 +53,10 @@ void UUISubsystem::Initialize()
 			cout << "UISubsystem: ImGui Initialized Successfully." << "\n";
 		}
 	}
+
+	// UI 레이아웃 생성
+	UUIWindowFactory::CreateDefaultUILayout();
+	UE_LOG("UEditor: 기본 UI 레이아웃이 생성되었습니다");
 
 	UE_LOG("UISubsystem: UI System 초기화 성공");
 }

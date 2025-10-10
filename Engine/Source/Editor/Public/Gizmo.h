@@ -53,7 +53,7 @@ class UGizmo :
 	DECLARE_CLASS(UGizmo, UObject)
 
 public:
-	void RenderGizmo(AActor* InActor, const FVector& InCameraLocation, const ACameraActor* InCamera = nullptr,
+	void RenderGizmo(class FSceneRenderer* SceneRenderer, AActor* InActor, const FVector& InCameraLocation, const ACameraActor* InCamera = nullptr,
 	                 float InViewportWidth = 0.0f, float InViewportHeight = 0.0f, int32 ViewportIndex = 0);
 	void ChangeGizmoMode();
 	void ChangeGizmoMode(EGizmoMode InMode) { GizmoMode = InMode; }

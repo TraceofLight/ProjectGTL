@@ -3,7 +3,7 @@
 #include "Asset/Public/StaticMeshData.h"
 
 class UShader;
-struct FMaterialRenderProxy;
+class FMaterialRenderProxy;
 struct ID3D11ShaderResourceView;
 
 /**
@@ -16,7 +16,7 @@ class UMaterialInterface : public UObject
 	DECLARE_CLASS(UMaterialInterface, UObject)
 public:
 	// 이름은 UObject::GetName() 사용
-	virtual FMaterialRenderProxy* GetRenderProxy() { return nullptr; } // GPU 바인딩용
+	virtual FMaterialRenderProxy* GetRenderProxy() const { return nullptr; } // GPU 바인딩용
 
 	// DrawIndexedPrimitivesCommand 호환성을 위한 메서드
 	virtual class UTexture* GetTexture() const { return nullptr; }
@@ -38,32 +38,21 @@ public:
 	void SetMaterialInfo(const FObjMaterialInfo& InMaterialInfo);
 	const FObjMaterialInfo& GetMaterialInfo() const;
 
-	void ImportAllTextures();
 	// Material 이름은 UObject::GetName() 사용
 
 	// DrawIndexedPrimitivesCommand에서 필요한 메서드들 (오버라이드)
-	UShader* GetShader() const { return nullptr; }
 	UTexture* GetTexture() const override;
 	bool HasTexture() const override;
 
-	void SetDiffuseTexture(ID3D11ShaderResourceView* InTexture);
-	ID3D11ShaderResourceView* GetDiffuseTexture() const;
-
-	void SetNormalTexture(ID3D11ShaderResourceView* InTexture);
-	ID3D11ShaderResourceView* GetNormalTexture() const;
-
-	void SetSpecularTexture(ID3D11ShaderResourceView* InTexture);
-	ID3D11ShaderResourceView* GetSpecularTexture() const;
-
 	// 셰이더 핸들/경로 + 파라미터(스칼라/벡터/텍스처)
-	// FMaterialRenderProxy* RenderProxy = nullptr;
-	// FMaterialRenderProxy* GetRenderProxy() override { return RenderProxy; }
+	FMaterialRenderProxy* GetRenderProxy() const override;
 
 private:
+	/** Material 정보 (경로 포함) - 언리얼 방식 */
 	FObjMaterialInfo MaterialInfo;
-	ID3D11ShaderResourceView* DiffuseTexture = nullptr;
-	ID3D11ShaderResourceView* NormalTexture = nullptr;
-	ID3D11ShaderResourceView* SpecularTexture = nullptr;
+	
+	/** 렌더링 프록시 (언리얼 엔진 방식) */
+	mutable FMaterialRenderProxy* RenderProxy = nullptr;
 };
 
 /*
@@ -78,6 +67,6 @@ public:
 	UMaterial* Parent = nullptr;
 	// 오버라이드 파라미터 맵…
 	FMaterialRenderProxy* RenderProxy = nullptr; // 머지된 결과
-	FMaterialRenderProxy* GetRenderProxy() override { return RenderProxy; }
+	FMaterialRenderProxy* GetRenderProxy() const override { return RenderProxy; }
 };
 
