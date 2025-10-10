@@ -24,10 +24,10 @@ void UCameraComponent::UpdateVectors()
 	FVector4 UpVector4 = FVector4(0, 0, 1, 1) * RotationMatrix;
 	FVector UpVector = {UpVector4.X, UpVector4.Y, UpVector4.Z};
 
-	Right = UpVector.Cross(Forward);
+	Right = Forward.Cross(UpVector);
 	Right.Normalize();
 
-	Up = Forward.Cross(Right);
+	Up = Right.Cross(Forward);
 	Up.Normalize();
 }
 

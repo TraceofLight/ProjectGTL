@@ -83,6 +83,7 @@ struct FVector
 
 	/**
 	 * @brief 두 벡터를 외적한 결과의 벡터 값을 반환하는 함수
+	 * 현재 Cross 식은 LH 기준의 식 순서이므로 기존의 RH 연산자 순서로 생각하면 안됨.
 	 */
 	inline FVector Cross(const FVector& InOtherVector) const
 	{

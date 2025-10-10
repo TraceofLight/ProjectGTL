@@ -931,7 +931,7 @@ void UViewportSubsystem::UpdatePerspectiveCamera()
 	if (HorizontalMoveDelta.LengthSquared() > 0.0f)
 	{
 		FVector Radians = FVector::GetDegreeToRadian(CurrentRotation);
-		FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, Radians.X, Radians.Z);
+		FMatrix RotationMatrix = FMatrix::CreateFromYawPitchRoll(Radians.Y, -Radians.X, Radians.Z);
 		FVector WorldMoveDelta = FMatrix::VectorMultiply(HorizontalMoveDelta, RotationMatrix);
 		WorldMoveDelta.Normalize();
 		CurrentLocation += WorldMoveDelta * MoveSpeed * DT;
